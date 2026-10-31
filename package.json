@@ -1,0 +1,26 @@
+{
+  "name": "homeocare",
+  "version": "1.0.0",
+  "description": "HomeoCare - Holistic Clinic Management System for Shri Siddhivinayak Clinic (Dr. Suraj D. Panigrahi)",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "node scripts/build.js",
+    "test": "node verify-supabase.js"
+  },
+  "keywords": [
+    "homeocare",
+    "clinic-management",
+    "homeopathy",
+    "telehealth",
+    "supabase"
+  ],
+  "author": "HomeoCare / Shri Siddhivinayak Clinic",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

@@ -1,0 +1,16 @@
+# Never upload local secrets, staff records, SQL scripts, or Android build artifacts to Vercel
+.env
+.env.*
+!.env.example
+.staff-directory.json
+_checkpoints/
+database/
+android/
+dist/
+*.apk
+*.aab
+*.keystore
+*.jks
+key.properties
+verify-supabase.js
+

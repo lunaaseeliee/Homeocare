@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HomeoCare | Shri Siddhivinayak Clinic</title>
+  <meta name="description" content="HomeoCare holistic clinical management system for Shri Siddhivinayak Clinic - Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)">
+  <meta name="theme-color" content="#0B0F19">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Lucide Icons (Local bundle with CDN fallback) -->
+  <script src="lucide.min.js"></script>
+  <script>
+    if (typeof lucide === "undefined") {
+      document.write('<script src="https://unpkg.com/lucide@latest"><\/script>');
+    }
+  </script>
+  <!-- Supabase JS Client (Local bundle with CDN fallback) -->
+  <script src="supabase.min.js"></script>
+  <script>
+    if (typeof window.supabase === "undefined") {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
+  <!-- html2pdf.js for professional selectable PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+  <!-- Ambient background lighting orbs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- ==========================================================================
+       PHASE 6: PREMIUM GLASSMORPHISM AUTHENTICATION ENTRANCE
+       - Welcome Panel on Left (with 3 frosted-glass feature cards)
+       - Authentication Card on Right (Login/Register, Password Eye, Strength, CAPTCHA)
+       - Theme Toggle in Top-Right
+       ========================================================================== -->
+  <div class="auth-entrance-wrapper" id="authEntrance">
+    <!-- Top-Right Theme Toggle for Auth Page -->
+    <div class="auth-top-actions">
+      <button class="theme-toggle-btn auth-theme-toggle" id="authThemeToggleBtn" aria-label="Toggle theme" title="Switch Theme">
+        <div class="theme-toggle-knob">
+          <i data-lucide="moon" class="icon-dark"></i>
+          <i data-lucide="sun" class="icon-light"></i>
+        </div>
+        <span class="theme-text" id="authThemeTextLabel">Dark Glass</span>
+      </button>
+    </div>
+
+    <div class="auth-layout-container">
+      <!-- LEFT SECTION — WELCOME PANEL -->
+      <div class="auth-welcome-panel">
+        <div class="auth-brand-badge">
+          <div class="auth-logo-icon">
+            <svg class="lucide lucide-flower-2" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1" />
+              <circle cx="12" cy="8" r="2" />
+              <path d="M12 10v12" />
+              <path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z" />
+              <path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z" />
+            </svg>
+          </div>
+          <div class="auth-brand-text">
+            <span class="auth-brand-title">HomeoCare<span class="auth-dot">.</span></span>
+            <span class="auth-clinic-name">Shri Siddhivinayak Clinic</span>
+          </div>
+        </div>
+
+        <div class="auth-hero-copy">
+          <h1 class="auth-headline">Welcome to a better way to care.</h1>
+          <p class="auth-subheadline">
+            Your clinic, beautifully organized. Every patient record, consultation and invoice in one elegant workspace.
+          </p>
+        </div>
+
+        <!-- 3 Subtle Frosted-Glass Feature Cards -->
+        <div class="auth-feature-cards">
+          <div class="auth-feature-card">
+            <div class="feature-card-icon peach-icon">
+              <i data-lucide="users"></i>
+            </div>
+            <div class="feature-card-content">
+              <h3 class="feature-card-title">Patient Management</h3>
+              <p class="feature-card-desc">Organized patient information</p>
+            </div>
+          </div>
+
+          <div class="auth-feature-card">
+            <div class="feature-card-icon amber-icon">
+              <i data-lucide="activity"></i>
+            </div>
+            <div class="feature-card-content">
+              <h3 class="feature-card-title">Progress Tracking</h3>
+              <p class="feature-card-desc">Preserve every consultation</p>
+            </div>
+          </div>
+
+          <div class="auth-feature-card">
+            <div class="feature-card-icon cyan-icon">
+              <i data-lucide="receipt"></i>
+            </div>
+            <div class="feature-card-content">
+              <h3 class="feature-card-title">Automated Billing</h3>
+              <p class="feature-card-desc">Professional clinic invoices</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SECTION — AUTHENTICATION CARD -->
+      <div class="auth-card-panel">
+        <div class="glass-card auth-main-card">
+          <div class="auth-card-header">
+            <div class="auth-card-emblem">
+              <i data-lucide="shield-plus"></i>
+            </div>
+            <h2 class="auth-card-title">Welcome to HomeoCare</h2>
+            <p class="auth-card-subtitle">Sign in to your practitioner workspace</p>
+          </div>
+
+          <!-- Auth Tabs: Login vs Register -->
+          <div class="auth-tab-switch" id="authTabSwitch" style="display: flex;">
+            <button type="button" class="auth-tab-btn active" id="tabLoginBtn">
+              <i data-lucide="log-in"></i>
+              <span>Login</span>
+            </button>
+            <button type="button" class="auth-tab-btn" id="tabRegisterBtn">
+              <i data-lucide="user-plus"></i>
+              <span>Register</span>
+            </button>
+          </div>
+
+          <!-- Generic Alert Container -->
+          <div class="auth-alert-message" id="authAlertBox" style="display: none;"></div>
+
+          <!-- LOGIN FORM -->
+          <form class="auth-form" id="loginForm">
+            <div class="form-group">
+              <label for="loginUsername">Username</label>
+              <div class="auth-input-wrapper">
+                <i data-lucide="user" class="input-icon"></i>
+                <input type="text" id="loginUsername" class="auth-input" placeholder="Enter your username" required autocomplete="username">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <div class="auth-input-wrapper">
+                <i data-lucide="lock" class="input-icon"></i>
+                <input type="password" id="loginPassword" class="auth-input" placeholder="Enter your password" required autocomplete="current-password">
+                <button type="button" class="password-toggle-btn" id="loginPasswordToggle" aria-label="Toggle password visibility">
+                  <i data-lucide="eye" id="loginEyeIcon"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="auth-action-row">
+              <button type="submit" class="interactive-btn glow-cta-btn primary-glow full-width-btn" id="loginSubmitBtn">
+                <i data-lucide="log-in"></i>
+                <span>Login</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- REGISTRATION FORM -->
+          <form class="auth-form" id="registerForm" style="display: none;">
+            <div class="form-group">
+              <label for="regUsername">Username</label>
+              <div class="auth-input-wrapper">
+                <i data-lucide="user" class="input-icon"></i>
+                <input type="text" id="regUsername" class="auth-input" placeholder="Choose a username" required autocomplete="username">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="regPassword">Password</label>
+              <div class="auth-input-wrapper">
+                <i data-lucide="lock" class="input-icon"></i>
+                <input type="password" id="regPassword" class="auth-input" placeholder="Minimum 8 characters" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" id="regPasswordToggle" aria-label="Toggle password visibility">
+                  <i data-lucide="eye" id="regEyeIcon"></i>
+                </button>
+              </div>
+              <!-- Password Strength Bar -->
+              <div class="password-strength-container">
+                <div class="strength-bar-track">
+                  <div class="strength-bar-fill" id="strengthBarFill"></div>
+                </div>
+                <div class="strength-text" id="strengthText">Minimum 8 characters</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="regConfirmPassword">Confirm Password</label>
+              <div class="auth-input-wrapper">
+                <i data-lucide="check-check" class="input-icon"></i>
+                <input type="password" id="regConfirmPassword" class="auth-input" placeholder="Re-enter password" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" id="regConfirmPasswordToggle" aria-label="Toggle password visibility">
+                  <i data-lucide="eye" id="regConfirmEyeIcon"></i>
+                </button>
+              </div>
+              <span class="inline-validation-msg" id="confirmValidationMsg"></span>
+            </div>
+
+            <!-- Human Verification CAPTCHA System (Frosted-Glass Box) -->
+            <div class="captcha-verification-box">
+              <div class="captcha-header">
+                <div class="captcha-title">
+                  <i data-lucide="shield-check"></i>
+                  <span>Security Verification</span>
+                </div>
+                <span class="captcha-badge">Required</span>
+              </div>
+
+              <div class="captcha-display-row">
+                <div class="captcha-code-frame" id="captchaCodeFrame" title="Case-insensitive verification challenge">
+                  <canvas id="captchaCanvas" width="160" height="44"></canvas>
+                </div>
+                <button type="button" class="captcha-refresh-btn" id="captchaRefreshBtn" title="Regenerate CAPTCHA challenge" aria-label="Refresh challenge">
+                  <i data-lucide="refresh-cw"></i>
+                </button>
+              </div>
+
+              <div class="form-group" style="margin-top: 10px;">
+                <label for="captchaInput" style="font-size: 0.78rem;">Enter the 6-character code</label>
+                <input type="text" id="captchaInput" class="auth-input" placeholder="Enter 6 characters" maxlength="6" required autocomplete="off" style="text-transform: uppercase;">
+              </div>
+            </div>
+
+            <div class="auth-action-row">
+              <button type="submit" class="interactive-btn glow-cta-btn primary-glow full-width-btn" id="registerSubmitBtn">
+                <i data-lucide="user-plus"></i>
+                <span>Register</span>
+              </button>
+            </div>
+          </form>
+
+          <div class="auth-card-footer">
+            <i data-lucide="lock" style="width: 14px; height: 14px;"></i>
+            <span>Authorized clinic personnel only • Shri Siddhivinayak Clinic</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-container">
+        <div class="brand-logo">
+          <svg class="lucide lucide-flower-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1" />
+            <circle cx="12" cy="8" r="2" />
+            <path d="M12 10v12" />
+            <path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z" />
+            <path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z" />
+          </svg>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">HomeoCare<span class="brand-dot">.</span></span>
+          <span class="brand-badge" id="sidebarClinicName">Shri Siddhivinayak Clinic</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-section-label">MAIN PRACTICE</div>
+        <a href="#dashboard" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+          <i data-lucide="layout-grid"></i>
+          <span>Clinical Desk</span>
+          <span class="nav-pill" id="livePill">Live</span>
+        </a>
+        <a href="#patients" class="nav-item" data-page="patients" id="nav-patients">
+          <i data-lucide="users"></i>
+          <span>Patient Registry</span>
+          <span class="nav-count" id="navPatientCount">0</span>
+        </a>
+        <a href="#repertory" class="nav-item" data-page="repertory" id="nav-repertory">
+          <i data-lucide="book-open-check"></i>
+          <span>Repertory & Materia</span>
+        </a>
+        <a href="#cases" class="nav-item" data-page="cases" id="nav-cases">
+          <i data-lucide="stethoscope"></i>
+          <span>Active Case Record</span>
+        </a>
+        <a href="#dispensary" class="nav-item" data-page="dispensary" id="nav-dispensary">
+          <i data-lucide="flask-conical"></i>
+          <span>Potency Dispensary</span>
+          <span class="nav-count" id="navDispensaryCount">0</span>
+        </a>
+
+        <div class="nav-section-label">PRACTICE MGMT</div>
+        <a href="#appointments" class="nav-item" data-page="appointments" id="nav-appointments">
+          <i data-lucide="calendar"></i>
+          <span>Schedules & Visits</span>
+          <span class="nav-count" id="navAppointmentsCount">0</span>
+        </a>
+        <a href="#invoices" class="nav-item" data-page="invoices" id="nav-invoices">
+          <i data-lucide="receipt"></i>
+          <span>Invoices & Billing</span>
+          <span class="nav-count" id="navInvoicesCount">0</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-page="analytics" id="nav-analytics">
+          <i data-lucide="activity"></i>
+          <span>Practice Analytics</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="practitioner-card">
+          <div class="avatar-ring">
+            <div class="practitioner-avatar" id="practitionerAvatarInitials">SP</div>
+            <span class="status-indicator"></span>
+          </div>
+          <div class="practitioner-details">
+            <span class="practitioner-name" id="practitionerName">Dr. Suraj D. Panigrahi</span>
+            <span class="practitioner-specialty" id="practitionerQualification">B.H.M.S. (Mum.)</span>
+            <span class="practitioner-role" id="staffRole">Clinic Staff (Logged in)</span>
+          </div>
+          <button class="icon-action-btn" id="logoutSidebarBtn" title="Sign Out to Login Entrance" aria-label="Sign out">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Floating Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-sidebar-toggle" id="mobileMenuBtn" aria-label="Toggle navigation">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="search-box">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="globalSearch" placeholder="Search patient name, phone, remedy, case ID..." aria-label="Global Search">
+            <div class="search-shortcut"><kbd>⌘</kbd><kbd>K</kbd></div>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Quick Status Chip -->
+          <div class="clinic-status-chip">
+            <span class="pulse-dot"></span>
+            <span>Clinic: <strong id="topbarClinicStatus">Ready • 0 In-Queue</strong></span>
+          </div>
+
+          <!-- Theme Toggle Switch -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle between dark and light peach glassmorphism" title="Switch Theme">
+            <div class="theme-toggle-knob">
+              <i data-lucide="moon" class="icon-dark"></i>
+              <i data-lucide="sun" class="icon-light"></i>
+            </div>
+            <span class="theme-text" id="themeTextLabel">Dark Charcoal</span>
+          </button>
+
+          <!-- Notification Bell -->
+          <button class="action-circle-btn" id="notifBtn" aria-label="Notifications" title="0 notifications">
+            <i data-lucide="bell"></i>
+            <span class="notification-badge" id="notifBadge" style="display: none;">0</span>
+          </button>
+
+          <!-- New Case Action Button -->
+          <button class="glow-cta-btn primary-glow" id="quickIntakeBtn">
+            <i data-lucide="user-plus"></i>
+            <span id="quickIntakeLabel">Register First Patient</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Primary View Container: Multi-Page Client-Side Routing Area -->
+      <main class="dashboard-viewport" id="appViewport">
+        <!-- ==========================================
+             PAGE 1: CLINICAL DESK (Main Dashboard)
+             ========================================== -->
+        <section class="page-view active" id="page-dashboard">
+          <!-- Welcoming Hero -->
+          <div class="welcome-header">
+            <div class="welcome-text">
+              <div class="subtitle-badge">
+                <i data-lucide="shield-plus"></i> Shri Siddhivinayak Clinic • HomeoCare
+              </div>
+              <h1 class="welcome-heading">Welcome, <em id="heroDoctorTitle">Dr. Suraj D. Panigrahi</em></h1>
+              <p class="welcome-desc" id="heroClinicDesc">Clean practice installation ready. Register your first patient or schedule an appointment to begin clinical documentation.</p>
+            </div>
+            <div class="welcome-actions">
+              <button class="interactive-btn secondary-btn" id="newAppointmentQuickBtn">
+                <i data-lucide="calendar-plus"></i>
+                <span>Book Visit</span>
+              </button>
+              <button class="interactive-btn primary-btn" id="registerPatientHeroBtn">
+                <i data-lucide="user-plus"></i>
+                <span>Register Patient</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Metric Cards Grid - Real counts only -->
+          <div class="metrics-grid">
+            <div class="glass-card metric-card">
+              <div class="metric-icon-wrap peach-accent">
+                <i data-lucide="users"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">Total Patients</span>
+                <div class="metric-val-row">
+                  <span class="metric-value" id="kpiTotalPatients">0</span>
+                  <span class="metric-trend neutral" id="kpiPatientsTrend">0 new</span>
+                </div>
+                <span class="metric-subtext">Active cases in registry: <strong id="kpiActiveCasesSub">0</strong></span>
+              </div>
+              <div class="metric-chart-mini">
+                <div class="metric-empty-line" id="kpiPatientSubLine">No patient records yet</div>
+              </div>
+            </div>
+
+            <div class="glass-card metric-card">
+              <div class="metric-icon-wrap red-accent">
+                <i data-lucide="clock"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">Pending Approvals</span>
+                <div class="metric-val-row">
+                  <span class="metric-value" id="kpiPendingApprovals">0</span>
+                  <span class="metric-trend neutral">0 awaiting</span>
+                </div>
+                <span class="metric-subtext">Completed cases: <strong id="kpiCompletedCases">0</strong></span>
+              </div>
+              <div class="metric-chart-mini">
+                <div class="metric-empty-line">No cases awaiting approval</div>
+              </div>
+            </div>
+
+            <div class="glass-card metric-card">
+              <div class="metric-icon-wrap amber-accent">
+                <i data-lucide="calendar-check"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">Today's Visits</span>
+                <div class="metric-val-row">
+                  <span class="metric-value" id="kpiTodayVisits">0</span>
+                  <span class="metric-trend neutral">0 scheduled</span>
+                </div>
+                <span class="metric-subtext">Upcoming appointments: <strong id="kpiUpcomingAppointments">0</strong></span>
+              </div>
+              <div class="metric-chart-mini">
+                <div class="metric-empty-line" id="kpiVisitsSubLine">No visits queued today</div>
+              </div>
+            </div>
+
+            <div class="glass-card metric-card">
+              <div class="metric-icon-wrap cyan-accent">
+                <i data-lucide="receipt"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">Total Revenue</span>
+                <div class="metric-val-row">
+                  <span class="metric-value" id="kpiRevenue">₹0</span>
+                  <span class="metric-trend neutral">0 invoices</span>
+                </div>
+                <span class="metric-subtext">Pending invoices: <strong id="kpiPendingInvoices">0</strong> • Medicines: <strong id="kpiMedicineInventory">0</strong></span>
+              </div>
+              <div class="metric-chart-mini">
+                <div class="metric-empty-line">No financial records yet</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Two Column Interactive Workspace: Active Patient + Queue & Timeline -->
+          <div class="workspace-grid">
+            <div class="workspace-col-primary">
+              <!-- Active Patient Dossier Card -->
+              <div class="glass-card patient-dossier-card">
+                <div class="card-header-flex">
+                  <div class="header-badge-title">
+                    <span class="pulse-indicator" id="activePulse"></span>
+                    <h2>Active Patient Workspace</h2>
+                  </div>
+                  <div class="patient-selector-switch" id="patientSelectorWrap" style="display: none;">
+                    <label for="patientSelect">Select Record:</label>
+                    <select id="patientSelect" class="glass-select">
+                      <!-- Populated dynamically when patients exist -->
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Container for Active Patient Dossier OR Glass Empty State -->
+                <div id="patientWorkspaceContent">
+                  <!-- Injected via JavaScript based on whether records exist -->
+                </div>
+              </div>
+
+              <!-- Consultation Scratchpad -->
+              <div class="glass-card notes-card">
+                <div class="notes-header">
+                  <div>
+                    <h3 class="panel-section-title">Clinical Consultation Observations</h3>
+                    <span class="panel-section-subtitle">Real-time doctor note-taking with symptom rubric capture</span>
+                  </div>
+                  <div class="notes-tools">
+                    <span class="status-autosave" id="notesStatusNotice"><i data-lucide="info"></i> Ready</span>
+                    <button class="interactive-btn secondary-btn" id="saveNoteBtn">Save Note</button>
+                  </div>
+                </div>
+                <div class="note-input-zone">
+                  <textarea id="doctorNotesInput" rows="3" placeholder="Enter patient symptom changes, tongue diagnostics, pulse qualities (register or select a patient first)..." disabled></textarea>
+                </div>
+                <div class="symptom-tag-chips">
+                  <span class="chip-label">Quick Rubrics:</span>
+                  <button class="symptom-chip" data-rubric="Headache > open air" disabled>+ Headache &gt; open air</button>
+                  <button class="symptom-chip" data-rubric="Anxiety twilight" disabled>+ Anxiety at twilight</button>
+                  <button class="symptom-chip" data-rubric="Thirst cold drinks" disabled>+ Thirst icy cold water</button>
+                  <button class="symptom-chip" data-rubric="Stiffness > continued motion" disabled>+ Stiffness &gt; continuous motion</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="workspace-col-secondary">
+              <!-- Vital Force Vector -->
+              <div class="glass-card cure-vector-card">
+                <div class="card-header-flex">
+                  <h3>Vital Force Vector</h3>
+                  <span class="pill-indicator pill-neutral" id="vitalStatusPill">Standby</span>
+                </div>
+                <div class="cure-graphic-zone" id="cureGraphicContainer">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+
+              <!-- Chronological Progress History Panel -->
+              <div class="glass-card timeline-history-card">
+                <div class="card-header-flex">
+                  <div class="header-badge-title">
+                    <i data-lucide="history"></i>
+                    <h3>Progress & Follow-up History</h3>
+                  </div>
+                </div>
+                <div class="history-timeline-scroll" id="timelineList">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+
+              <!-- Today's Queue & Appointments -->
+              <div class="glass-card queue-card">
+                <div class="card-header-flex">
+                  <div class="header-badge-title">
+                    <i data-lucide="calendar"></i>
+                    <h3>Today's Clinic Queue</h3>
+                  </div>
+                  <span class="badge-mini" id="queueRemainingBadge">Queue: 0</span>
+                </div>
+                <div class="appointments-list" id="appointmentsList">
+                  <!-- Injected via JS -->
+                </div>
+                <div class="queue-card-footer">
+                  <button class="interactive-btn full-width-btn secondary-btn" id="bookVisitFooterBtn">
+                    <i data-lucide="calendar-plus"></i>
+                    <span>Schedule Patient Visit</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 2: PATIENT REGISTRY
+             ========================================== -->
+        <section class="page-view" id="page-patients">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="users"></i> Directory</div>
+              <h1 class="welcome-heading">Patient Registry</h1>
+              <p class="welcome-desc">Search, filter, register, and manage patient profiles at Shri Siddhivinayak Clinic.</p>
+            </div>
+            <button class="interactive-btn primary-btn" id="registryNewPatientBtn">
+              <i data-lucide="user-plus"></i>
+              <span>Register Patient</span>
+            </button>
+          </div>
+
+          <div class="glass-card page-table-card">
+            <div class="table-action-bar">
+              <div class="table-search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="registrySearchInput" placeholder="Filter by name, ID, phone, or miasm...">
+              </div>
+              <div class="table-filter-stats" id="registryFilterStats">0 records</div>
+            </div>
+
+            <div id="patientRegistryTableContainer">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 3: REPERTORY & MATERIA
+             ========================================== -->
+        <section class="page-view" id="page-repertory">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="book-open-check"></i> Reference Management</div>
+              <h1 class="welcome-heading">Repertory & Materia Medica</h1>
+              <p class="welcome-desc">Configure authorized repertorial rubrics and materia medica references. No fabricated remedies or unverified suggestions are loaded.</p>
+            </div>
+          </div>
+
+          <div class="glass-card page-card-padded">
+            <div class="glass-empty-state">
+              <div class="empty-state-icon-wrap">
+                <i data-lucide="book-open"></i>
+              </div>
+              <h3 class="empty-state-title">No reference content configured.</h3>
+              <p class="empty-state-desc">The reference library is unconfigured. Legitimate repertorial rubrics and verified Materia Medica texts will appear here once connected to an authorized repository or imported by the clinic administrator.</p>
+              <button class="interactive-btn secondary-btn" id="importRepertoryNoticeBtn">
+                <i data-lucide="file-up"></i>
+                <span>Import Approved Reference</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 4: ACTIVE CASE RECORD
+             ========================================== -->
+        <section class="page-view" id="page-cases">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="stethoscope"></i> Clinical Cases</div>
+              <h1 class="welcome-heading">Active Case Record</h1>
+              <p class="welcome-desc">Track ongoing clinical cases, constitutional investigations, and case follow-up statuses under Dr. Suraj D. Panigrahi.</p>
+            </div>
+            <button class="interactive-btn primary-btn" id="casesRegisterBtn">
+              <i data-lucide="user-plus"></i>
+              <span>Open New Case</span>
+            </button>
+          </div>
+
+          <div class="glass-card page-card-padded" id="casesContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 5: POTENCY DISPENSARY
+             ========================================== -->
+        <section class="page-view" id="page-dispensary">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="flask-conical"></i> Pharmacy Inventory</div>
+              <h1 class="welcome-heading">Potency Dispensary</h1>
+              <p class="welcome-desc">Track homeopathic remedies, decimal/centesimal/LM potencies, stock levels, and batch expiry.</p>
+            </div>
+            <button class="interactive-btn primary-btn" id="dispensaryAddMedicineBtn">
+              <i data-lucide="plus"></i>
+              <span>Add Medicine Item</span>
+            </button>
+          </div>
+
+          <div class="glass-card page-table-card" id="dispensaryContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 6: SCHEDULES & VISITS
+             ========================================== -->
+        <section class="page-view" id="page-appointments">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="calendar"></i> Appointments</div>
+              <h1 class="welcome-heading">Schedules & Clinic Visits</h1>
+              <p class="welcome-desc">Manage daily schedules, follow-up consults, and case-taking appointments for Shri Siddhivinayak Clinic.</p>
+            </div>
+            <button class="interactive-btn primary-btn" id="schedulesBookVisitBtn">
+              <i data-lucide="calendar-plus"></i>
+              <span>Schedule New Visit</span>
+            </button>
+          </div>
+
+          <div class="glass-card page-table-card" id="schedulesContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 7: INVOICES & BILLING (History & Directory)
+             ========================================== -->
+        <section class="page-view" id="page-invoices">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="receipt"></i> Financial Records</div>
+              <h1 class="welcome-heading">Invoices & Billing</h1>
+              <p class="welcome-desc">Official medical receipts and itemized billing for Shri Siddhivinayak Clinic.</p>
+            </div>
+            <button class="interactive-btn primary-btn" id="newInvoiceBtn">
+              <i data-lucide="plus"></i>
+              <span>Create Itemized Invoice</span>
+            </button>
+          </div>
+
+          <div class="glass-card page-table-card">
+            <div class="table-action-bar">
+              <div class="table-search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="invoiceSearchInput" placeholder="Search by invoice #, patient name, ID, or date...">
+              </div>
+              <div class="table-filter-stats" id="invoicesFilterStats">0 records</div>
+            </div>
+            <div id="invoicesContainer">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 7B: DEDICATED INVOICE GENERATOR / CREATOR
+             ========================================== -->
+        <section class="page-view" id="page-invoice-create">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="file-spreadsheet"></i> Clinic Billing Engine</div>
+              <h1 class="welcome-heading" id="invoiceCreatorHeading">Create Itemized Medical Invoice</h1>
+              <p class="welcome-desc">Automated receipt generator with clinical data autofill and live official A4 preview.</p>
+            </div>
+            <div class="welcome-actions">
+              <button class="interactive-btn secondary-btn" id="invoiceBackToListBtn">
+                <i data-lucide="arrow-left"></i>
+                <span>Back to Invoices</span>
+              </button>
+              <button class="interactive-btn glass-soft-btn" id="invoiceSaveDraftBtn">
+                <i data-lucide="save"></i>
+                <span>Save Draft</span>
+              </button>
+              <button class="interactive-btn secondary-btn" id="invoiceSubmitApprovalBtn">
+                <i data-lucide="shield-check"></i>
+                <span>Submit for Approval</span>
+              </button>
+              <button class="interactive-btn primary-btn" id="invoiceDoctorApproveBtn">
+                <i data-lucide="check-circle-2"></i>
+                <span>Approve & Finalize</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Split Workspace: Builder Form (Left) & Live Letterhead Preview (Right) -->
+          <div class="invoice-split-grid">
+            <!-- Left Panel: Interactive Clinical Form -->
+            <div class="invoice-form-pane">
+              <div class="glass-card invoice-editor-card">
+                <!-- Patient & Case Selection -->
+                <div class="invoice-section-block">
+                  <div class="section-badge-title">
+                    <i data-lucide="user-check"></i>
+                    <h3>1. Patient & Case Selection</h3>
+                  </div>
+                  <div class="form-row-2">
+                    <div class="form-group">
+                      <label for="invFormPatientSelect">Select Patient *</label>
+                      <select id="invFormPatientSelect" class="glass-select" required>
+                        <!-- Populated dynamically -->
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormCaseSelect">Select Consultation / Case *</label>
+                      <select id="invFormCaseSelect" class="glass-select">
+                        <option value="current">Active Constitutional Intake</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-row-3">
+                    <div class="form-group">
+                      <label for="invFormDate">Invoice Date *</label>
+                      <input type="date" id="invFormDate" class="glass-input" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormConsultDate">Consultation Date</label>
+                      <input type="date" id="invFormConsultDate" class="glass-input">
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormFollowupDate">Follow-up Review Date</label>
+                      <input type="date" id="invFormFollowupDate" class="glass-input">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invFormAddress">Patient Address</label>
+                    <input type="text" id="invFormAddress" class="glass-input" placeholder="e.g. Dadar (W), Mumbai">
+                  </div>
+                </div>
+
+                <!-- Treatment & Clinical Notes -->
+                <div class="invoice-section-block">
+                  <div class="section-badge-title">
+                    <i data-lucide="stethoscope"></i>
+                    <h3>2. Consultation & Treatment Summary</h3>
+                  </div>
+                  <div class="form-group">
+                    <label for="invFormChiefComplaint">Chief Complaint / Problem Faced</label>
+                    <input type="text" id="invFormChiefComplaint" class="glass-input" placeholder="Auto-populated from patient record">
+                  </div>
+                  <div class="form-row-2">
+                    <div class="form-group">
+                      <label for="invFormDiagnosis">Diagnosis / Clinical Impression</label>
+                      <input type="text" id="invFormDiagnosis" class="glass-input" placeholder="e.g. Chronic Hemicrania / Psoric Diathesis">
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormTreatmentPlan">Treatment / Management Plan</label>
+                      <input type="text" id="invFormTreatmentPlan" class="glass-input" placeholder="e.g. Constitutional Homeopathic Management + Sac-Lac">
+                    </div>
+                  </div>
+                  <div class="form-row-2">
+                    <div class="form-group">
+                      <label for="invFormConsultDuration">Consultation Duration</label>
+                      <input type="text" id="invFormConsultDuration" class="glass-input" placeholder="e.g. 45 Mins">
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormTreatmentDuration">Treatment Duration (Days)</label>
+                      <input type="number" id="invFormTreatmentDuration" class="glass-input" placeholder="e.g. 30" min="1">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="invFormShowClinicalDetails" checked>
+                      <span>Include clinical diagnosis and treatment summary on patient receipt</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Itemized Medicines & Services Table Editor -->
+                <div class="invoice-section-block">
+                  <div class="section-badge-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="pill"></i>
+                      <h3>3. Medicines & Services Itemization</h3>
+                    </div>
+                    <button type="button" class="interactive-btn peach-solid-btn" id="invAddRowBtn" style="padding: 6px 14px; font-size: 0.8rem;">
+                      <i data-lucide="plus"></i> Add Line Item
+                    </button>
+                  </div>
+
+                  <div class="table-responsive-wrapper">
+                    <table class="item-builder-table">
+                      <thead>
+                        <tr>
+                          <th style="width: 38px;">#</th>
+                          <th>Description / Medicine / Service</th>
+                          <th style="width: 100px;">Potency</th>
+                          <th style="width: 65px;">Qty</th>
+                          <th style="width: 65px;">Days</th>
+                          <th style="width: 95px;">Rate (₹)</th>
+                          <th style="width: 95px;">Total (₹)</th>
+                          <th style="width: 44px;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="invoiceItemsTableBody">
+                        <!-- Injected dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Billing Summary & Payment Configuration -->
+                <div class="invoice-section-block">
+                  <div class="section-badge-title">
+                    <i data-lucide="calculator"></i>
+                    <h3>4. Billing Summary & Payment</h3>
+                  </div>
+
+                  <div class="form-row-3">
+                    <div class="form-group">
+                      <label for="invFormConsultFee">Consultation Fee (₹)</label>
+                      <input type="number" id="invFormConsultFee" class="glass-input" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormOtherCharges">Other Charges (₹)</label>
+                      <input type="number" id="invFormOtherCharges" class="glass-input" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormDiscount">Discount (₹)</label>
+                      <input type="number" id="invFormDiscount" class="glass-input" min="0" value="0">
+                    </div>
+                  </div>
+
+                  <div class="form-row-3">
+                    <div class="form-group">
+                      <label for="invFormAmountPaid">Amount Paid (₹)</label>
+                      <input type="number" id="invFormAmountPaid" class="glass-input" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormPaymentMethod">Payment Method</label>
+                      <select id="invFormPaymentMethod" class="glass-select">
+                        <option value="UPI / QR Code">UPI / QR Code</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit / Debit Card">Credit / Debit Card</option>
+                        <option value="Net Banking">Net Banking</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="invFormPaymentStatus">Payment Status</label>
+                      <select id="invFormPaymentStatus" class="glass-select">
+                        <option value="Paid">Paid</option>
+                        <option value="Partially Paid">Partially Paid</option>
+                        <option value="Unpaid">Unpaid</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invFormDoctorNote">Special Instructions / Doctor's Remarks</label>
+                    <input type="text" id="invFormDoctorNote" class="glass-input" placeholder="e.g. Strict avoidance of raw onion, garlic, and camphorated oils.">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Panel: Real-Time Official Letterhead Live Preview -->
+            <div class="invoice-preview-pane">
+              <div class="preview-sticky-wrap">
+                <div class="preview-toolbar">
+                  <div class="preview-toolbar-title">
+                    <i data-lucide="eye"></i>
+                    <span>Official A4 Print Preview</span>
+                  </div>
+                  <div class="preview-actions">
+                    <button class="interactive-btn secondary-btn" id="previewPrintBtn">
+                      <i data-lucide="printer"></i>
+                      <span>Print</span>
+                    </button>
+                    <button class="interactive-btn primary-btn" id="previewDownloadPdfBtn">
+                      <i data-lucide="download"></i>
+                      <span>Download PDF</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Printable Sheet Container (Matches attached approved design strictly) -->
+                <div class="printable-sheet-wrapper">
+                  <div class="official-invoice-sheet" id="officialInvoiceDocument">
+                    <!-- Letterhead Top Header -->
+                    <div class="sheet-letterhead">
+                      <div class="letterhead-symbol-col">
+                        <div class="medical-emblem">
+                          <svg viewBox="0 0 100 100" class="caduceus-svg">
+                            <circle cx="50" cy="50" r="46" fill="none" stroke="#f97334" stroke-width="2.5"></circle>
+                            <path d="M50 14 L50 86" stroke="#c2460b" stroke-width="3" stroke-linecap="round"></path>
+                            <!-- Wings -->
+                            <path d="M50 26 C36 18, 22 24, 18 36 C30 38, 42 34, 50 26 Z" fill="#ffebd9" stroke="#f97334" stroke-width="1.5"></path>
+                            <path d="M50 26 C64 18, 78 24, 82 36 C70 38, 58 34, 50 26 Z" fill="#ffebd9" stroke="#f97334" stroke-width="1.5"></path>
+                            <!-- Serpents -->
+                            <path d="M42 78 C34 68, 66 60, 58 50 C50 40, 36 34, 50 26" fill="none" stroke="#c2460b" stroke-width="2" stroke-linecap="round"></path>
+                            <path d="M58 78 C66 68, 34 60, 42 50 C50 40, 64 34, 50 26" fill="none" stroke="#f97334" stroke-width="2" stroke-linecap="round"></path>
+                            <circle cx="50" cy="18" r="4" fill="#c2460b"></circle>
+                          </svg>
+                        </div>
+                      </div>
+                      <div class="letterhead-info-col">
+                        <h2 class="clinic-title">Shri Siddhivinayak Clinic</h2>
+                        <div class="doctor-title">Dr. Suraj D. Panigrahi</div>
+                        <div class="doctor-sub">B.H.M.S. (Mum.)</div>
+                        <div class="doctor-desc">Family Physician & Surgeon, Consulting Homeopath</div>
+                        <div class="doctor-reg">Registration No.: <strong>38080</strong></div>
+                        <div class="clinic-address">Tower Bldg., Room No. 1-B, Ground Floor, S.B. Road, Opp. Ramgopal Ind. Estate, Dadar (W), Mumbai - 400 028.</div>
+                      </div>
+                    </div>
+
+                    <!-- Divider Line with Peach Accent -->
+                    <div class="sheet-divider-bar"></div>
+
+                    <!-- Receipt Title & Meta Bar -->
+                    <div class="sheet-receipt-meta-row">
+                      <div class="receipt-type-banner">
+                        <span class="rx-heading">MEDICAL INVOICE & RECEIPT</span>
+                      </div>
+                      <div class="receipt-meta-box">
+                        <div class="meta-row"><span>Invoice No:</span> <strong id="docInvoiceNo">INV-2026-0001</strong></div>
+                        <div class="meta-row"><span>Date:</span> <strong id="docInvoiceDate">30/10/2026</strong></div>
+                        <div class="meta-row" id="docApprovalBadgeRow"><span class="approval-tag approved" id="docApprovalBadge">APPROVED</span></div>
+                      </div>
+                    </div>
+
+                    <!-- Patient Information Grid -->
+                    <div class="sheet-patient-box">
+                      <div class="patient-info-col">
+                        <div class="info-line"><span class="lbl">Patient Name:</span> <strong class="val" id="docPatientName">—</strong></div>
+                        <div class="info-line"><span class="lbl">Patient ID:</span> <span class="val" id="docPatientId">—</span></div>
+                        <div class="info-line"><span class="lbl">Address:</span> <span class="val" id="docPatientAddress">—</span></div>
+                      </div>
+                      <div class="patient-info-col">
+                        <div class="info-line"><span class="lbl">Age / Gender:</span> <span class="val" id="docPatientAgeGender">—</span></div>
+                        <div class="info-line"><span class="lbl">Contact No:</span> <span class="val" id="docPatientPhone">—</span></div>
+                        <div class="info-line"><span class="lbl">Consult Date:</span> <span class="val" id="docConsultDate">—</span></div>
+                      </div>
+                    </div>
+
+                    <!-- Clinical Summary (If selected to show) -->
+                    <div class="sheet-clinical-box" id="docClinicalBox">
+                      <div class="clinical-line"><span class="cl-lbl">Chief Complaint:</span> <span class="cl-val" id="docChiefComplaint">—</span></div>
+                      <div class="clinical-line"><span class="cl-lbl">Diagnosis / Impression:</span> <span class="cl-val" id="docDiagnosis">—</span></div>
+                      <div class="clinical-line"><span class="cl-lbl">Management Plan:</span> <span class="cl-val" id="docManagementPlan">—</span></div>
+                    </div>
+
+                    <!-- Itemized Medicines and Services Table -->
+                    <table class="sheet-items-table">
+                      <thead>
+                        <tr>
+                          <th style="width: 32px; text-align: center;">Sr</th>
+                          <th>Description / Medicine / Service</th>
+                          <th style="width: 80px; text-align: center;">Potency</th>
+                          <th style="width: 50px; text-align: center;">Qty</th>
+                          <th style="width: 50px; text-align: center;">Days</th>
+                          <th style="width: 85px; text-align: right;">Rate (₹)</th>
+                          <th style="width: 95px; text-align: right;">Amount (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody id="docItemsTableBody">
+                        <!-- Populated dynamically -->
+                      </tbody>
+                    </table>
+
+                    <!-- Billing Summary Block & Doctor Signature Block -->
+                    <div class="sheet-bottom-grid">
+                      <!-- Left side: Payment Method & Remarks -->
+                      <div class="sheet-bottom-left">
+                        <div class="payment-specs-box">
+                          <div class="spec-row"><span>Payment Method:</span> <strong id="docPaymentMethod">UPI / QR Code</strong></div>
+                          <div class="spec-row"><span>Payment Status:</span> <strong id="docPaymentStatusBadge" class="status-badge paid">PAID</strong></div>
+                          <div class="spec-row" id="docFollowupRow"><span>Next Follow-up Review:</span> <strong id="docFollowupDate">—</strong></div>
+                        </div>
+
+                        <div class="sheet-doctor-instructions">
+                          <div class="inst-lbl">Special Instructions:</div>
+                          <div class="inst-val" id="docSpecialInstructions">Strict avoidance of raw onion, garlic, coffee and camphorated products during active remedy treatment.</div>
+                        </div>
+
+                        <div class="sheet-legal-note">
+                          * Computerized medical consultation & dispensing receipt issued by Shri Siddhivinayak Clinic.
+                        </div>
+                      </div>
+
+                      <!-- Right side: Financials Breakdown Table -->
+                      <div class="sheet-bottom-right">
+                        <table class="financial-summary-table">
+                          <tr>
+                            <td>Consultation Fee:</td>
+                            <td class="amt" id="docConsultFee">₹0</td>
+                          </tr>
+                          <tr>
+                            <td>Medicines Total:</td>
+                            <td class="amt" id="docMedicinesTotal">₹0</td>
+                          </tr>
+                          <tr id="docOtherChargesRow">
+                            <td>Other Service Charges:</td>
+                            <td class="amt" id="docOtherCharges">₹0</td>
+                          </tr>
+                          <tr id="docDiscountRow">
+                            <td>Discount:</td>
+                            <td class="amt" id="docDiscount">- ₹0</td>
+                          </tr>
+                          <tr class="grand-total-row">
+                            <td><strong>Grand Total:</strong></td>
+                            <td class="amt"><strong id="docGrandTotal">₹0</strong></td>
+                          </tr>
+                          <tr>
+                            <td>Amount Paid:</td>
+                            <td class="amt" id="docAmountPaid">₹0</td>
+                          </tr>
+                          <tr class="balance-row">
+                            <td>Remaining Balance:</td>
+                            <td class="amt" id="docRemainingBalance">₹0</td>
+                          </tr>
+                        </table>
+
+                        <!-- Doctor Signature & Clinic Stamp Section (Bottom Right) -->
+                        <div class="sheet-signature-section">
+                          <div class="clinic-stamp-box">
+                            <span class="stamp-placeholder-text">CLINIC STAMP</span>
+                          </div>
+
+                          <div class="doctor-signature-cluster">
+                            <div class="signature-line-mark"></div>
+                            <div class="doctor-sign-name">Dr. Suraj D. Panigrahi</div>
+                            <div class="doctor-sign-qual">B.H.M.S. (Mum.)</div>
+                            <div class="doctor-sign-role">Consulting Homeopath</div>
+                            <div class="approval-audit-line" id="docApprovalAuditLine">Pending Doctor Approval</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             PAGE 8: PRACTICE ANALYTICS
+             ========================================== -->
+        <section class="page-view" id="page-analytics">
+          <div class="page-header-flex">
+            <div>
+              <div class="subtitle-badge"><i data-lucide="activity"></i> Analytics</div>
+              <h1 class="welcome-heading">Practice Analytics</h1>
+              <p class="welcome-desc">Derived strictly from verified clinical records. Zero unverified metrics or fabricated statistics.</p>
+            </div>
+          </div>
+
+          <div class="glass-card page-card-padded" id="analyticsContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: Patient Registration -->
+  <div class="modal-overlay" id="patientModalOverlay">
+    <div class="glass-card modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="user-plus" class="modal-title-icon"></i>
+          <div>
+            <h3>Register New Patient</h3>
+            <p>Shri Siddhivinayak Clinic • Clinical Case Registry</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="patientModalCloseBtn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="patientRegistrationForm">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="pRegName">Full Name *</label>
+              <input type="text" id="pRegName" class="glass-input" placeholder="e.g. Ramesh Sharma" required>
+            </div>
+            <div class="form-group">
+              <label for="pRegPhone">Contact Number *</label>
+              <input type="tel" id="pRegPhone" class="glass-input" placeholder="e.g. +91 98765 43210" required>
+            </div>
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="pRegAge">Age *</label>
+              <input type="number" id="pRegAge" class="glass-input" placeholder="e.g. 38" min="0" max="120" required>
+            </div>
+            <div class="form-group">
+              <label for="pRegGender">Gender</label>
+              <select id="pRegGender" class="glass-select">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pRegMiasm">Predominant Miasm</label>
+              <select id="pRegMiasm" class="glass-select">
+                <option value="Psoric">Psoric</option>
+                <option value="Sycotic">Sycotic</option>
+                <option value="Syphilitic">Syphilitic</option>
+                <option value="Tubercular">Tubercular</option>
+                <option value="Mixed (Psoro-Sycotic)">Mixed (Psoro-Sycotic)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="pRegChiefComplaint">Chief Complaint / Diagnosis *</label>
+            <input type="text" id="pRegChiefComplaint" class="glass-input" placeholder="e.g. Chronic migraine with aura, worse twilight" required>
+          </div>
+
+          <div class="form-group">
+            <label for="pRegConstitution">Constitutional Evaluation / Suspected Similimum</label>
+            <input type="text" id="pRegConstitution" class="glass-input" placeholder="e.g. Phosphorus Constitution, chilly with desire for cold drinks">
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="interactive-btn secondary-btn" id="patientModalCancelBtn">Cancel</button>
+            <button type="submit" class="interactive-btn primary-btn">
+              <i data-lucide="check"></i>
+              <span>Save & Open Dossier</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Symptom / Rubric Logger -->
+  <div class="modal-overlay" id="symptomModalOverlay">
+    <div class="glass-card modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="clipboard-pen-line" class="modal-title-icon"></i>
+          <div>
+            <h3>Add Characteristic Rubric</h3>
+            <p>Record symptoms and modality grading for active case</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="symptomModalCloseBtn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="symptomForm">
+          <div class="form-group">
+            <label for="rubricInput">Symptom Expression / Rubric *</label>
+            <input type="text" id="rubricInput" class="glass-input" placeholder="e.g. Occipital throb extending to forehead" required>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="intensitySelect">Intensity / Grade</label>
+              <select id="intensitySelect" class="glass-select">
+                <option value="Grade 1 (Mild)">Grade 1 (Mild)</option>
+                <option value="Grade 2 (Prominent)" selected>Grade 2 (Prominent)</option>
+                <option value="Grade 3 (Keynote)">Grade 3 (Keynote / Characteristic)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modalitiesInput">Modalities (&lt; Agg / &gt; Amel)</label>
+              <input type="text" id="modalitiesInput" class="glass-input" placeholder="e.g. < twilight, > cool drafts">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="candidateRemedyInput">Target Remedies (Optional)</label>
+            <input type="text" id="candidateRemedyInput" class="glass-input" placeholder="e.g. Phosphorus, Belladonna, Spigelia">
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="interactive-btn secondary-btn" id="symptomModalCancelBtn">Cancel</button>
+            <button type="submit" class="interactive-btn primary-btn">
+              <i data-lucide="check"></i>
+              <span>Append Rubric</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Book Appointment -->
+  <div class="modal-overlay" id="appointmentModalOverlay">
+    <div class="glass-card modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="calendar-plus" class="modal-title-icon"></i>
+          <div>
+            <h3>Schedule Clinic Visit</h3>
+            <p>Book consultation for Dr. Suraj D. Panigrahi</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="aptModalCloseBtn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="appointmentForm">
+          <div class="form-group">
+            <label for="aptPatientSelect">Select Patient *</label>
+            <select id="aptPatientSelect" class="glass-select" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="aptTimeInput">Time *</label>
+              <input type="time" id="aptTimeInput" class="glass-input" required>
+            </div>
+            <div class="form-group">
+              <label for="aptTypeSelect">Consultation Type</label>
+              <select id="aptTypeSelect" class="glass-select">
+                <option value="First Case Taking">First Case Taking (60m)</option>
+                <option value="Follow-Up Review">Follow-Up Review (25m)</option>
+                <option value="Acute Consultation">Acute Consultation (15m)</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="interactive-btn secondary-btn" id="aptModalCancelBtn">Cancel</button>
+            <button type="submit" class="interactive-btn primary-btn">
+              <i data-lucide="calendar-check"></i>
+              <span>Confirm Appointment</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Dispensary Add Medicine Item -->
+  <div class="modal-overlay" id="dispensaryModalOverlay">
+    <div class="glass-card modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="flask-conical" class="modal-title-icon"></i>
+          <div>
+            <h3>Add Medicine Inventory Item</h3>
+            <p>Potency Dispensary • Shri Siddhivinayak Clinic</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="dispModalCloseBtn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="dispensaryForm">
+          <div class="form-group">
+            <label for="medNameInput">Remedy / Medicine Name *</label>
+            <input type="text" id="medNameInput" class="glass-input" placeholder="e.g. Arnica Montana" required>
+          </div>
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="medPotencyInput">Potency *</label>
+              <input type="text" id="medPotencyInput" class="glass-input" placeholder="e.g. 200 CH" required>
+            </div>
+            <div class="form-group">
+              <label for="medFormSelect">Form</label>
+              <select id="medFormSelect" class="glass-select">
+                <option value="Globules / Pellets">Globules / Pellets</option>
+                <option value="Liquid Dilution">Liquid Dilution</option>
+                <option value="Mother Tincture (Q)">Mother Tincture (Q)</option>
+                <option value="Trituration Powder">Trituration Powder</option>
+                <option value="Biochemic Tablets">Biochemic Tablets</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="medQtyInput">Qty in Stock *</label>
+              <input type="number" id="medQtyInput" class="glass-input" placeholder="e.g. 5" min="1" required>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="interactive-btn secondary-btn" id="dispModalCancelBtn">Cancel</button>
+            <button type="submit" class="interactive-btn primary-btn">
+              <i data-lucide="plus"></i>
+              <span>Add to Dispensary</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New Invoice -->
+  <div class="modal-overlay" id="invoiceModalOverlay">
+    <div class="glass-card modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="receipt" class="modal-title-icon"></i>
+          <div>
+            <h3>Prepare Itemized Invoice</h3>
+            <p>Shri Siddhivinayak Clinic • Billing</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="invoiceModalCloseBtn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="invoiceForm">
+          <div class="form-group">
+            <label for="invPatientSelect">Select Patient *</label>
+            <select id="invPatientSelect" class="glass-select" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="invParticularsInput">Particulars / Service Description *</label>
+            <input type="text" id="invParticularsInput" class="glass-input" placeholder="e.g. Constitutional Consultation + 1 Month Medicine Dispensary" required>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="invAmountInput">Amount (₹) *</label>
+              <input type="number" id="invAmountInput" class="glass-input" placeholder="e.g. 1500" min="0" required>
+            </div>
+            <div class="form-group">
+              <label for="invStatusSelect">Payment Status</label>
+              <select id="invStatusSelect" class="glass-select">
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="interactive-btn secondary-btn" id="invoiceModalCancelBtn">Cancel</button>
+            <button type="submit" class="interactive-btn primary-btn">
+              <i data-lucide="check"></i>
+              <span>Generate Invoice</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Supabase Client Layer -->
+  <script src="supabase-client.js"></script>
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.warn('[SW] Registration failed:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="4"/>
+
+  <!-- Subtle Ambient Glow Orbs -->
+  <circle cx="160" cy="180" r="120" fill="#f97316" opacity="0.18" filter="url(#glow)"/>
+  <circle cx="340" cy="320" r="100" fill="#10b981" opacity="0.14" filter="url(#glow)"/>
+
+  <!-- Central Flower/Leaf Emblem (Scaled from Lucide flower-2 viewBox 0 0 24 24) -->
+  <g transform="translate(116, 80) scale(11.66)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Flower Petals in Orange Gradient -->
+    <path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"
+          fill="none" stroke="url(#iconGrad)" stroke-width="1.6"/>
+    <circle cx="12" cy="8" r="2" fill="url(#iconGrad)" opacity="0.9"/>
+    <!-- Stem -->
+    <path d="M12 10v12" fill="none" stroke="url(#leafGrad)" stroke-width="1.8"/>
+    <!-- Holistic Leaves -->
+    <path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z" fill="url(#leafGrad)" fill-opacity="0.35" stroke="url(#leafGrad)" stroke-width="1.6"/>
+    <path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z" fill="url(#leafGrad)" fill-opacity="0.35" stroke="url(#leafGrad)" stroke-width="1.6"/>
+  </g>
+
+  <!-- Brand Typography -->
+  <text x="256" y="440" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="34" font-weight="700" fill="#f8fafc" text-anchor="middle" letter-spacing="2">HomeoCare</text>
+</svg>
+

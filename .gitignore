@@ -1,0 +1,24 @@
+# Local environment variables and server-side staff login directory (never commit credentials)
+.env
+.env.local
+.env.*.local
+.staff-directory.json
+_checkpoints/
+
+# Dependencies & Build Output
+node_modules/
+public/
+
+# Vercel deployment cache
+.vercel
+
+# Android project, APKs & signing keys
+android/
+dist/
+*.keystore
+*.jks
+key.properties
+.gradle/
+build/
+*.apk
+*.aab

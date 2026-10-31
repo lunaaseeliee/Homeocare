@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.homeocare.clinic",
+      "sha256_cert_fingerprints": [
+        "32:40:D0:DF:17:FC:9A:D8:F7:31:B3:BB:AE:5C:D6:C1:6F:A3:9E:BA:D9:01:13:E4:55:70:00:4C:E1:93:90:06"
+      ]
+    }
+  }
+]
+
