@@ -319,6 +319,37 @@ const MIME_TYPES = {
 // Block sensitive local files and directories from HTTP static serving
 const BLOCKED_PREFIXES = ['.env', '.git', '.staff-directory.json', '_checkpoints', 'database'];
 
+// HomeoCare MVP Specification Feature Flags (HomeoCare MVP Developer Handoff)
+const MVP_FEATURE_FLAGS = {
+  PATIENT_REGISTRATION: true,
+  CASE_HISTORY_INTAKE: true,
+  PERSONAL_HISTORY: true,
+  MIND_HISTORY: true,
+  PATIENT_SELF_ENTRY: true,
+  DOCTOR_RECORD_REVIEW: true,
+  MULTILINGUAL_UI: true,
+
+  BILLING_INVOICES: false,
+  APPOINTMENTS_CALENDAR: false,
+  PRESCRIPTION_GEN: false,
+  DISPENSARY_INVENTORY: false,
+  PRACTICE_ANALYTICS: false,
+  REPERTORY_MATERIA: false,
+  AI_DIAGNOSIS: false,
+  WHATSAPP_AUTOMATION: false
+};
+
+const LOCKED_API_PREFIXES = [
+  '/api/invoices',
+  '/api/billing',
+  '/api/payments',
+  '/api/appointments',
+  '/api/dispensary',
+  '/api/prescriptions',
+  '/api/repertory',
+  '/api/analytics'
+];
+
 const server = http.createServer(async (req, res) => {
   const cleanUrl = req.url.split('?')[0];
   const clientIp = getClientIp(req);
@@ -331,6 +362,38 @@ const server = http.createServer(async (req, res) => {
       'Cache-Control': 'no-store'
     });
     res.end(JSON.stringify(config));
+    return;
+  }
+
+  // 1a. Feature Flags Endpoint
+  if (cleanUrl === '/api/features' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(JSON.stringify({
+      success: true,
+      specification: 'HomeoCare MVP Developer Handoff (29 October 2026)',
+      stakeholder: 'Dr. Suraj D. Panigrahi, Shri Siddhivinayak Clinic',
+      flags: MVP_FEATURE_FLAGS,
+      lockedReason: 'Preserved in codebase & database. Temporarily locked for MVP Phase 1. Reversible upon doctor approval.'
+    }));
+    return;
+  }
+
+  // 1b. Server-side Protection: Block direct API requests to locked features
+  const isLockedRoute = LOCKED_API_PREFIXES.some(prefix => cleanUrl === prefix || cleanUrl.startsWith(prefix + '/'));
+  if (isLockedRoute) {
+    res.writeHead(403, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(JSON.stringify({
+      success: false,
+      error: 'FEATURE_LOCKED',
+      code: 'MVP_SCOPE_LOCK',
+      message: 'This module is locked in HomeoCare MVP Phase 1 as per the approved Developer Handoff specification. All data and source code remain intact and will be unlocked upon explicit clinic approval.'
+    }));
     return;
   }
 

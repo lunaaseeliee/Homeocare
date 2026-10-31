@@ -15,6 +15,7 @@ const STATIC_SHELL_ASSETS = [
   '/index.html',
   '/style.css',
   '/app.js',
+  '/translations.js',
   '/supabase-client.js',
   '/lucide.min.js',
   '/supabase.min.js',

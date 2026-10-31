@@ -31,6 +31,8 @@
   </script>
   <!-- html2pdf.js for professional selectable PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Trilingual Translations (English, Hindi, Marathi) -->
+  <script src="translations.js"></script>
 </head>
 <body>
 
@@ -43,6 +45,10 @@
   <div class="auth-entrance-wrapper" id="authEntrance">
     <!-- Top-Right Theme Toggle for Auth Page -->
     <div class="auth-top-actions">
+      <button type="button" class="primary-btn-solid" id="openPatientSelfEntryTopBtn">
+        <i data-lucide="clipboard-pen"></i>
+        <span>Patient Case History Entry (मराठी • हिंदी • EN)</span>
+      </button>
       <button class="theme-toggle-btn auth-theme-toggle" id="authThemeToggleBtn" aria-label="Toggle theme" title="Switch Theme">
         <div class="theme-toggle-knob">
           <i data-lucide="moon" class="icon-dark"></i>
@@ -249,6 +255,332 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       HOMEOCARE MVP: PATIENT SELF-ENTRY PORTAL (TRILINGUAL: EN / HI / MR)
+       Source of truth: HomeoCare MVP Developer Handoff Specification
+       Clinic: Shri Siddhivinayak Clinic | Dr. Suraj D. Panigrahi
+       ========================================================================== -->
+  <div class="patient-self-entry-wrapper" id="patientSelfEntryView" style="display: none;">
+    <header class="self-entry-topbar">
+      <div class="self-entry-brand">
+        <div class="self-entry-logo">
+          <svg class="lucide lucide-flower-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1" />
+            <circle cx="12" cy="8" r="2" />
+            <path d="M12 10v12" />
+            <path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z" />
+            <path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z" />
+          </svg>
+        </div>
+        <div>
+          <span class="self-entry-title">HomeoCare</span>
+          <span class="self-entry-clinic">Shri Siddhivinayak Clinic • Dr. Suraj D. Panigrahi</span>
+        </div>
+      </div>
+
+      <div class="lang-switch-group">
+        <span class="lang-label"><i data-lucide="globe"></i> Language:</span>
+        <button type="button" class="lang-toggle-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-toggle-btn" data-lang="hi">हिंदी</button>
+        <button type="button" class="lang-toggle-btn" data-lang="mr">मराठी</button>
+      </div>
+
+      <button type="button" class="secondary-btn-outline" id="exitSelfEntryBtn" title="Doctor & Clinic Staff Login">
+        <i data-lucide="shield-check"></i>
+        <span>Clinic Staff Login</span>
+      </button>
+    </header>
+
+    <div class="self-entry-body">
+      <div class="self-entry-card" id="selfEntryCard">
+        <!-- Notice Banner -->
+        <div class="self-entry-notice-box">
+          <div class="notice-icon"><i data-lucide="shield-plus"></i></div>
+          <div class="notice-text">
+            <h2 id="i18n-self-title">Patient Case History Form</h2>
+            <p id="i18n-self-subtitle">Please provide accurate information to help Dr. Suraj D. Panigrahi evaluate your case holistically.</p>
+            <span class="confidential-badge" id="i18n-self-privacy">Confidential: Accessible only to Dr. Suraj D. Panigrahi & clinic staff.</span>
+          </div>
+        </div>
+
+        <!-- Wizard Progress Bar -->
+        <div class="wizard-stepper">
+          <div class="step-badge active" data-step="1">1. Details & C/C</div>
+          <div class="step-badge" data-step="2">2. Past & Family</div>
+          <div class="step-badge" data-step="3">3. Personal (Physical)</div>
+          <div class="step-badge" data-step="4">4. Mind & Emotion</div>
+          <div class="step-badge" data-step="5">5. Review</div>
+        </div>
+
+        <!-- Self Entry Form -->
+        <form id="selfEntryForm">
+          <!-- STEP 1: Patient details & Complaints -->
+          <div class="wizard-step-pane active" id="selfStep1">
+            <h3 class="step-pane-heading" id="i18n-step1-head">Step 1: Patient Details & Chief Complaint</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seFullName" id="i18n-lbl-fullname">Full Name *</label>
+                <input type="text" id="seFullName" class="clean-input" placeholder="e.g. Rajesh Kumar Sharma" required>
+              </div>
+              <div class="form-group">
+                <label for="sePhone" id="i18n-lbl-phone">Phone Number *</label>
+                <input type="tel" id="sePhone" class="clean-input" placeholder="e.g. 9876543210" required>
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="seAge" id="i18n-lbl-age">Age *</label>
+                <input type="number" id="seAge" class="clean-input" placeholder="e.g. 34" min="0" max="120" required>
+              </div>
+              <div class="form-group">
+                <label for="seGender" id="i18n-lbl-gender">Sex / Gender *</label>
+                <select id="seGender" class="clean-select" required>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="seDob" id="i18n-lbl-dob">Date of Birth (Optional)</label>
+                <input type="date" id="seDob" class="clean-input">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="seAddress" id="i18n-lbl-address">Residential Address *</label>
+              <textarea id="seAddress" class="clean-textarea" rows="2" placeholder="City, area, district..." required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="seEmail" id="i18n-lbl-email">Email Address (Optional)</label>
+              <input type="email" id="seEmail" class="clean-input" placeholder="e.g. patient@example.com">
+            </div>
+
+            <div class="form-group">
+              <label for="seChiefComplaint" id="i18n-lbl-chief">Chief Complaint (C/C) *</label>
+              <textarea id="seChiefComplaint" class="clean-textarea" rows="3" placeholder="Describe main illness, onset, what makes it better/worse in your own words..." required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="seAssociatedComplaints" id="i18n-lbl-assoc">Associated Complaints</label>
+              <textarea id="seAssociatedComplaints" class="clean-textarea" rows="2" placeholder="Other symptoms or concurrent complaints..."></textarea>
+            </div>
+
+            <div class="wizard-nav-actions">
+              <div></div>
+              <button type="button" class="primary-btn-solid btn-next-step" data-next="2">
+                <span id="i18n-btn-next1">Continue to Medical History →</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2: Past & Family History -->
+          <div class="wizard-step-pane" id="selfStep2">
+            <h3 class="step-pane-heading" id="i18n-step2-head">Step 2: Past Medical & Family History</h3>
+            
+            <div class="form-group">
+              <label for="sePastHistory" id="i18n-lbl-pasthist">Past Medical History</label>
+              <p class="field-help" id="i18n-help-pasthist">Previous illnesses, surgeries, treatments, recurrent childhood sickness in your words.</p>
+              <textarea id="sePastHistory" class="clean-textarea" rows="3" placeholder="e.g. Jaundice in 2021, tonsillitis in childhood, allergic to penicillin..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="seFamilyHistory" id="i18n-lbl-famhist">Family History</label>
+              <p class="field-help" id="i18n-help-famhist">Diseases in blood relatives (diabetes, hypertension, asthma, arthritis, skin disease).</p>
+              <textarea id="seFamilyHistory" class="clean-textarea" rows="3" placeholder="e.g. Father has diabetes; Mother had migraine..."></textarea>
+            </div>
+
+            <div class="wizard-nav-actions">
+              <button type="button" class="secondary-btn-outline btn-prev-step" data-prev="1">← Back</button>
+              <button type="button" class="primary-btn-solid btn-next-step" data-next="3">Continue to Personal History →</button>
+            </div>
+          </div>
+
+          <!-- STEP 3: Personal History (Physical Modalities) -->
+          <div class="wizard-step-pane" id="selfStep3">
+            <h3 class="step-pane-heading" id="i18n-step3-head">Step 3: Personal History (Physical Modalities)</h3>
+            <p class="section-notice" id="i18n-notice-phys">Please describe your physical tendencies and daily bodily functions:</p>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seAppetite" id="i18n-lbl-appetite">Appetite (APP)</label>
+                <input type="text" id="seAppetite" class="clean-input" placeholder="e.g. Good, poor, eats quickly, feels weak if hungry...">
+              </div>
+              <div class="form-group">
+                <label for="seThirst" id="i18n-lbl-thirst">Thirst</label>
+                <input type="text" id="seThirst" class="clean-input" placeholder="e.g. Large quantity at long intervals / small sips / thirstless / prefers cold water">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seCraving" id="i18n-lbl-craving">Cravings / Food Desires</label>
+                <input type="text" id="seCraving" class="clean-input" placeholder="e.g. Sweets, salty, spicy, sour, meat, cold drinks, warm food...">
+              </div>
+              <div class="form-group">
+                <label for="seDiet" id="i18n-lbl-diet">Diet Type</label>
+                <select id="seDiet" class="clean-select">
+                  <option value="Vegetarian">Vegetarian</option>
+                  <option value="Non-Vegetarian">Non-Vegetarian</option>
+                  <option value="Eggetarian">Eggetarian</option>
+                  <option value="Vegan">Vegan</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seBowel" id="i18n-lbl-bowel">Bowel Habits / Digestion</label>
+                <input type="text" id="seBowel" class="clean-input" placeholder="e.g. Regular daily / constipated / loose stool / gas and bloating...">
+              </div>
+              <div class="form-group">
+                <label for="seUrine" id="i18n-lbl-urine">Urination (Urine)</label>
+                <input type="text" id="seUrine" class="clean-input" placeholder="e.g. Normal / burning sensation / frequent at night...">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seHabit" id="i18n-lbl-habit">Habits / Addictions</label>
+                <input type="text" id="seHabit" class="clean-input" placeholder="e.g. Tea 3 times daily, tobacco, smoking, none...">
+              </div>
+              <div class="form-group">
+                <label for="seThermalModality" id="i18n-lbl-thermal">Thermal Modality (Sensitivity)</label>
+                <select id="seThermalModality" class="clean-select">
+                  <option value="Chilly">Chilly (Cannot tolerate cold; desires warm clothes)</option>
+                  <option value="Hot">Hot (Cannot tolerate heat; desires fan & open air)</option>
+                  <option value="Ambithermal">Ambithermal (Equally sensitive to heat and cold)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seSleep" id="i18n-lbl-sleep">Sleep Pattern</label>
+                <input type="text" id="seSleep" class="clean-input" placeholder="e.g. Deep sound sleep / disturbed / wakes at 3 AM...">
+              </div>
+              <div class="form-group">
+                <label for="seDreams" id="i18n-lbl-dreams">Dreams</label>
+                <input type="text" id="seDreams" class="clean-input" placeholder="e.g. Flying, falling, water, animals, unremembered...">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="label-with-badge">
+                <label for="seHobby" id="i18n-lbl-hobby">Hobby / Pastime (h)</label>
+                <span class="pending-badge">Pending Doctor Confirmation</span>
+              </div>
+              <input type="text" id="seHobby" class="clean-input" placeholder="e.g. Reading, gardening, music...">
+            </div>
+
+            <div class="wizard-nav-actions">
+              <button type="button" class="secondary-btn-outline btn-prev-step" data-prev="2">← Back</button>
+              <button type="button" class="primary-btn-solid btn-next-step" data-next="4">Continue to Mind & Emotion →</button>
+            </div>
+          </div>
+
+          <!-- STEP 4: Mind & Emotional State -->
+          <div class="wizard-step-pane" id="selfStep4">
+            <h3 class="step-pane-heading" id="i18n-step4-head">Step 4: Mind & Emotional Disposition</h3>
+            <p class="section-notice" id="i18n-notice-mind">Please answer naturally in your own words. All answers are confidential.</p>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seAnxiety" id="i18n-lbl-anxiety">Anxiety</label>
+                <input type="text" id="seAnxiety" class="clean-input" placeholder="e.g. Health anxiety, future worry, crowd, none...">
+              </div>
+              <div class="form-group">
+                <label for="seStress" id="i18n-lbl-stress">Stress & Pressures</label>
+                <input type="text" id="seStress" class="clean-input" placeholder="e.g. Work pressures, family responsibilities...">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="seThoughts" id="i18n-lbl-thoughts">Nature of Thoughts</label>
+                <input type="text" id="seThoughts" class="clean-input" placeholder="e.g. Overthinking, brooding on past, racing thoughts, calm...">
+              </div>
+              <div class="form-group">
+                <label for="seCompany" id="i18n-lbl-company">Desire / Aversion for Company</label>
+                <select id="seCompany" class="clean-select">
+                  <option value="Desires Company">Desires Company (Feels better around people)</option>
+                  <option value="Prefers Solitude">Prefers Solitude (Wants to be alone)</option>
+                  <option value="Irritable in Company">Irritable in Company (Dislikes intrusion)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="seWorried" id="i18n-lbl-worried">What makes you most worried or sad?</label>
+              <textarea id="seWorried" class="clean-textarea" rows="2" placeholder="Write in your own words..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="seHappy" id="i18n-lbl-happy">What makes you feel happiest or relaxed?</label>
+              <textarea id="seHappy" class="clean-textarea" rows="2" placeholder="Write in your own words..."></textarea>
+            </div>
+
+            <div class="wizard-nav-actions">
+              <button type="button" class="secondary-btn-outline btn-prev-step" data-prev="3">← Back</button>
+              <button type="button" class="primary-btn-solid btn-next-step" data-next="5">Review Complete Record →</button>
+            </div>
+          </div>
+
+          <!-- STEP 5: Review & Submit -->
+          <div class="wizard-step-pane" id="selfStep5">
+            <h3 class="step-pane-heading" id="i18n-step5-head">Step 5: Review Complete Patient Record</h3>
+            <p class="section-notice" id="i18n-notice-review">Please review all information before submitting to Dr. Suraj D. Panigrahi:</p>
+
+            <div class="review-summary-card" id="selfReviewSummary">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <div class="wizard-nav-actions">
+              <button type="button" class="secondary-btn-outline btn-prev-step" data-prev="4">← Back to Edit</button>
+              <button type="submit" class="primary-btn-solid" id="selfSubmitBtn">
+                <i data-lucide="check-circle"></i>
+                <span id="i18n-btn-submit">Submit Case Record to Clinic</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Submission Success Receipt -->
+        <div class="self-entry-success-card" id="selfEntrySuccessCard" style="display: none;">
+          <div class="success-icon-wrap"><i data-lucide="check-circle-2"></i></div>
+          <h2 id="i18n-success-title">Case Record Submitted Successfully</h2>
+          <p id="i18n-success-msg">Your homeopathic case history has been recorded securely. Please notify Dr. Suraj D. Panigrahi or the clinic receptionist for review.</p>
+          
+          <div class="receipt-box">
+            <div class="receipt-row">
+              <span id="i18n-lbl-rcpt-id">Assigned Patient ID:</span>
+              <strong id="rcptPatientId">SSC-2026-XXXX</strong>
+            </div>
+            <div class="receipt-row">
+              <span id="i18n-lbl-rcpt-name">Patient Name:</span>
+              <strong id="rcptPatientName">Name</strong>
+            </div>
+            <div class="receipt-row">
+              <span id="i18n-lbl-rcpt-time">Submission Time:</span>
+              <span id="rcptTime">Just now</span>
+            </div>
+            <div class="receipt-row">
+              <span id="i18n-lbl-rcpt-mode">Entry Mode:</span>
+              <span class="badge-tag">Patient Self-Entry</span>
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <button type="button" class="secondary-btn-outline" id="selfEntryNewBtn">Submit Another Record</button>
+            <button type="button" class="primary-btn-solid" id="selfEntryDoneBtn">Return to Portal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <div class="app-shell" id="appShell">
     <!-- Left Navigation Sidebar -->
     <aside class="sidebar" id="sidebar">
@@ -269,45 +601,47 @@
       </div>
 
       <nav class="nav-menu">
-        <div class="nav-section-label">MAIN PRACTICE</div>
+        <div class="nav-section-label">CLINICAL MVP ACTIVE</div>
         <a href="#dashboard" class="nav-item active" data-page="dashboard" id="nav-dashboard">
           <i data-lucide="layout-grid"></i>
           <span>Clinical Desk</span>
-          <span class="nav-pill" id="livePill">Live</span>
+          <span class="nav-pill" id="livePill">Active</span>
         </a>
         <a href="#patients" class="nav-item" data-page="patients" id="nav-patients">
           <i data-lucide="users"></i>
           <span>Patient Registry</span>
           <span class="nav-count" id="navPatientCount">0</span>
         </a>
-        <a href="#repertory" class="nav-item" data-page="repertory" id="nav-repertory">
-          <i data-lucide="book-open-check"></i>
-          <span>Repertory & Materia</span>
-        </a>
         <a href="#cases" class="nav-item" data-page="cases" id="nav-cases">
-          <i data-lucide="stethoscope"></i>
-          <span>Active Case Record</span>
-        </a>
-        <a href="#dispensary" class="nav-item" data-page="dispensary" id="nav-dispensary">
-          <i data-lucide="flask-conical"></i>
-          <span>Potency Dispensary</span>
-          <span class="nav-count" id="navDispensaryCount">0</span>
+          <i data-lucide="clipboard-list"></i>
+          <span>Case Records</span>
         </a>
 
-        <div class="nav-section-label">PRACTICE MGMT</div>
-        <a href="#appointments" class="nav-item" data-page="appointments" id="nav-appointments">
+        <div class="nav-section-label">FUTURE PHASES (LOCKED)</div>
+        <a href="#locked-appointments" class="nav-item locked-nav-item" data-page="locked-appointments" id="nav-appointments" title="Locked — Future Phase">
           <i data-lucide="calendar"></i>
           <span>Schedules & Visits</span>
-          <span class="nav-count" id="navAppointmentsCount">0</span>
+          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
         </a>
-        <a href="#invoices" class="nav-item" data-page="invoices" id="nav-invoices">
+        <a href="#locked-invoices" class="nav-item locked-nav-item" data-page="locked-invoices" id="nav-invoices" title="Locked — Future Phase">
           <i data-lucide="receipt"></i>
           <span>Invoices & Billing</span>
-          <span class="nav-count" id="navInvoicesCount">0</span>
+          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
         </a>
-        <a href="#analytics" class="nav-item" data-page="analytics" id="nav-analytics">
+        <a href="#locked-repertory" class="nav-item locked-nav-item" data-page="locked-repertory" id="nav-repertory" title="Locked — Future Phase">
+          <i data-lucide="book-open-check"></i>
+          <span>Repertory & Materia</span>
+          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
+        </a>
+        <a href="#locked-dispensary" class="nav-item locked-nav-item" data-page="locked-dispensary" id="nav-dispensary" title="Locked — Future Phase">
+          <i data-lucide="flask-conical"></i>
+          <span>Potency Dispensary</span>
+          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
+        </a>
+        <a href="#locked-analytics" class="nav-item locked-nav-item" data-page="locked-analytics" id="nav-analytics" title="Locked — Future Phase">
           <i data-lucide="activity"></i>
           <span>Practice Analytics</span>
+          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
         </a>
       </nav>
 
@@ -1128,6 +1462,51 @@
             <!-- Rendered via JS -->
           </div>
         </section>
+      
+        <!-- ==========================================
+             PAGE LOCKED: FEATURE LOCKED (FUTURE PHASE)
+             HomeoCare MVP Developer Handoff specification
+             ========================================== -->
+        <section class="page-view" id="page-locked">
+          <div class="locked-page-card">
+            <div class="locked-icon-circle">
+              <i data-lucide="lock"></i>
+            </div>
+            <div class="locked-status-tag">
+              <span>MVP Scope Controlled</span>
+            </div>
+            <h2 id="lockedFeatureTitle">Feature Locked — Future Phase</h2>
+            <p id="lockedFeatureDesc">
+              This module is temporarily locked in HomeoCare MVP Phase 1 as per the approved 
+              <strong>HomeoCare MVP Developer Handoff</strong> specification.
+            </p>
+            <div class="locked-details-box">
+              <div class="locked-detail-row">
+                <strong>Source of Truth:</strong>
+                <span>Handwritten requirement letter from Dr. Suraj D. Panigrahi</span>
+              </div>
+              <div class="locked-detail-row">
+                <strong>Code & Database:</strong>
+                <span class="text-green">100% Intact & Preserved in Repository</span>
+              </div>
+              <div class="locked-detail-row">
+                <strong>Status:</strong>
+                <span>Reversible; will be activated upon doctor approval in later phases.</span>
+              </div>
+            </div>
+            <div class="locked-actions">
+              <a href="#dashboard" class="primary-btn-solid">
+                <i data-lucide="arrow-left"></i>
+                <span>Return to Clinical Desk</span>
+              </a>
+              <a href="#patients" class="secondary-btn-outline">
+                <i data-lucide="users"></i>
+                <span>View Patient Registry</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
       </main>
     </div>
   </div>
@@ -1186,10 +1565,151 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="pRegChiefComplaint">Chief Complaint / Diagnosis *</label>
-            <input type="text" id="pRegChiefComplaint" class="glass-input" placeholder="e.g. Chronic migraine with aura, worse twilight" required>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="pRegChiefComplaint">Chief Complaint (C/C) *</label>
+              <input type="text" id="pRegChiefComplaint" class="glass-input" placeholder="e.g. Chronic migraine with aura, worse twilight" required>
+            </div>
+            <div class="form-group">
+              <label for="pRegAssoc">Associated Complaints</label>
+              <input type="text" id="pRegAssoc" class="glass-input" placeholder="e.g. Acidity, neck stiffness, insomnia">
+            </div>
           </div>
+
+          <div class="form-group">
+            <label for="pRegAddress">Residential Address / City</label>
+            <input type="text" id="pRegAddress" class="glass-input" placeholder="e.g. Dombivli East, Thane">
+          </div>
+
+          <!-- Section: Clinical History -->
+          <details class="mvp-details-group" open>
+            <summary class="mvp-details-summary">
+              <span>Section 2: Past & Family Clinical History</span>
+            </summary>
+            <div class="form-row-2" style="margin-top: 10px;">
+              <div class="form-group">
+                <label for="pRegPast">Past Medical & Surgical History</label>
+                <textarea id="pRegPast" class="glass-input" rows="2" placeholder="e.g. Typhoid in childhood, Appendectomy (2018)"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="pRegFamily">Family Health History</label>
+                <textarea id="pRegFamily" class="glass-input" rows="2" placeholder="e.g. Mother: Hypertension; Father: Diabetes Mellitus"></textarea>
+              </div>
+            </div>
+          </details>
+
+          <!-- Section: Personal History / Physical Modalities -->
+          <details class="mvp-details-group">
+            <summary class="mvp-details-summary">
+              <span>Section 3: Personal History (Physical Modalities)</span>
+            </summary>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="pRegAppetite">Appetite</label>
+                  <input type="text" id="pRegAppetite" class="glass-input" placeholder="e.g. Good, easily satisfied">
+                </div>
+                <div class="form-group">
+                  <label for="pRegThirst">Thirst</label>
+                  <input type="text" id="pRegThirst" class="glass-input" placeholder="e.g. Thirsty for large gulps cold water">
+                </div>
+                <div class="form-group">
+                  <label for="pRegCraving">Craving / Aversions</label>
+                  <input type="text" id="pRegCraving" class="glass-input" placeholder="e.g. Sweets, spicy, salty">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="pRegDiet">Dietary Preference</label>
+                  <select id="pRegDiet" class="glass-select">
+                    <option value="Vegetarian">Vegetarian</option>
+                    <option value="Non-Vegetarian">Non-Vegetarian</option>
+                    <option value="Eggetarian">Eggetarian</option>
+                    <option value="Vegan">Vegan</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="pRegBowel">Bowel Habits</label>
+                  <input type="text" id="pRegBowel" class="glass-input" placeholder="e.g. Regular, constipation tendency">
+                </div>
+                <div class="form-group">
+                  <label for="pRegUrine">Urination Modalities</label>
+                  <input type="text" id="pRegUrine" class="glass-input" placeholder="e.g. Normal, burning during urination">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="pRegThermal">Thermal State</label>
+                  <select id="pRegThermal" class="glass-select">
+                    <option value="Chilly">Chilly (Sensitive to cold)</option>
+                    <option value="Hot">Hot (Sensitive to heat/warmth)</option>
+                    <option value="Ambithermal">Ambithermal (Tolerates both)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="pRegSleep">Sleep Pattern</label>
+                  <input type="text" id="pRegSleep" class="glass-input" placeholder="e.g. Light, broken sleep, position on abdomen">
+                </div>
+                <div class="form-group">
+                  <label for="pRegDreams">Dreams</label>
+                  <input type="text" id="pRegDreams" class="glass-input" placeholder="e.g. Falling, snakes, daily routine">
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="pRegHabit">Habits / Addictions</label>
+                  <input type="text" id="pRegHabit" class="glass-input" placeholder="e.g. Tea twice a day, non-smoker">
+                </div>
+                <div class="form-group">
+                  <label for="pRegHobby">Hobby / Recreational Interests <span class="pending-badge">Pending Doctor Confirmation</span></label>
+                  <input type="text" id="pRegHobby" class="glass-input" placeholder="e.g. Reading, gardening, music">
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- Section: Mind / Emotional History -->
+          <details class="mvp-details-group">
+            <summary class="mvp-details-summary">
+              <span>Section 4: Mind & Emotional State</span>
+            </summary>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="pRegAnxiety">Anxiety Triggers</label>
+                  <input type="text" id="pRegAnxiety" class="glass-input" placeholder="e.g. Health of family members, punctuality">
+                </div>
+                <div class="form-group">
+                  <label for="pRegStress">Stress Factors</label>
+                  <input type="text" id="pRegStress" class="glass-input" placeholder="e.g. Work pressure, financial concern">
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="pRegThoughts">Recurrent Thoughts</label>
+                  <input type="text" id="pRegThoughts" class="glass-input" placeholder="e.g. Overthinking at bedtime, anticipating misfortune">
+                </div>
+                <div class="form-group">
+                  <label for="pRegCompany">Reaction to Company</label>
+                  <select id="pRegCompany" class="glass-select">
+                    <option value="Desires Company">Desires Company (Feels better with people)</option>
+                    <option value="Aversion to Company">Aversion to Company (Prefers solitude)</option>
+                    <option value="Aversion but fears being alone">Aversion but fears being alone</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="pRegWorried">What Worries You Most?</label>
+                  <input type="text" id="pRegWorried" class="glass-input" placeholder="e.g. Illness getting worse">
+                </div>
+                <div class="form-group">
+                  <label for="pRegHappy">What Makes You Happy?</label>
+                  <input type="text" id="pRegHappy" class="glass-input" placeholder="e.g. Nature walks, peaceful family time">
+                </div>
+              </div>
+            </div>
+          </details>
 
           <div class="form-group">
             <label for="pRegConstitution">Constitutional Evaluation / Suspected Similimum</label>

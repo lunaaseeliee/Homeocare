@@ -48,6 +48,41 @@ function getSigningSecret() {
   );
 }
 
+// ============================================================================
+// HomeoCare MVP Specification Feature Flags (HomeoCare MVP Developer Handoff)
+// Source of truth: Handwritten requirement letter from Dr. Suraj D. Panigrahi
+// All non-MVP features are LOCKED, NOT DELETED. Completely reversible.
+// ============================================================================
+const MVP_FEATURE_FLAGS = {
+  PATIENT_REGISTRATION: true,    // In scope: Name, age, sex, address, phone, DOB
+  CASE_HISTORY_INTAKE: true,     // In scope: Chief complaint, associated, past, family
+  PERSONAL_HISTORY: true,        // In scope: Appetite, thirst, craving, diet, bowel, urine, habit, thermal, sleep, dreams
+  MIND_HISTORY: true,            // In scope: Anxiety, stress, thoughts, company, worried, happy
+  PATIENT_SELF_ENTRY: true,      // In scope: Dedicated patient self-entry path
+  DOCTOR_RECORD_REVIEW: true,    // In scope: Search, open, review patient case records
+  MULTILINGUAL_UI: true,         // In scope: English, Hindi, Marathi
+
+  BILLING_INVOICES: false,       // Locked: Outside MVP handoff
+  APPOINTMENTS_CALENDAR: false,  // Locked: Outside MVP handoff
+  PRESCRIPTION_GEN: false,       // Locked: Outside MVP handoff
+  DISPENSARY_INVENTORY: false,   // Locked: Outside MVP handoff
+  PRACTICE_ANALYTICS: false,     // Locked: Outside MVP handoff
+  REPERTORY_MATERIA: false,      // Locked: Outside MVP handoff
+  AI_DIAGNOSIS: false,           // Excluded: Avoid implying clinical decision-making
+  WHATSAPP_AUTOMATION: false     // Locked: Outside MVP handoff
+};
+
+const LOCKED_API_PREFIXES = [
+  '/api/invoices',
+  '/api/billing',
+  '/api/payments',
+  '/api/appointments',
+  '/api/dispensary',
+  '/api/prescriptions',
+  '/api/repertory',
+  '/api/analytics'
+];
+
 function computeCaptchaHmac(nonce, expiresAt, answerUpper) {
   return crypto
     .createHmac('sha256', getSigningSecret())
@@ -339,6 +374,28 @@ module.exports = async function handler(req, res) {
   // 1. Safe Supabase Public Config (Publishable Key + URL only)
   if (pathname === '/api/supabase-config' && req.method === 'GET') {
     return sendJson(res, 200, getSafePublicConfig());
+  }
+
+  // 1a. Feature Flags Endpoint (HomeoCare MVP Developer Handoff specification)
+  if (pathname === '/api/features' && req.method === 'GET') {
+    return sendJson(res, 200, {
+      success: true,
+      specification: 'HomeoCare MVP Developer Handoff (29 October 2026)',
+      stakeholder: 'Dr. Suraj D. Panigrahi, Shri Siddhivinayak Clinic',
+      flags: MVP_FEATURE_FLAGS,
+      lockedReason: 'Preserved in codebase & database. Temporarily locked for MVP Phase 1. Reversible upon doctor approval.'
+    });
+  }
+
+  // 1b. Server-side Protection: Block direct API requests to locked features
+  const isLockedRoute = LOCKED_API_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'));
+  if (isLockedRoute) {
+    return sendJson(res, 403, {
+      success: false,
+      error: 'FEATURE_LOCKED',
+      code: 'MVP_SCOPE_LOCK',
+      message: 'This module is locked in HomeoCare MVP Phase 1 as per the approved Developer Handoff specification. All data and source code remain intact and will be unlocked upon explicit clinic approval.'
+    });
   }
 
   // 1b. Safe Read-Only Connectivity Verification Endpoint

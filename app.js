@@ -12,6 +12,45 @@
  */
 
 // --- Pure Data Store (Zero Initial Records) ---
+
+// ============================================================================
+// HomeoCare MVP Specification Feature Flags (HomeoCare MVP Developer Handoff)
+// Source of truth: Handwritten requirement letter from Dr. Suraj D. Panigrahi
+// All non-MVP features are LOCKED, NOT DELETED. Completely reversible.
+// ============================================================================
+const MVP_FEATURE_FLAGS = {
+  PATIENT_REGISTRATION: true,
+  CASE_HISTORY_INTAKE: true,
+  PERSONAL_HISTORY: true,
+  MIND_HISTORY: true,
+  PATIENT_SELF_ENTRY: true,
+  DOCTOR_RECORD_REVIEW: true,
+  MULTILINGUAL_UI: true,
+
+  BILLING_INVOICES: false,       // Locked - Later Phase
+  APPOINTMENTS_CALENDAR: false,  // Locked - Later Phase
+  PRESCRIPTION_GEN: false,       // Locked - Later Phase
+  DISPENSARY_INVENTORY: false,   // Locked - Later Phase
+  PRACTICE_ANALYTICS: false,     // Locked - Later Phase
+  REPERTORY_MATERIA: false,      // Locked - Later Phase
+  AI_DIAGNOSIS: false,           // Excluded
+  WHATSAPP_AUTOMATION: false     // Locked - Later Phase
+};
+
+const LOCKED_PAGE_MAP = {
+  "appointments": { title: "Schedules & Visits", desc: "Appointment calendar, patient scheduling, and queue automation are preserved in the codebase and locked for MVP Phase 1." },
+  "locked-appointments": { title: "Schedules & Visits", desc: "Appointment calendar, patient scheduling, and queue automation are preserved in the codebase and locked for MVP Phase 1." },
+  "invoices": { title: "Invoices & Billing", desc: "Tax invoices, payment tracking, and automated billing are preserved in the codebase and locked for MVP Phase 1." },
+  "locked-invoices": { title: "Invoices & Billing", desc: "Tax invoices, payment tracking, and automated billing are preserved in the codebase and locked for MVP Phase 1." },
+  "invoice-create": { title: "Invoice Generator", desc: "Official A4 clinical invoice generator is preserved and locked for MVP Phase 1." },
+  "repertory": { title: "Repertory & Materia Medica", desc: "Advanced repertorial lookup and materia medica panels are outside the handwritten MVP requirement and locked." },
+  "locked-repertory": { title: "Repertory & Materia Medica", desc: "Advanced repertorial lookup and materia medica panels are outside the handwritten MVP requirement and locked." },
+  "dispensary": { title: "Potency Dispensary", desc: "Medicine inventory tracking and potency stock registers are preserved and locked for MVP Phase 1." },
+  "locked-dispensary": { title: "Potency Dispensary", desc: "Medicine inventory tracking and potency stock registers are preserved and locked for MVP Phase 1." },
+  "analytics": { title: "Practice Analytics", desc: "Clinic statistical analytics and revenue graphs are preserved and locked for MVP Phase 1." },
+  "locked-analytics": { title: "Practice Analytics", desc: "Clinic statistical analytics and revenue graphs are preserved and locked for MVP Phase 1." }
+};
+
 const CLINIC_STATE = {
   clinicName: "Shri Siddhivinayak Clinic",
   doctor: "Dr. Suraj D. Panigrahi",
@@ -272,6 +311,36 @@ if (authThemeToggleBtn) {
 const VALID_PAGES = ["dashboard", "patients", "repertory", "cases", "dispensary", "appointments", "invoices", "invoice-create", "analytics"];
 
 function navigateTo(pageId, pushState = true) {
+  // Handle Patient Self-Entry Mode
+  if (pageId === "self-entry") {
+    openPatientSelfEntryPortal();
+    return;
+  }
+
+  // Intercept Locked Features
+  if (LOCKED_PAGE_MAP[pageId]) {
+    const lockInfo = LOCKED_PAGE_MAP[pageId];
+    const lockedTitleElem = document.getElementById("lockedFeatureTitle");
+    const lockedDescElem = document.getElementById("lockedFeatureDesc");
+    if (lockedTitleElem) lockedTitleElem.textContent = lockInfo.title + " (Locked — Future Phase)";
+    if (lockedDescElem) lockedDescElem.textContent = lockInfo.desc;
+
+    // Show locked page view
+    document.querySelectorAll(".page-view").forEach(view => {
+      view.classList.toggle("active", view.id === "page-locked");
+    });
+    document.querySelectorAll(".nav-item").forEach(item => {
+      const pageAttr = item.getAttribute("data-page");
+      item.classList.toggle("active", pageAttr === pageId || (pageAttr && pageAttr.includes(pageId.replace("locked-", ""))));
+    });
+    if (pushState && window.location.hash !== "#" + pageId) {
+      window.location.hash = pageId;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
   if (!VALID_PAGES.includes(pageId)) {
     pageId = "dashboard";
   }
@@ -820,40 +889,38 @@ function renderActiveCaseRecord() {
     return;
   }
 
+  const selectedPatient = patients.find(p => p.id === CLINIC_STATE.selectedPatientId) || patients[0];
+  CLINIC_STATE.selectedPatientId = selectedPatient.id;
+
   casesContainer.innerHTML = `
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Case ID</th>
-            <th>Patient Name</th>
-            <th>Chief Complaint</th>
-            <th>Constitution / Similimum</th>
-            <th>Rubrics Count</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #F5F8F6; padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <label for="casePatientSelector" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Select Patient Case:</label>
+        <select id="casePatientSelector" class="clean-select" style="min-width: 240px; padding: 6px 12px; font-size: 13px;">
           ${patients.map(p => `
-            <tr>
-              <td><span style="font-weight: 700; color: var(--peach-300);">${p.id}</span></td>
-              <td><strong style="color: var(--text-primary);">${p.name}</strong></td>
-              <td>${p.chiefComplaint}</td>
-              <td>${p.constitution || 'Evaluating'}</td>
-              <td><span class="spec-tag">${p.rubrics.length} logged</span></td>
-              <td><span class="pill-indicator pill-good">Active Case</span></td>
-              <td>
-                <button class="interactive-btn text-link-btn" onclick="openPatientProfile('${p.id}')">
-                  Open Desk →
-                </button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
+            <option value="${p.id}" ${p.id === selectedPatient.id ? 'selected' : ''}>
+              ${p.name} (${p.id}) — ${p.entry_source === 'patient_self' ? 'Self-Entry' : 'Staff-Entry'}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+      <div>
+        <button class="secondary-btn-outline" id="caseAddAnotherBtn" style="font-size: 13px; padding: 6px 14px;">
+          <i data-lucide="user-plus"></i>
+          <span>+ Add Patient Case</span>
+        </button>
+      </div>
     </div>
+    ${renderPatientCaseDossier(selectedPatient)}
   `;
+
+  document.getElementById("casePatientSelector")?.addEventListener("change", (e) => {
+    CLINIC_STATE.selectedPatientId = e.target.value;
+    renderActiveCaseRecord();
+  });
+
+  document.getElementById("caseAddAnotherBtn")?.addEventListener("click", openPatientModal);
+
   if (window.lucide) lucide.createIcons();
 }
 
@@ -1793,50 +1860,61 @@ appointmentModalOverlay.addEventListener("click", (e) => {
   if (e.target === appointmentModalOverlay) closeAppointmentModal();
 });
 
-// Patient Registration Form Submit
+// Patient Registration Form Submit (Doctor / Staff Assisted Intake)
 patientRegistrationForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = document.getElementById("pRegName").value.trim();
   const phone = document.getElementById("pRegPhone").value.trim();
   const age = document.getElementById("pRegAge").value.trim();
   const gender = document.getElementById("pRegGender").value;
-  const miasm = document.getElementById("pRegMiasm").value;
   const chiefComplaint = document.getElementById("pRegChiefComplaint").value.trim();
-  const constitution = document.getElementById("pRegConstitution").value.trim();
+  const miasm = document.getElementById("pRegMiasm")?.value || "Evaluating";
+  const constitution = document.getElementById("pRegConstitution")?.value.trim() || "";
 
-  const newPatientId = `SSC-${new Date().getFullYear()}-${1001 + CLINIC_STATE.patients.length}`;
-  const todayStr = new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
-
-  const newPatient = {
-    id: newPatientId,
+  const patientData = {
     name,
     phone,
     age,
     gender,
-    miasm,
     chiefComplaint,
+    miasm,
     constitution,
-    prescription: "",
-    registeredDate: todayStr,
-    rubrics: [],
-    history: [
-      {
-        title: "Initial Case Registration",
-        date: todayStr,
-        desc: `Registered by Clinic Staff for Dr. Suraj D. Panigrahi. Chief complaint: ${chiefComplaint}`
-      }
-    ]
+    associatedComplaints: document.getElementById("pRegAssoc")?.value.trim() || "",
+    address: document.getElementById("pRegAddress")?.value.trim() || "",
+    pastHistory: document.getElementById("pRegPast")?.value.trim() || "",
+    familyHistory: document.getElementById("pRegFamily")?.value.trim() || "",
+    personalHistory: {
+      appetite: document.getElementById("pRegAppetite")?.value.trim() || "",
+      thirst: document.getElementById("pRegThirst")?.value.trim() || "",
+      craving: document.getElementById("pRegCraving")?.value.trim() || "",
+      diet: document.getElementById("pRegDiet")?.value || "Vegetarian",
+      bowel: document.getElementById("pRegBowel")?.value.trim() || "",
+      urine: document.getElementById("pRegUrine")?.value.trim() || "",
+      habit: document.getElementById("pRegHabit")?.value.trim() || "",
+      thermalModality: document.getElementById("pRegThermal")?.value || "Chilly",
+      sleep: document.getElementById("pRegSleep")?.value.trim() || "",
+      dreams: document.getElementById("pRegDreams")?.value.trim() || "",
+      hobby: document.getElementById("pRegHobby")?.value.trim() || ""
+    },
+    mindHistory: {
+      anxiety: document.getElementById("pRegAnxiety")?.value.trim() || "",
+      stress: document.getElementById("pRegStress")?.value.trim() || "",
+      thoughts: document.getElementById("pRegThoughts")?.value.trim() || "",
+      company: document.getElementById("pRegCompany")?.value || "Desires Company",
+      worried: document.getElementById("pRegWorried")?.value.trim() || "",
+      happy: document.getElementById("pRegHappy")?.value.trim() || ""
+    }
   };
 
-  CLINIC_STATE.patients.push(newPatient);
-  CLINIC_STATE.selectedPatientId = newPatientId;
+  const record = savePatientCaseRecord(patientData, "staff_assisted");
 
   patientRegistrationForm.reset();
   closePatientModal();
   updateDashboardMetrics();
   renderPatientWorkspace();
+  navigateTo("cases");
 
-  showToast(`Patient "${name}" registered successfully with ID ${newPatientId}.`, "success");
+  showToast(`Patient "${name}" registered successfully with ID ${record.id}.`, "success");
 });
 
 // Add Symptom Rubric to Active Patient
@@ -3061,3 +3139,541 @@ window.addEventListener("load", refreshIcons);
 setTimeout(refreshIcons, 300);
 setTimeout(refreshIcons, 1000);
 
+
+
+// ==========================================================================
+// HOMEOCARE MVP: TRILINGUAL PATIENT SELF-ENTRY CONTROLLER
+// Languages: English (en), Hindi (hi), Marathi (mr)
+// ==========================================================================
+let currentSelfEntryLang = "en";
+let selfEntryCurrentStep = 1;
+
+function setSelfEntryLanguage(lang) {
+  if (!window.HOMEO_I18N || !window.HOMEO_I18N[lang]) return;
+  currentSelfEntryLang = lang;
+  const strings = window.HOMEO_I18N[lang];
+
+  // Update active state on language buttons
+  document.querySelectorAll(".lang-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+  });
+
+  // Apply translations to self-entry form elements
+  const elTitle = document.getElementById("i18n-self-title");
+  const elSubtitle = document.getElementById("i18n-self-subtitle");
+  const elPrivacy = document.getElementById("i18n-self-privacy");
+  if (elTitle) elTitle.textContent = strings.patientSelfEntryTitle;
+  if (elSubtitle) elSubtitle.textContent = strings.patientSelfEntrySubtitle;
+  if (elPrivacy) elPrivacy.textContent = strings.privacyNotice;
+
+  // Labels
+  const mapping = {
+    "i18n-step1-head": strings.step1,
+    "i18n-step2-head": strings.step2,
+    "i18n-step3-head": strings.step3,
+    "i18n-step4-head": strings.step4,
+    "i18n-step5-head": strings.step5,
+    "i18n-lbl-fullname": strings.fullName,
+    "i18n-lbl-phone": strings.phone,
+    "i18n-lbl-age": strings.age,
+    "i18n-lbl-gender": strings.gender,
+    "i18n-lbl-dob": strings.dob,
+    "i18n-lbl-address": strings.address,
+    "i18n-lbl-email": strings.email,
+    "i18n-lbl-chief": strings.chiefComplaint,
+    "i18n-lbl-assoc": strings.associatedComplaints,
+    "i18n-lbl-pasthist": strings.pastHistory,
+    "i18n-help-pasthist": strings.pastHistoryHelp,
+    "i18n-lbl-famhist": strings.familyHistory,
+    "i18n-help-famhist": strings.familyHistoryHelp,
+    "i18n-notice-phys": strings.personalHistoryNotice,
+    "i18n-lbl-appetite": strings.appetite,
+    "i18n-lbl-thirst": strings.thirst,
+    "i18n-lbl-craving": strings.craving,
+    "i18n-lbl-diet": strings.diet,
+    "i18n-lbl-bowel": strings.bowel,
+    "i18n-lbl-urine": strings.urine,
+    "i18n-lbl-habit": strings.habit,
+    "i18n-lbl-thermal": strings.thermalModality,
+    "i18n-lbl-sleep": strings.sleep,
+    "i18n-lbl-dreams": strings.dreams,
+    "i18n-lbl-hobby": strings.hobby,
+    "i18n-notice-mind": strings.mindHistoryNotice,
+    "i18n-lbl-anxiety": strings.anxiety,
+    "i18n-lbl-stress": strings.stress,
+    "i18n-lbl-thoughts": strings.thoughts,
+    "i18n-lbl-company": strings.company,
+    "i18n-lbl-worried": strings.worried,
+    "i18n-lbl-happy": strings.happy,
+    "i18n-btn-submit": strings.btnSubmit,
+    "i18n-success-title": strings.btnSubmitSuccess,
+    "i18n-success-msg": strings.submitSuccessMessage
+  };
+
+  for (const [id, text] of Object.entries(mapping)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+}
+
+function openPatientSelfEntryPortal() {
+  const authEntrance = document.getElementById("authEntrance");
+  const appShell = document.getElementById("appShell");
+  const selfEntryView = document.getElementById("patientSelfEntryView");
+  const selfEntrySuccessCard = document.getElementById("selfEntrySuccessCard");
+  const selfEntryForm = document.getElementById("selfEntryForm");
+
+  if (authEntrance) authEntrance.style.display = "none";
+  if (appShell) appShell.style.display = "none";
+  if (selfEntryView) selfEntryView.style.display = "flex";
+  if (selfEntryForm) selfEntryForm.style.display = "block";
+  if (selfEntrySuccessCard) selfEntrySuccessCard.style.display = "none";
+
+  goToSelfEntryStep(1);
+  setSelfEntryLanguage(currentSelfEntryLang);
+  if (window.lucide) lucide.createIcons();
+}
+
+function closePatientSelfEntryPortal() {
+  const authEntrance = document.getElementById("authEntrance");
+  const selfEntryView = document.getElementById("patientSelfEntryView");
+  const appShell = document.getElementById("appShell");
+
+  if (selfEntryView) selfEntryView.style.display = "none";
+  const user = getAuthenticatedUser();
+  if (user && appShell) {
+    appShell.style.display = "flex";
+    navigateTo("dashboard");
+  } else if (authEntrance) {
+    authEntrance.style.display = "flex";
+  }
+}
+
+function goToSelfEntryStep(stepNum) {
+  selfEntryCurrentStep = stepNum;
+  document.querySelectorAll(".wizard-step-pane").forEach((pane, idx) => {
+    pane.classList.toggle("active", idx + 1 === stepNum);
+  });
+  document.querySelectorAll(".wizard-stepper .step-badge").forEach((badge, idx) => {
+    badge.classList.toggle("active", idx + 1 === stepNum);
+    badge.classList.toggle("completed", idx + 1 < stepNum);
+  });
+
+  if (stepNum === 5) {
+    populateSelfEntryReview();
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function populateSelfEntryReview() {
+  const reviewContainer = document.getElementById("selfReviewSummary");
+  if (!reviewContainer) return;
+
+  const fullName = document.getElementById("seFullName")?.value.trim() || "—";
+  const phone = document.getElementById("sePhone")?.value.trim() || "—";
+  const age = document.getElementById("seAge")?.value.trim() || "—";
+  const gender = document.getElementById("seGender")?.value || "—";
+  const dob = document.getElementById("seDob")?.value || "—";
+  const address = document.getElementById("seAddress")?.value.trim() || "—";
+  const chief = document.getElementById("seChiefComplaint")?.value.trim() || "—";
+  const assoc = document.getElementById("seAssociatedComplaints")?.value.trim() || "None reported";
+
+  const past = document.getElementById("sePastHistory")?.value.trim() || "None reported";
+  const family = document.getElementById("seFamilyHistory")?.value.trim() || "None reported";
+
+  const appetite = document.getElementById("seAppetite")?.value.trim() || "—";
+  const thirst = document.getElementById("seThirst")?.value.trim() || "—";
+  const craving = document.getElementById("seCraving")?.value.trim() || "—";
+  const diet = document.getElementById("seDiet")?.value || "—";
+  const bowel = document.getElementById("seBowel")?.value.trim() || "—";
+  const urine = document.getElementById("seUrine")?.value.trim() || "—";
+  const habit = document.getElementById("seHabit")?.value.trim() || "—";
+  const thermal = document.getElementById("seThermalModality")?.value || "—";
+  const sleep = document.getElementById("seSleep")?.value.trim() || "—";
+  const dreams = document.getElementById("seDreams")?.value.trim() || "—";
+  const hobby = document.getElementById("seHobby")?.value.trim() || "—";
+
+  const anxiety = document.getElementById("seAnxiety")?.value.trim() || "—";
+  const stress = document.getElementById("seStress")?.value.trim() || "—";
+  const thoughts = document.getElementById("seThoughts")?.value.trim() || "—";
+  const company = document.getElementById("seCompany")?.value || "—";
+  const worried = document.getElementById("seWorried")?.value.trim() || "—";
+  const happy = document.getElementById("seHappy")?.value.trim() || "—";
+
+  reviewContainer.innerHTML = `
+    <div class="review-section-block">
+      <h4>1. Patient Identity & Complaints</h4>
+      <div class="review-grid">
+        <div class="review-item"><strong>Full Name</strong><span>${fullName}</span></div>
+        <div class="review-item"><strong>Phone</strong><span>${phone}</span></div>
+        <div class="review-item"><strong>Age / Sex</strong><span>${age} yrs (${gender})</span></div>
+        <div class="review-item"><strong>Date of Birth</strong><span>${dob}</span></div>
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>Residential Address</strong><span>${address}</span></div>
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>Chief Complaint (C/C)</strong><span>${chief}</span></div>
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>Associated Complaints</strong><span>${assoc}</span></div>
+      </div>
+    </div>
+
+    <div class="review-section-block">
+      <h4>2. Medical & Family History</h4>
+      <div class="review-grid">
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>Past Medical History</strong><span>${past}</span></div>
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>Family History</strong><span>${family}</span></div>
+      </div>
+    </div>
+
+    <div class="review-section-block">
+      <h4>3. Personal History (Physical Modalities)</h4>
+      <div class="review-grid">
+        <div class="review-item"><strong>Appetite</strong><span>${appetite}</span></div>
+        <div class="review-item"><strong>Thirst</strong><span>${thirst}</span></div>
+        <div class="review-item"><strong>Cravings</strong><span>${craving}</span></div>
+        <div class="review-item"><strong>Diet</strong><span>${diet}</span></div>
+        <div class="review-item"><strong>Bowel</strong><span>${bowel}</span></div>
+        <div class="review-item"><strong>Urine</strong><span>${urine}</span></div>
+        <div class="review-item"><strong>Habits</strong><span>${habit}</span></div>
+        <div class="review-item"><strong>Thermal Modality</strong><span>${thermal}</span></div>
+        <div class="review-item"><strong>Sleep</strong><span>${sleep}</span></div>
+        <div class="review-item"><strong>Dreams</strong><span>${dreams}</span></div>
+        <div class="review-item"><strong>Hobby (h)</strong><span>${hobby} (Pending Doctor Confirmation)</span></div>
+      </div>
+    </div>
+
+    <div class="review-section-block">
+      <h4>4. Mind & Emotional State</h4>
+      <div class="review-grid">
+        <div class="review-item"><strong>Anxiety</strong><span>${anxiety}</span></div>
+        <div class="review-item"><strong>Stress</strong><span>${stress}</span></div>
+        <div class="review-item"><strong>Thoughts</strong><span>${thoughts}</span></div>
+        <div class="review-item"><strong>Company</strong><span>${company}</span></div>
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>What makes you worried?</strong><span>${worried}</span></div>
+        <div class="review-item" style="grid-column: 1 / -1;"><strong>What makes you happy?</strong><span>${happy}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+// Global Patient Record Creation (Used by both Patient Self-Entry & Staff Intake)
+function savePatientCaseRecord(patientData, entrySource = "patient_self") {
+  const currentYear = new Date().getFullYear();
+  const newPatientId = `SSC-${currentYear}-${1001 + CLINIC_STATE.patients.length}`;
+  const todayStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const timestampIso = new Date().toISOString();
+
+  const record = {
+    id: newPatientId,
+    name: patientData.name,
+    phone: patientData.phone,
+    age: patientData.age,
+    gender: patientData.gender,
+    dob: patientData.dob || "",
+    address: patientData.address || "",
+    email: patientData.email || "",
+    chiefComplaint: patientData.chiefComplaint,
+    associatedComplaints: patientData.associatedComplaints || "",
+    pastHistory: patientData.pastHistory || "",
+    familyHistory: patientData.familyHistory || "",
+    personalHistory: patientData.personalHistory || {},
+    mindHistory: patientData.mindHistory || {},
+    entry_source: entrySource,
+    created_at: timestampIso,
+    registeredDate: todayStr,
+    miasm: patientData.miasm || "Evaluating",
+    constitution: patientData.constitution || "Evaluating",
+    rubrics: [],
+    history: [
+      {
+        title: entrySource === "patient_self" ? "Patient Self-Entry Case Record" : "Doctor / Staff Intake Record",
+        date: todayStr,
+        desc: `Initial case-history recorded via ${entrySource === "patient_self" ? "Patient Self-Entry Form" : "Staff-Assisted Intake"}. Chief complaint: ${patientData.chiefComplaint}`
+      }
+    ]
+  };
+
+  CLINIC_STATE.patients.push(record);
+  CLINIC_STATE.selectedPatientId = newPatientId;
+
+  // Persist locally
+  try {
+    localStorage.setItem("homeocare_patients_cache", JSON.stringify(CLINIC_STATE.patients));
+  } catch (_) {}
+
+  // Sync to Supabase if configured
+  if (window.HomeoCareAPI?.patients?.create) {
+    window.HomeoCareAPI.patients.create({
+      clinic_patient_id: newPatientId,
+      full_name: record.name,
+      phone: record.phone,
+      age: parseInt(record.age, 10) || 0,
+      gender: record.gender,
+      address: record.address
+    }).catch(err => {
+      console.warn("[HomeoCare] Supabase patient sync error (cached locally):", err);
+    });
+  }
+
+  updateDashboardMetrics();
+  return record;
+}
+
+// Full Patient Case Record Dossier Renderer (Replaces clutter in #page-cases)
+function renderPatientCaseDossier(patient) {
+  if (!patient) return "";
+
+  const p = patient;
+  const pers = p.personalHistory || {};
+  const mind = p.mindHistory || {};
+  const isSelf = p.entry_source === "patient_self";
+
+  return `
+    <div class="case-dossier-wrapper">
+      <!-- Patient Identity Banner -->
+      <div class="dossier-hero-card">
+        <div class="dossier-patient-main">
+          <div class="dossier-avatar">${p.name.substring(0, 2).toUpperCase()}</div>
+          <div>
+            <div class="dossier-name-row">
+              <h2>${p.name}</h2>
+              <span class="${isSelf ? 'source-badge-self' : 'source-badge-staff'}">
+                ${isSelf ? 'Patient Self-Entry' : 'Doctor/Staff-Assisted'}
+              </span>
+            </div>
+            <div class="dossier-meta-sub">
+              <strong>ID:</strong> ${p.id} • 
+              <strong>Age/Sex:</strong> ${p.age} yrs (${p.gender}) • 
+              <strong>Phone:</strong> ${p.phone} • 
+              <strong>Registered:</strong> ${p.registeredDate}
+            </div>
+            ${p.address ? `<div class="dossier-meta-sub" style="margin-top: 4px;"><strong>Address:</strong> ${p.address}</div>` : ''}
+          </div>
+        </div>
+        <div class="dossier-actions">
+          <button type="button" class="secondary-btn-outline" onclick="window.print()">
+            <i data-lucide="printer"></i>
+            <span>Print Record</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. Chief Complaint & Associated Complaints -->
+      <div class="case-record-section-card">
+        <div class="case-section-header">
+          <i data-lucide="stethoscope"></i>
+          <h3>1. Chief Complaint & Associated Complaints</h3>
+        </div>
+        <div class="case-data-grid">
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <strong>Chief Complaint (C/C)</strong>
+            <p>${p.chiefComplaint || '—'}</p>
+          </div>
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <strong>Associated Complaints</strong>
+            <p>${p.associatedComplaints || 'None reported'}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Medical & Family History -->
+      <div class="case-record-section-card">
+        <div class="case-section-header">
+          <i data-lucide="history"></i>
+          <h3>2. Past Medical & Family History</h3>
+        </div>
+        <div class="case-data-grid">
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <strong>Past Medical History</strong>
+            <p>${p.pastHistory || 'None reported'}</p>
+          </div>
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <strong>Family History</strong>
+            <p>${p.familyHistory || 'None reported'}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Personal History (Physical Modalities) -->
+      <div class="case-record-section-card">
+        <div class="case-section-header">
+          <i data-lucide="activity"></i>
+          <h3>3. Personal History (Physical Modalities)</h3>
+        </div>
+        <div class="case-data-grid">
+          <div class="case-data-item"><strong>Appetite (APP)</strong><p>${pers.appetite || '—'}</p></div>
+          <div class="case-data-item"><strong>Thirst</strong><p>${pers.thirst || '—'}</p></div>
+          <div class="case-data-item"><strong>Craving / Desires</strong><p>${pers.craving || '—'}</p></div>
+          <div class="case-data-item"><strong>Diet</strong><p>${pers.diet || '—'}</p></div>
+          <div class="case-data-item"><strong>Bowel</strong><p>${pers.bowel || '—'}</p></div>
+          <div class="case-data-item"><strong>Urine</strong><p>${pers.urine || '—'}</p></div>
+          <div class="case-data-item"><strong>Habit / Addictions</strong><p>${pers.habit || '—'}</p></div>
+          <div class="case-data-item"><strong>Thermal Modality</strong><p>${pers.thermalModality || '—'}</p></div>
+          <div class="case-data-item"><strong>Sleep</strong><p>${pers.sleep || '—'}</p></div>
+          <div class="case-data-item"><strong>Dreams</strong><p>${pers.dreams || '—'}</p></div>
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <div class="label-with-badge">
+              <strong>Hobby / Pastime (h)</strong>
+              <span class="pending-badge">Pending Doctor Confirmation</span>
+            </div>
+            <p>${pers.hobby || 'Not provided'}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Mind & Emotional History -->
+      <div class="case-record-section-card">
+        <div class="case-section-header">
+          <i data-lucide="heart"></i>
+          <h3>4. Mind & Emotional State</h3>
+        </div>
+        <div class="case-data-grid">
+          <div class="case-data-item"><strong>Anxiety</strong><p>${mind.anxiety || '—'}</p></div>
+          <div class="case-data-item"><strong>Stress</strong><p>${mind.stress || '—'}</p></div>
+          <div class="case-data-item"><strong>Thoughts</strong><p>${mind.thoughts || '—'}</p></div>
+          <div class="case-data-item"><strong>Company</strong><p>${mind.company || '—'}</p></div>
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <strong>What makes patient worried or sad?</strong>
+            <p>${mind.worried || '—'}</p>
+          </div>
+          <div class="case-data-item" style="grid-column: 1 / -1;">
+            <strong>What makes patient happiest or relaxed?</strong>
+            <p>${mind.happy || '—'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Attach listeners for MVP Dual Entry & Language Switcher
+window.addEventListener("DOMContentLoaded", () => {
+  // Check hash on load
+  if (window.location.hash === "#self-entry") {
+    openPatientSelfEntryPortal();
+  }
+
+  // Top action in Login page
+  const openSelfTopBtn = document.getElementById("openPatientSelfEntryTopBtn");
+  if (openSelfTopBtn) {
+    openSelfTopBtn.addEventListener("click", openPatientSelfEntryPortal);
+  }
+
+  // Hero button in Dashboard
+  const openSelfHeroBtn = document.getElementById("openSelfEntryHeroBtn");
+  if (openSelfHeroBtn) {
+    openSelfHeroBtn.addEventListener("click", openPatientSelfEntryPortal);
+  }
+
+  // Exit Self-Entry to staff login
+  const exitSelfBtn = document.getElementById("exitSelfEntryBtn");
+  if (exitSelfBtn) {
+    exitSelfBtn.addEventListener("click", closePatientSelfEntryPortal);
+  }
+
+  const selfDoneBtn = document.getElementById("selfEntryDoneBtn");
+  if (selfDoneBtn) {
+    selfDoneBtn.addEventListener("click", closePatientSelfEntryPortal);
+  }
+
+  const selfNewBtn = document.getElementById("selfEntryNewBtn");
+  if (selfNewBtn) {
+    selfNewBtn.addEventListener("click", () => {
+      document.getElementById("selfEntryForm").reset();
+      openPatientSelfEntryPortal();
+    });
+  }
+
+  // Language buttons
+  document.querySelectorAll(".lang-toggle-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const lang = e.currentTarget.getAttribute("data-lang");
+      setSelfEntryLanguage(lang);
+    });
+  });
+
+  // Step Next / Prev buttons
+  document.querySelectorAll(".btn-next-step").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const nextStep = parseInt(e.currentTarget.getAttribute("data-next"), 10);
+      // Validate current step required inputs
+      if (selfEntryCurrentStep === 1) {
+        const name = document.getElementById("seFullName")?.value.trim();
+        const phone = document.getElementById("sePhone")?.value.trim();
+        const age = document.getElementById("seAge")?.value.trim();
+        const addr = document.getElementById("seAddress")?.value.trim();
+        const chief = document.getElementById("seChiefComplaint")?.value.trim();
+        if (!name || !phone || !age || !addr || !chief) {
+          showToast("Please fill in all required fields marked with * in Step 1.", "error");
+          return;
+        }
+      }
+      goToSelfEntryStep(nextStep);
+    });
+  });
+
+  document.querySelectorAll(".btn-prev-step").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const prevStep = parseInt(e.currentTarget.getAttribute("data-prev"), 10);
+      goToSelfEntryStep(prevStep);
+    });
+  });
+
+  // Self-Entry Form Submission
+  const selfEntryForm = document.getElementById("selfEntryForm");
+  if (selfEntryForm) {
+    selfEntryForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const patientData = {
+        name: document.getElementById("seFullName").value.trim(),
+        phone: document.getElementById("sePhone").value.trim(),
+        age: document.getElementById("seAge").value.trim(),
+        gender: document.getElementById("seGender").value,
+        dob: document.getElementById("seDob").value,
+        address: document.getElementById("seAddress").value.trim(),
+        email: document.getElementById("seEmail").value.trim(),
+        chiefComplaint: document.getElementById("seChiefComplaint").value.trim(),
+        associatedComplaints: document.getElementById("seAssociatedComplaints").value.trim(),
+        pastHistory: document.getElementById("sePastHistory").value.trim(),
+        familyHistory: document.getElementById("seFamilyHistory").value.trim(),
+        personalHistory: {
+          appetite: document.getElementById("seAppetite").value.trim(),
+          thirst: document.getElementById("seThirst").value.trim(),
+          craving: document.getElementById("seCraving").value.trim(),
+          diet: document.getElementById("seDiet").value,
+          bowel: document.getElementById("seBowel").value.trim(),
+          urine: document.getElementById("seUrine").value.trim(),
+          habit: document.getElementById("seHabit").value.trim(),
+          thermalModality: document.getElementById("seThermalModality").value,
+          sleep: document.getElementById("seSleep").value.trim(),
+          dreams: document.getElementById("seDreams").value.trim(),
+          hobby: document.getElementById("seHobby").value.trim()
+        },
+        mindHistory: {
+          anxiety: document.getElementById("seAnxiety").value.trim(),
+          stress: document.getElementById("seStress").value.trim(),
+          thoughts: document.getElementById("seThoughts").value.trim(),
+          company: document.getElementById("seCompany").value,
+          worried: document.getElementById("seWorried").value.trim(),
+          happy: document.getElementById("seHappy").value.trim()
+        }
+      };
+
+      const record = savePatientCaseRecord(patientData, "patient_self");
+
+      // Show receipt
+      const formEl = document.getElementById("selfEntryForm");
+      const successCard = document.getElementById("selfEntrySuccessCard");
+      const rcptId = document.getElementById("rcptPatientId");
+      const rcptName = document.getElementById("rcptPatientName");
+      const rcptTime = document.getElementById("rcptTime");
+
+      if (formEl) formEl.style.display = "none";
+      if (successCard) successCard.style.display = "block";
+      if (rcptId) rcptId.textContent = record.id;
+      if (rcptName) rcptName.textContent = record.name;
+      if (rcptTime) rcptTime.textContent = new Date().toLocaleString();
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+});
