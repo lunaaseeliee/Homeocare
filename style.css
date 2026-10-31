@@ -3211,4 +3211,66 @@ svg.lucide {
   flex-shrink: 0;
 }
 
+/* ==========================================================================
+   CINEMATIC CIRCULAR VIEW TRANSITION (THEME REVEAL)
+   ========================================================================== */
+
+/* Define view-transition name for the root document */
+@supports (view-transition-name: root) {
+  :root {
+    view-transition-name: root;
+  }
+}
+
+/* Disable default browser crossfade animations */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none !important;
+  mix-blend-mode: normal !important;
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Old theme snapshot stays stationary underneath with full fidelity */
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* New theme expands smoothly from the exact click origin on top */
+::view-transition-new(root) {
+  z-index: 99999;
+}
+
+/* CSS fallback animation if Web Animations API pseudoElement is not supported */
+@keyframes theme-circle-reveal {
+  from {
+    clip-path: circle(0px at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
+  }
+  to {
+    clip-path: circle(var(--vt-radius, 150vmax) at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
+  }
+}
+
+html.theme-transitioning-css::view-transition-new(root) {
+  animation: theme-circle-reveal 750ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+/* Suppress individual element CSS color transitions during the circular wipe to prevent double-fading */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
 

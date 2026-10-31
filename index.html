@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HomeoCare | Shri Siddhivinayak Clinic</title>
+  <!-- Immediate Theme Initialization to prevent reload flashes -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem("homeocare_theme");
+        if (saved === "light" || saved === "dark") {
+          document.documentElement.setAttribute("data-theme", saved);
+        }
+      } catch (_) {}
+    })();
+  </script>
   <meta name="description" content="HomeoCare holistic clinical management system for Shri Siddhivinayak Clinic - Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)">
   <meta name="theme-color" content="#0B0F19">
   <link rel="manifest" href="manifest.json">
