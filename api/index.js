@@ -2,9 +2,14 @@
  * HomeoCare - Vercel Serverless Function API Gateway
  * Clinic: Shri Siddhivinayak Clinic | Dr. Suraj D. Panigrahi
  *
- * Handles all /api/* routes seamlessly in Vercel's Node.js Serverless environment
- * with full parity to server.js, stateless HMAC + single-use CAPTCHA verification,
- * rate limiting, and strict secret-key protection.
+ * Robust Vercel Serverless Gateway:
+ * - Handles all /api/* routes seamlessly under Vercel edge/serverless routing
+ * - Multi-source path resolution (x-forwarded-uri, x-matched-path, rewrite capture query, req.url)
+ * - Stateless HMAC-SHA256 CAPTCHA verification across serverless instances & cold starts
+ * - Cryptographic salted scrypt password hashing
+ * - Stateless HMAC staff authorization tickets for reliable cross-instance login
+ * - Clinic staff role enforcement (receptionist role only; doctor role reserved for clinic owner)
+ * - Strict secret key protection (never exposes sb_secret_* or service_role keys)
  */
 
 const crypto = require('crypto');
@@ -12,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CAPTCHA_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const CAPTCHA_TTL_MS = 3 * 60 * 1000;
+const CAPTCHA_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 const COMMONLY_USED_PASSWORDS = new Set([
   '12345678', '123456789', '1234567890', 'password', 'passphrase',
@@ -28,29 +33,36 @@ function isCommonPassword(password) {
   return COMMONLY_USED_PASSWORDS.has(String(password).trim().toLowerCase());
 }
 
-// Memory stores for current lambda lifecycle
+// Memory stores for current lambda instance
 const SERVER_CAPTCHAS = new Map();
 const USED_CAPTCHAS = new Set();
 const RATE_LIMITS = new Map();
 
-// Deterministic server secret for HMAC CAPTCHA verification across serverless cold starts
-function getCaptchaSecret() {
+// Deterministic server secret for HMAC signing across serverless cold starts
+function getSigningSecret() {
   return (
     process.env.CAPTCHA_SECRET ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_URL ||
-    'homeocare-shri-siddhivinayak-clinic-captcha-secret-key'
+    'homeocare-shri-siddhivinayak-clinic-secret-token'
   );
 }
 
 function computeCaptchaHmac(nonce, expiresAt, answerUpper) {
   return crypto
-    .createHmac('sha256', getCaptchaSecret())
+    .createHmac('sha256', getSigningSecret())
     .update(`${nonce}:${expiresAt}:${answerUpper}`)
     .digest('hex');
 }
 
-// On Vercel, the root filesystem is read-only; use /tmp for runtime persistence
+function computeStaffTicketHmac(username, salt, passwordHash) {
+  return crypto
+    .createHmac('sha256', getSigningSecret())
+    .update(`staff:${username}:${salt}:${passwordHash}`)
+    .digest('hex');
+}
+
+// On Vercel, the root filesystem is read-only; use /tmp for runtime caching
 const STAFF_DIRECTORY_PATH = process.env.VERCEL
   ? path.join('/tmp', '.staff-directory.json')
   : path.join(__dirname, '..', '.staff-directory.json');
@@ -81,6 +93,18 @@ function loadStaffDirectory() {
       const uname = k.replace('STAFF_EMAIL_', '').toLowerCase();
       map[uname] = { email: v.trim().toLowerCase(), status: 'approved', role: 'doctor' };
     }
+  }
+
+  // Pre-configured staff accounts via environment variable if provided
+  if (process.env.STAFF_ACCOUNTS_JSON) {
+    try {
+      const extra = JSON.parse(process.env.STAFF_ACCOUNTS_JSON);
+      if (extra && typeof extra === 'object') {
+        for (const [u, val] of Object.entries(extra)) {
+          map[u.toLowerCase()] = val;
+        }
+      }
+    } catch (_) {}
   }
 
   if (fs.existsSync(STAFF_DIRECTORY_PATH)) {
@@ -118,18 +142,6 @@ function saveStaffUser(username, record) {
   } catch (err) {
     console.warn('[StaffDir] Write to directory file failed:', err.message);
   }
-}
-
-function saveStaffUsernameBinding(username, email) {
-  const cleanUser = String(username || '').trim().toLowerCase();
-  const cleanEmail = String(email || '').trim().toLowerCase();
-  if (!cleanUser || !cleanEmail.includes('@')) return;
-  saveStaffUser(cleanUser, {
-    username: cleanUser,
-    email: cleanEmail,
-    status: 'approved',
-    updatedAt: new Date().toISOString()
-  });
 }
 
 function checkRateLimit(bucket, ip, maxAttempts, windowMs) {
@@ -280,9 +292,48 @@ function sendJson(res, statusCode, data, extraHeaders = {}) {
   res.end(JSON.stringify(data));
 }
 
+/**
+ * Universal path resolution supporting Vercel serverless edge rewrites,
+ * reverse proxies, and direct Node.js invocations.
+ */
+function getRequestPath(req) {
+  let raw =
+    req.headers['x-forwarded-uri'] ||
+    req.headers['x-matched-path'] ||
+    req.headers['x-rewrite-url'] ||
+    req.headers['x-original-url'] ||
+    req.url ||
+    '/';
+  let urlObj = new URL(raw, `http://${req.headers.host || 'localhost'}`);
+  let pathname = urlObj.pathname.replace(/\/$/, '') || '/';
+
+  // If Vercel rewrote the request to the handler script path
+  if (
+    pathname === '/api/index.js' ||
+    pathname === '/api/index' ||
+    pathname === '/api' ||
+    pathname.startsWith('/api/[...')
+  ) {
+    const q0 =
+      urlObj.searchParams.get('0') ||
+      urlObj.searchParams.get('path') ||
+      (req.query && (req.query['0'] || req.query['path']));
+    if (q0) {
+      pathname = '/api/' + String(q0).replace(/^\//, '');
+    } else if (req.headers['x-now-route-matches']) {
+      const params = new URLSearchParams(req.headers['x-now-route-matches']);
+      const match = params.get('1') || params.get('0');
+      if (match) {
+        pathname = '/api/' + decodeURIComponent(match).replace(/^\//, '');
+      }
+    }
+  }
+
+  return pathname;
+}
+
 module.exports = async function handler(req, res) {
-  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname.replace(/\/$/, '') || '/';
+  const pathname = getRequestPath(req);
   const clientIp = getClientIp(req);
 
   // 1. Safe Supabase Public Config (Publishable Key + URL only)
@@ -357,6 +408,20 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // Check clinic staff allowlist if configured via environment variable
+      if (process.env.CLINIC_STAFF_ALLOWLIST && process.env.CLINIC_STAFF_ALLOWLIST !== '*') {
+        const allowedUsers = new Set(
+          process.env.CLINIC_STAFF_ALLOWLIST.split(',').map((u) => u.trim().toLowerCase())
+        );
+        if (!allowedUsers.has(cleanUsername)) {
+          return sendJson(res, 403, {
+            ok: false,
+            error: `Registration restricted: Username "${cleanUsername}" is not on the authorized clinic personnel roster.`
+          });
+        }
+      }
+
+      // Reserved clinic administration usernames
       const RESERVED_USERNAMES = new Set(['doctor', 'dr.suraj', 'admin', 'administrator', 'root', 'system']);
       if (RESERVED_USERNAMES.has(cleanUsername)) {
         return sendJson(res, 400, {
@@ -391,6 +456,8 @@ module.exports = async function handler(req, res) {
 
       const salt = crypto.randomBytes(16).toString('hex');
       const passwordHash = hashPassword(password, salt);
+      const ticketSig = computeStaffTicketHmac(cleanUsername, salt, passwordHash);
+      const staffTicket = `${cleanUsername}.${salt}.${passwordHash}.${ticketSig}`;
 
       saveStaffUser(cleanUsername, {
         username: cleanUsername,
@@ -407,6 +474,7 @@ module.exports = async function handler(req, res) {
         username: cleanUsername,
         activated: true,
         status: 'active',
+        staffTicket,
         message: 'Registration successful! You may now sign in.'
       });
     } catch (err) {
@@ -499,12 +567,39 @@ module.exports = async function handler(req, res) {
       const body = await parseBody(req);
       const identifier = String(body.identifier || '').trim().toLowerCase();
       const password = String(body.password || '');
+      const staffTicket = String(body.staffTicket || '').trim();
+
       if (!identifier) {
         return sendJson(res, 400, { ok: false, error: 'Username is required.' });
       }
 
       const directory = loadStaffDirectory();
-      const userRecord = directory[identifier];
+      let userRecord = directory[identifier];
+
+      // Cross-instance recovery: if cold start wiped local /tmp, verify HMAC staffTicket
+      if (!userRecord && staffTicket) {
+        const parts = staffTicket.split('.');
+        if (parts.length === 4) {
+          const [tUname, tSalt, tHash, tSig] = parts;
+          if (tUname.toLowerCase() === identifier) {
+            const expectedSig = computeStaffTicketHmac(tUname, tSalt, tHash);
+            if (
+              tSig.length === expectedSig.length &&
+              crypto.timingSafeEqual(Buffer.from(tSig, 'hex'), Buffer.from(expectedSig, 'hex'))
+            ) {
+              userRecord = {
+                username: tUname,
+                passwordHash: tHash,
+                salt: tSalt,
+                status: 'active',
+                role: 'receptionist',
+                isDoctor: false
+              };
+              saveStaffUser(tUname, userRecord);
+            }
+          }
+        }
+      }
 
       if (userRecord) {
         if (password && userRecord.salt && userRecord.passwordHash) {
@@ -655,7 +750,12 @@ module.exports = async function handler(req, res) {
 
       const authUser = await userRes.json();
       if (authUser?.email) {
-        saveStaffUsernameBinding(username, authUser.email);
+        saveStaffUser(username, {
+          username,
+          email: authUser.email,
+          status: 'approved',
+          updatedAt: new Date().toISOString()
+        });
       }
 
       return sendJson(res, 200, { ok: true });

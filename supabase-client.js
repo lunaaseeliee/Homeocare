@@ -267,10 +267,15 @@ const HomeoCareAPI = {
       }
 
       // 1. Server-side rate limit check + username-to-provisioned-email resolution
+      let staffTicket = null;
+      try {
+        staffTicket = localStorage.getItem("homeocare_staff_ticket_" + identifier.toLowerCase());
+      } catch (_) {}
+
       const prepRes = await fetch("/api/auth/prepare-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password })
+        body: JSON.stringify({ identifier, password, staffTicket })
       });
       const prepData = await prepRes.json().catch(() => ({}));
       if (!prepRes.ok || !prepData.ok) {
@@ -407,6 +412,12 @@ const HomeoCareAPI = {
         const err = new Error(data.error || "Registration failed.");
         if (data.regenerateCaptcha) err.regenerateCaptcha = true;
         throw err;
+      }
+
+      if (data.staffTicket) {
+        try {
+          localStorage.setItem("homeocare_staff_ticket_" + cleanUsername, data.staffTicket);
+        } catch (_) {}
       }
 
       return data;

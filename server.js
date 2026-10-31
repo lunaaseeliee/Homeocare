@@ -80,6 +80,23 @@ function verifyPassword(password, salt, hash) {
   }
 }
 
+function getSigningSecret() {
+  const env = loadLocalEnv();
+  return (
+    process.env.CAPTCHA_SECRET ||
+    env.SUPABASE_PUBLISHABLE_KEY ||
+    env.SUPABASE_URL ||
+    'homeocare-shri-siddhivinayak-clinic-secret-token'
+  );
+}
+
+function computeStaffTicketHmac(username, salt, passwordHash) {
+  return crypto
+    .createHmac('sha256', getSigningSecret())
+    .update(`staff:${username}:${salt}:${passwordHash}`)
+    .digest('hex');
+}
+
 /**
  * Load and save administrator-provisioned username -> real email bindings on the server.
  */
@@ -462,9 +479,27 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // Check clinic staff allowlist if configured via environment variable
+      const envAllow = process.env.CLINIC_STAFF_ALLOWLIST || loadLocalEnv().RAW?.CLINIC_STAFF_ALLOWLIST;
+      if (envAllow && envAllow !== '*') {
+        const allowedUsers = new Set(envAllow.split(',').map((u) => u.trim().toLowerCase()));
+        if (!allowedUsers.has(cleanUsername)) {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              ok: false,
+              error: `Registration restricted: Username "${cleanUsername}" is not on the authorized clinic personnel roster.`
+            })
+          );
+          return;
+        }
+      }
+
       // 4. Register staff user locally with cryptographic password hashing (salted scrypt, never plaintext)
       const salt = crypto.randomBytes(16).toString('hex');
       const passwordHash = hashPassword(password, salt);
+      const ticketSig = computeStaffTicketHmac(cleanUsername, salt, passwordHash);
+      const staffTicket = `${cleanUsername}.${salt}.${passwordHash}.${ticketSig}`;
 
       saveStaffUser(cleanUsername, {
         username: cleanUsername,
@@ -483,6 +518,7 @@ const server = http.createServer(async (req, res) => {
           username: cleanUsername,
           activated: true,
           status: 'active',
+          staffTicket,
           message: 'Registration successful! You may now sign in.'
         })
       );
@@ -605,6 +641,8 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const identifier = String(body.identifier || '').trim().toLowerCase();
       const password = String(body.password || '');
+      const staffTicket = String(body.staffTicket || '').trim();
+
       if (!identifier) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: false, error: 'Username is required.' }));
@@ -612,7 +650,31 @@ const server = http.createServer(async (req, res) => {
       }
 
       const directory = loadStaffDirectory();
-      const userRecord = directory[identifier];
+      let userRecord = directory[identifier];
+
+      if (!userRecord && staffTicket) {
+        const parts = staffTicket.split('.');
+        if (parts.length === 4) {
+          const [tUname, tSalt, tHash, tSig] = parts;
+          if (tUname.toLowerCase() === identifier) {
+            const expectedSig = computeStaffTicketHmac(tUname, tSalt, tHash);
+            if (
+              tSig.length === expectedSig.length &&
+              crypto.timingSafeEqual(Buffer.from(tSig, 'hex'), Buffer.from(expectedSig, 'hex'))
+            ) {
+              userRecord = {
+                username: tUname,
+                passwordHash: tHash,
+                salt: tSalt,
+                status: 'active',
+                role: 'receptionist',
+                isDoctor: false
+              };
+              saveStaffUser(tUname, userRecord);
+            }
+          }
+        }
+      }
 
       // If registered account exists in directory, verify password and grant basic workspace access
       if (userRecord) {

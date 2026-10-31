@@ -26,6 +26,7 @@ const REQUIRED_SOURCE_FILES = [
   'supabase-client.js',
   'server.js',
   'api/index.js',
+  'api/[...path].js',
   'lucide.min.js',
   'supabase.min.js',
   'manifest.json',
@@ -104,7 +105,7 @@ for (const file of REQUIRED_SOURCE_FILES) {
 }
 
 // 2. Syntax check JS files using Node's vm.Script compiler
-const JS_FILES = ['app.js', 'supabase-client.js', 'server.js', 'api/index.js', 'sw.js'];
+const JS_FILES = ['app.js', 'supabase-client.js', 'server.js', 'api/index.js', 'api/[...path].js', 'sw.js'];
 for (const jsFile of JS_FILES) {
   const fullPath = path.join(ROOT_DIR, jsFile);
   if (fs.existsSync(fullPath)) {
