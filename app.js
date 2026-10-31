@@ -121,18 +121,32 @@ const mobileMenuBtn = document.getElementById("mobileMenuBtn");
 const sidebar = document.getElementById("sidebar");
 
 // ==========================================================================
-// 1. Theme Management (Dark Glass <-> Peach Light)
+// 1. Theme Management (HomeoCare 2.0 Solid Green & White)
 // ==========================================================================
+function updateLiveDate() {
+  const liveDateElem = document.getElementById("liveDateText");
+  if (liveDateElem) {
+    const now = new Date();
+    liveDateElem.textContent = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+  }
+}
+
 function initTheme() {
-  const savedTheme = localStorage.getItem("homeocare_theme") || "dark";
+  const savedTheme = localStorage.getItem("homeocare_theme") || "light";
   applyTheme(savedTheme);
+  updateLiveDate();
 }
 
 function applyTheme(theme) {
-  htmlRoot.setAttribute("data-theme", theme);
-  localStorage.setItem("homeocare_theme", theme);
+  htmlRoot.setAttribute("data-theme", theme || "light");
+  localStorage.setItem("homeocare_theme", theme || "light");
 
-  const label = theme === "dark" ? "Dark Glass" : "Peach Light";
+  const label = "Green & White";
   if (themeTextLabel) themeTextLabel.textContent = label;
   const authLabel = document.getElementById("authThemeTextLabel");
   if (authLabel) authLabel.textContent = label;
@@ -2439,14 +2453,22 @@ function applyAuthenticatedSession(user) {
     if (staffRole) {
       staffRole.textContent = `${user.role} (Logged in: ${user.username})`;
     }
+    const headerDoctorName = document.querySelector("#headerDoctorProfile .header-doctor-name");
+    const headerDoctorAvatar = document.querySelector("#headerDoctorProfile .header-doctor-avatar");
     if (isDoc) {
       if (practitionerName) practitionerName.textContent = user.name || "Dr. Suraj D. Panigrahi";
       if (practitionerInitials) practitionerInitials.textContent = "SP";
+      if (headerDoctorName) headerDoctorName.textContent = user.name || "Dr. Suraj D. Panigrahi";
+      if (headerDoctorAvatar) headerDoctorAvatar.textContent = "SP";
     } else {
       const displayName = user.name || user.username.toUpperCase();
       if (practitionerName) practitionerName.textContent = displayName;
       if (practitionerInitials) {
         practitionerInitials.textContent = user.username.substring(0, 2).toUpperCase();
+      }
+      if (headerDoctorName) headerDoctorName.textContent = displayName;
+      if (headerDoctorAvatar) {
+        headerDoctorAvatar.textContent = user.username.substring(0, 2).toUpperCase();
       }
     }
 
