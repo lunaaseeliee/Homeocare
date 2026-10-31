@@ -2779,6 +2779,9 @@ function setupAuthForms() {
         return;
       }
 
+      if (window.HomeoCareAPI && !window.HomeoCareAPI.isConfigured()) {
+        await window.HomeoCareAPI.verifyConnection().catch(() => {});
+      }
       if (!window.HomeoCareAPI || !window.HomeoCareAPI.isConfigured()) {
         showAuthAlert("Supabase is not configured. Please check SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in .env.");
         return;
@@ -2845,6 +2848,9 @@ function setupAuthForms() {
         return;
       }
 
+      if (window.HomeoCareAPI && !window.HomeoCareAPI.isConfigured()) {
+        await window.HomeoCareAPI.verifyConnection().catch(() => {});
+      }
       if (!window.HomeoCareAPI || !window.HomeoCareAPI.isConfigured()) {
         showAuthAlert("Supabase is not configured. Please check SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in .env.");
         return;
