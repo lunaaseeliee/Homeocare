@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261101_v3">
   <!-- Lucide Icons (Local bundle with CDN fallback) -->
   <script src="lucide.min.js"></script>
   <script>
@@ -561,47 +561,44 @@
       </div>
 
       <nav class="nav-menu">
-        <div class="nav-section-label">CLINICAL MVP ACTIVE</div>
-        <a href="#dashboard" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <div class="nav-section-label">CLINICAL WORKSPACE</div>
+        <a href="#dashboard" class="nav-item active" data-page="dashboard" id="nav-dashboard" title="Clinical Desk">
           <i data-lucide="layout-grid"></i>
-          <span>Clinical Desk</span>
+          <span class="nav-label">Clinical Desk</span>
           <span class="nav-pill" id="livePill">Active</span>
         </a>
-        <a href="#patients" class="nav-item" data-page="patients" id="nav-patients">
+        <a href="#patients" class="nav-item" data-page="patients" id="nav-patients" title="Patient Registry">
           <i data-lucide="users"></i>
-          <span>Patient Registry</span>
+          <span class="nav-label">Patient Registry</span>
           <span class="nav-count" id="navPatientCount">0</span>
         </a>
-        <a href="#cases" class="nav-item" data-page="cases" id="nav-cases">
+        <a href="#cases" class="nav-item" data-page="cases" id="nav-cases" title="Case Records">
           <i data-lucide="clipboard-list"></i>
-          <span>Case Records</span>
+          <span class="nav-label">Case Records</span>
+          <span class="nav-count" id="navCasesCount">0</span>
         </a>
-
-        <div class="nav-section-label">FUTURE PHASES (LOCKED)</div>
-        <a href="#locked-appointments" class="nav-item locked-nav-item" data-page="locked-appointments" id="nav-appointments" title="Locked — Future Phase">
+        <a href="#appointments" class="nav-item" data-page="appointments" id="nav-appointments" title="Schedules & Visits">
           <i data-lucide="calendar"></i>
-          <span>Schedules & Visits</span>
-          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
+          <span class="nav-label">Schedules & Visits</span>
+          <span class="nav-count" id="navAppointmentsCount">0</span>
         </a>
-        <a href="#locked-invoices" class="nav-item locked-nav-item" data-page="locked-invoices" id="nav-invoices" title="Locked — Future Phase">
+        <a href="#invoices" class="nav-item" data-page="invoices" id="nav-invoices" title="Invoices & Billing">
           <i data-lucide="receipt"></i>
-          <span>Invoices & Billing</span>
-          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
+          <span class="nav-label">Invoices & Billing</span>
+          <span class="nav-count" id="navInvoicesCount">0</span>
         </a>
-        <a href="#locked-repertory" class="nav-item locked-nav-item" data-page="locked-repertory" id="nav-repertory" title="Locked — Future Phase">
-          <i data-lucide="book-open-check"></i>
-          <span>Repertory & Materia</span>
-          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
-        </a>
-        <a href="#locked-dispensary" class="nav-item locked-nav-item" data-page="locked-dispensary" id="nav-dispensary" title="Locked — Future Phase">
+        <a href="#dispensary" class="nav-item" data-page="dispensary" id="nav-dispensary" title="Potency Dispensary">
           <i data-lucide="flask-conical"></i>
-          <span>Potency Dispensary</span>
-          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
+          <span class="nav-label">Potency Dispensary</span>
+          <span class="nav-count" id="navDispensaryCount">0</span>
         </a>
-        <a href="#locked-analytics" class="nav-item locked-nav-item" data-page="locked-analytics" id="nav-analytics" title="Locked — Future Phase">
+        <a href="#repertory" class="nav-item" data-page="repertory" id="nav-repertory" title="Repertory & Materia">
+          <i data-lucide="book-open-check"></i>
+          <span class="nav-label">Repertory & Materia</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-page="analytics" id="nav-analytics" title="Practice Analytics">
           <i data-lucide="activity"></i>
-          <span>Practice Analytics</span>
-          <span class="locked-badge"><i data-lucide="lock"></i> Locked</span>
+          <span class="nav-label">Practice Analytics</span>
         </a>
       </nav>
 
@@ -1471,15 +1468,15 @@
     </div>
   </div>
 
-  <!-- Modal: Patient Registration -->
+  <!-- Modal: Patient Registration (Step 1 — Basic Registration Only) -->
   <div class="modal-overlay" id="patientModalOverlay">
-    <div class="glass-card modal-container">
+    <div class="glass-card modal-container" style="max-width: 620px;">
       <div class="modal-header">
         <div class="modal-title-group">
           <i data-lucide="user-plus" class="modal-title-icon"></i>
           <div>
-            <h3>Register New Patient</h3>
-            <p>Shri Siddhivinayak Clinic • Clinical Case Registry</p>
+            <h3>Step 1 — Basic Patient Registration</h3>
+            <p>Shri Siddhivinayak Clinic • Detailed histories are recorded in the Patient Profile tabs</p>
           </div>
         </div>
         <button class="modal-close-btn" id="patientModalCloseBtn" aria-label="Close modal">
@@ -1488,199 +1485,127 @@
       </div>
 
       <div class="modal-body">
-        <form id="patientRegistrationForm">
+        <form id="patientRegistrationForm" action="javascript:void(0);">
           <div class="form-row-2">
             <div class="form-group">
-              <label for="pRegName">Full Name *</label>
-              <input type="text" id="pRegName" class="glass-input" placeholder="e.g. Ramesh Sharma" required>
+              <label for="pRegName">1. Patient Full Name *</label>
+              <input type="text" id="pRegName" class="glass-input" placeholder="Enter patient's full name" required>
             </div>
             <div class="form-group">
-              <label for="pRegPhone">Contact Number *</label>
+              <label for="pRegPhone">5. Phone Number *</label>
               <input type="tel" id="pRegPhone" class="glass-input" placeholder="e.g. +91 98765 43210" required>
             </div>
           </div>
 
           <div class="form-row-3">
             <div class="form-group">
-              <label for="pRegAge">Age *</label>
-              <input type="number" id="pRegAge" class="glass-input" placeholder="e.g. 38" min="0" max="120" required>
+              <label for="pRegAge">2. Age *</label>
+              <input type="number" id="pRegAge" class="glass-input" placeholder="Years" min="0" max="120" required>
             </div>
             <div class="form-group">
-              <label for="pRegGender">Gender</label>
-              <select id="pRegGender" class="glass-select">
+              <label for="pRegGender">3. Gender *</label>
+              <select id="pRegGender" class="glass-select" required>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="pRegMiasm">Predominant Miasm</label>
-              <select id="pRegMiasm" class="glass-select">
-                <option value="Psoric">Psoric</option>
-                <option value="Sycotic">Sycotic</option>
-                <option value="Syphilitic">Syphilitic</option>
-                <option value="Tubercular">Tubercular</option>
-                <option value="Mixed (Psoro-Sycotic)">Mixed (Psoro-Sycotic)</option>
+              <label for="pRegEmail">6. Email Address (Optional)</label>
+              <input type="email" id="pRegEmail" class="glass-input" placeholder="patient@example.com">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="pRegAddress">4. Residential Address *</label>
+            <input type="text" id="pRegAddress" class="glass-input" placeholder="Street, locality, city" required>
+          </div>
+
+          <div class="form-group">
+            <label for="pRegChiefComplaint">7. Chief Complaint (C/C) *</label>
+            <textarea id="pRegChiefComplaint" class="glass-input" rows="3" placeholder="Primary presenting complaint, duration, and main symptoms..." required></textarea>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 18px;">
+            <button type="button" class="interactive-btn secondary-btn" id="patientModalCancelBtn">Cancel</button>
+            <button type="submit" class="interactive-btn primary-btn" id="patientRegSubmitBtn">
+              <i data-lucide="check-circle"></i>
+              <span>Register & Open Patient Profile</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Record Consultation / Follow-Up Progress Entry -->
+  <div class="modal-overlay" id="progressModalOverlay">
+    <div class="glass-card modal-container" style="max-width: 640px;">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="calendar-clock" class="modal-title-icon"></i>
+          <div>
+            <h3 id="progressModalTitle">Record Consultation / Follow-Up Progress</h3>
+            <p>Appends chronologically to the patient's Case Record & Progress Timeline</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="progressModalCloseBtn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="progressEntryForm" action="javascript:void(0);">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="progVisitStage">Visit Stage / Milestone *</label>
+              <select id="progVisitStage" class="glass-select" required>
+                <option value="Day 1 — Initial Consultation">Day 1 — Initial Consultation</option>
+                <option value="Follow-up 1" selected>Follow-up 1</option>
+                <option value="Follow-up 2">Follow-up 2</option>
+                <option value="Follow-up 3">Follow-up 3</option>
+                <option value="Latest Visit">Latest Visit</option>
+                <option value="Acute Review">Acute Review</option>
               </select>
             </div>
+            <div class="form-group">
+              <label for="progVisitDate">Consultation Date *</label>
+              <input type="date" id="progVisitDate" class="glass-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="progObservations">Follow-up Observations & Symptom Changes *</label>
+            <textarea id="progObservations" class="glass-input" rows="3" placeholder="Record changes in chief complaint, general modalities, sleep, appetite, and vital response..." required></textarea>
           </div>
 
           <div class="form-row-2">
             <div class="form-group">
-              <label for="pRegChiefComplaint">Chief Complaint (C/C) *</label>
-              <input type="text" id="pRegChiefComplaint" class="glass-input" placeholder="e.g. Chronic migraine with aura, worse twilight" required>
+              <label for="progMedicine">Medicines & Potency Prescribed *</label>
+              <input type="text" id="progMedicine" class="glass-input" placeholder="e.g. Sulphur 200C (Single Dose) + Sac Lac" required>
             </div>
             <div class="form-group">
-              <label for="pRegAssoc">Associated Complaints</label>
-              <input type="text" id="pRegAssoc" class="glass-input" placeholder="e.g. Acidity, neck stiffness, insomnia">
+              <label for="progOutcomeStatus">Clinical Progress Status</label>
+              <select id="progOutcomeStatus" class="glass-select">
+                <option value="Improving">Improving</option>
+                <option value="Initial Evaluation">Initial Evaluation</option>
+                <option value="Stable / Maintaining">Stable / Maintaining</option>
+                <option value="Needs Potency Adjustment">Needs Potency Adjustment</option>
+                <option value="Markedly Better">Markedly Better</option>
+              </select>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="pRegAddress">Residential Address / City</label>
-            <input type="text" id="pRegAddress" class="glass-input" placeholder="e.g. Dombivli East, Thane">
+            <label for="progNextInstructions">Treatment Plan / Next Follow-up Advice</label>
+            <input type="text" id="progNextInstructions" class="glass-input" placeholder="e.g. Review after 14 days; avoid raw onion, coffee, and camphor.">
           </div>
 
-          <!-- Section: Clinical History -->
-          <details class="mvp-details-group" open>
-            <summary class="mvp-details-summary">
-              <span>Section 2: Past & Family Clinical History</span>
-            </summary>
-            <div class="form-row-2" style="margin-top: 10px;">
-              <div class="form-group">
-                <label for="pRegPast">Past Medical & Surgical History</label>
-                <textarea id="pRegPast" class="glass-input" rows="2" placeholder="e.g. Typhoid in childhood, Appendectomy (2018)"></textarea>
-              </div>
-              <div class="form-group">
-                <label for="pRegFamily">Family Health History</label>
-                <textarea id="pRegFamily" class="glass-input" rows="2" placeholder="e.g. Mother: Hypertension; Father: Diabetes Mellitus"></textarea>
-              </div>
-            </div>
-          </details>
-
-          <!-- Section: Personal History / Physical Modalities -->
-          <details class="mvp-details-group">
-            <summary class="mvp-details-summary">
-              <span>Section 3: Personal History (Physical Modalities)</span>
-            </summary>
-            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 12px;">
-              <div class="form-row-3">
-                <div class="form-group">
-                  <label for="pRegAppetite">Appetite</label>
-                  <input type="text" id="pRegAppetite" class="glass-input" placeholder="e.g. Good, easily satisfied">
-                </div>
-                <div class="form-group">
-                  <label for="pRegThirst">Thirst</label>
-                  <input type="text" id="pRegThirst" class="glass-input" placeholder="e.g. Thirsty for large gulps cold water">
-                </div>
-                <div class="form-group">
-                  <label for="pRegCraving">Craving / Aversions</label>
-                  <input type="text" id="pRegCraving" class="glass-input" placeholder="e.g. Sweets, spicy, salty">
-                </div>
-              </div>
-              <div class="form-row-3">
-                <div class="form-group">
-                  <label for="pRegDiet">Dietary Preference</label>
-                  <select id="pRegDiet" class="glass-select">
-                    <option value="Vegetarian">Vegetarian</option>
-                    <option value="Non-Vegetarian">Non-Vegetarian</option>
-                    <option value="Eggetarian">Eggetarian</option>
-                    <option value="Vegan">Vegan</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="pRegBowel">Bowel Habits</label>
-                  <input type="text" id="pRegBowel" class="glass-input" placeholder="e.g. Regular, constipation tendency">
-                </div>
-                <div class="form-group">
-                  <label for="pRegUrine">Urination Modalities</label>
-                  <input type="text" id="pRegUrine" class="glass-input" placeholder="e.g. Normal, burning during urination">
-                </div>
-              </div>
-              <div class="form-row-3">
-                <div class="form-group">
-                  <label for="pRegThermal">Thermal State</label>
-                  <select id="pRegThermal" class="glass-select">
-                    <option value="Chilly">Chilly (Sensitive to cold)</option>
-                    <option value="Hot">Hot (Sensitive to heat/warmth)</option>
-                    <option value="Ambithermal">Ambithermal (Tolerates both)</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="pRegSleep">Sleep Pattern</label>
-                  <input type="text" id="pRegSleep" class="glass-input" placeholder="e.g. Light, broken sleep, position on abdomen">
-                </div>
-                <div class="form-group">
-                  <label for="pRegDreams">Dreams</label>
-                  <input type="text" id="pRegDreams" class="glass-input" placeholder="e.g. Falling, snakes, daily routine">
-                </div>
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="pRegHabit">Habits / Addictions</label>
-                  <input type="text" id="pRegHabit" class="glass-input" placeholder="e.g. Tea twice a day, non-smoker">
-                </div>
-                <div class="form-group">
-                  <label for="pRegHobby">Hobby / Recreational Interests <span class="pending-badge">Pending Doctor Confirmation</span></label>
-                  <input type="text" id="pRegHobby" class="glass-input" placeholder="e.g. Reading, gardening, music">
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <!-- Section: Mind / Emotional History -->
-          <details class="mvp-details-group">
-            <summary class="mvp-details-summary">
-              <span>Section 4: Mind & Emotional State</span>
-            </summary>
-            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 12px;">
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="pRegAnxiety">Anxiety Triggers</label>
-                  <input type="text" id="pRegAnxiety" class="glass-input" placeholder="e.g. Health of family members, punctuality">
-                </div>
-                <div class="form-group">
-                  <label for="pRegStress">Stress Factors</label>
-                  <input type="text" id="pRegStress" class="glass-input" placeholder="e.g. Work pressure, financial concern">
-                </div>
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="pRegThoughts">Recurrent Thoughts</label>
-                  <input type="text" id="pRegThoughts" class="glass-input" placeholder="e.g. Overthinking at bedtime, anticipating misfortune">
-                </div>
-                <div class="form-group">
-                  <label for="pRegCompany">Reaction to Company</label>
-                  <select id="pRegCompany" class="glass-select">
-                    <option value="Desires Company">Desires Company (Feels better with people)</option>
-                    <option value="Aversion to Company">Aversion to Company (Prefers solitude)</option>
-                    <option value="Aversion but fears being alone">Aversion but fears being alone</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="pRegWorried">What Worries You Most?</label>
-                  <input type="text" id="pRegWorried" class="glass-input" placeholder="e.g. Illness getting worse">
-                </div>
-                <div class="form-group">
-                  <label for="pRegHappy">What Makes You Happy?</label>
-                  <input type="text" id="pRegHappy" class="glass-input" placeholder="e.g. Nature walks, peaceful family time">
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <div class="form-group">
-            <label for="pRegConstitution">Constitutional Evaluation / Suspected Similimum</label>
-            <input type="text" id="pRegConstitution" class="glass-input" placeholder="e.g. Phosphorus Constitution, chilly with desire for cold drinks">
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" class="interactive-btn secondary-btn" id="patientModalCancelBtn">Cancel</button>
+          <div class="modal-actions" style="margin-top: 18px;">
+            <button type="button" class="interactive-btn secondary-btn" id="progressModalCancelBtn">Cancel</button>
             <button type="submit" class="interactive-btn primary-btn">
               <i data-lucide="check"></i>
-              <span>Save & Open Dossier</span>
+              <span>Save Consultation Entry</span>
             </button>
           </div>
         </form>
@@ -1901,9 +1826,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Supabase Client Layer -->
-  <script src="supabase-client.js?v=20261101_pres"></script>
+  <script src="supabase-client.js?v=20261101_v3"></script>
   <!-- Application Logic -->
-  <script src="app.js?v=20261101_pres"></script>
+  <script src="app.js?v=20261101_v3"></script>
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {

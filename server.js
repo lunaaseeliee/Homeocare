@@ -321,7 +321,7 @@ const MIME_TYPES = {
 };
 
 // Block sensitive local files and directories from HTTP static serving
-const BLOCKED_PREFIXES = ['.env', '.git', '.staff-directory.json', '_checkpoints', 'database'];
+const BLOCKED_PREFIXES = ['.env', '.git', '.staff-directory.json', '.homeocare-v3-clinic-state.json', '_checkpoints', 'database'];
 
 // HomeoCare MVP Specification Feature Flags (HomeoCare MVP Developer Handoff)
 const MVP_FEATURE_FLAGS = {
@@ -333,26 +333,17 @@ const MVP_FEATURE_FLAGS = {
   DOCTOR_RECORD_REVIEW: true,
   MULTILINGUAL_UI: true,
 
-  BILLING_INVOICES: false,
-  APPOINTMENTS_CALENDAR: false,
-  PRESCRIPTION_GEN: false,
-  DISPENSARY_INVENTORY: false,
-  PRACTICE_ANALYTICS: false,
-  REPERTORY_MATERIA: false,
+  BILLING_INVOICES: true,
+  APPOINTMENTS_CALENDAR: true,
+  PRESCRIPTION_GEN: true,
+  DISPENSARY_INVENTORY: true,
+  PRACTICE_ANALYTICS: true,
+  REPERTORY_MATERIA: true,
   AI_DIAGNOSIS: false,
   WHATSAPP_AUTOMATION: false
 };
 
-const LOCKED_API_PREFIXES = [
-  '/api/invoices',
-  '/api/billing',
-  '/api/payments',
-  '/api/appointments',
-  '/api/dispensary',
-  '/api/prescriptions',
-  '/api/repertory',
-  '/api/analytics'
-];
+const LOCKED_API_PREFIXES = []; // All modules unlocked for HomeoCare 3.0 Presentation
 
 const server = http.createServer(async (req, res) => {
   const cleanUrl = req.url.split('?')[0];
@@ -367,6 +358,38 @@ const server = http.createServer(async (req, res) => {
     });
     res.end(JSON.stringify(config));
     return;
+  }
+
+  
+  // 1a-2. Clinic State Persistence Endpoint (HomeoCare 3.0)
+  if (cleanUrl === '/api/clinic-state') {
+    const stateFilePath = path.join(__dirname, '.homeocare-v3-clinic-state.json');
+    if (req.method === 'GET') {
+      let state = null;
+      try {
+        if (fs.existsSync(stateFilePath)) {
+          state = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
+        }
+      } catch (_) {}
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, state }));
+      return;
+    }
+    if (req.method === 'POST') {
+      try {
+        const body = await readJsonBody(req, 262144);
+        if (body && typeof body === 'object' && body.state) {
+          fs.writeFileSync(stateFilePath, JSON.stringify(body.state, null, 2), 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ ok: true }));
+          return;
+        }
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+        return;
+      }
+    }
   }
 
   // 1a. Feature Flags Endpoint

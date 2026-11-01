@@ -4722,3 +4722,448 @@ textarea:focus,
   width: 14px;
   height: 14px;
 }
+
+
+/* ==========================================================================
+   HOMEOCARE 3.0 — HOVER-EXPANDING SIDEBAR & STRUCTURED CLINICAL PROFILE TABS
+   Solid Green (#176B46), Dark Green (#0E5837), White (#FFFFFF), Soft Green (#DDEFE3)
+   STRICTLY NO GRADIENTS OR GLASSMORPHISM
+   ========================================================================== */
+
+@media (min-width: 1025px) and (hover: hover) {
+  :root {
+    --sidebar-collapsed-width: 70px;
+    --sidebar-expanded-width: 250px;
+  }
+
+  .sidebar {
+    width: var(--sidebar-collapsed-width) !important;
+    padding: 20px 10px !important;
+    overflow-x: hidden !important;
+    transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1), padding 320ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-collapsed-width) !important;
+    width: calc(100% - var(--sidebar-collapsed-width)) !important;
+    transition: margin-left 320ms cubic-bezier(0.22, 1, 0.36, 1), width 320ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  /* Expand sidebar on hover, keyboard focus, or JS class */
+  .sidebar:hover,
+  .sidebar:focus-within,
+  .sidebar.sidebar-expanded {
+    width: var(--sidebar-expanded-width) !important;
+    padding: 20px 16px !important;
+  }
+
+  /* Shift and resize the entire main dashboard simultaneously when sidebar expands */
+  .sidebar:hover ~ .main-wrapper,
+  .sidebar:focus-within ~ .main-wrapper,
+  .sidebar.sidebar-expanded ~ .main-wrapper,
+  body.sidebar-hover-active .main-wrapper {
+    margin-left: var(--sidebar-expanded-width) !important;
+    width: calc(100% - var(--sidebar-expanded-width)) !important;
+  }
+
+  /* Brand Header in Collapsed vs Expanded State */
+  .sidebar .brand-container {
+    padding: 8px 4px 16px !important;
+    justify-content: center;
+    gap: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .sidebar:hover .brand-container,
+  .sidebar:focus-within .brand-container,
+  .sidebar.sidebar-expanded .brand-container {
+    justify-content: flex-start;
+    padding: 8px 8px 16px !important;
+  }
+
+  .sidebar .brand-logo {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+  }
+
+  .sidebar .brand-info {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, max-width 320ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  .sidebar:hover .brand-info,
+  .sidebar:focus-within .brand-info,
+  .sidebar.sidebar-expanded .brand-info {
+    opacity: 1;
+    max-width: 180px;
+    pointer-events: auto;
+  }
+
+  /* Section Label */
+  .sidebar .nav-section-label {
+    opacity: 0;
+    height: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 200ms ease, height 250ms ease, padding 250ms ease !important;
+  }
+
+  .sidebar:hover .nav-section-label,
+  .sidebar:focus-within .nav-section-label,
+  .sidebar.sidebar-expanded .nav-section-label {
+    opacity: 1;
+    height: auto;
+    padding: 10px 10px 4px !important;
+  }
+
+  /* Navigation Items */
+  .sidebar .nav-item {
+    justify-content: center;
+    padding: 11px 0 !important;
+    gap: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: padding 260ms ease, background-color 180ms ease, color 180ms ease !important;
+  }
+
+  .sidebar:hover .nav-item,
+  .sidebar:focus-within .nav-item,
+  .sidebar.sidebar-expanded .nav-item {
+    justify-content: flex-start;
+    padding: 10px 12px !important;
+    gap: 12px;
+  }
+
+  .sidebar .nav-item svg,
+  .sidebar .nav-item i {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .sidebar .nav-item .nav-label,
+  .sidebar .nav-item .nav-pill,
+  .sidebar .nav-item .nav-count {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    display: inline-block;
+    transition: opacity 200ms ease, max-width 280ms ease !important;
+  }
+
+  .sidebar .nav-item .nav-pill,
+  .sidebar .nav-item .nav-count {
+    padding: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .sidebar:hover .nav-item .nav-label,
+  .sidebar:focus-within .nav-item .nav-label,
+  .sidebar.sidebar-expanded .nav-item .nav-label {
+    opacity: 1;
+    max-width: 145px;
+  }
+
+  .sidebar:hover .nav-item .nav-pill,
+  .sidebar:focus-within .nav-item .nav-pill,
+  .sidebar.sidebar-expanded .nav-item .nav-pill,
+  .sidebar:hover .nav-item .nav-count,
+  .sidebar:focus-within .nav-item .nav-count,
+  .sidebar.sidebar-expanded .nav-item .nav-count {
+    opacity: 1;
+    max-width: 60px;
+    padding: 2px 8px !important;
+    margin-left: auto !important;
+  }
+
+  /* Practitioner Footer in Collapsed vs Expanded State */
+  .sidebar .sidebar-footer {
+    padding: 12px 2px 0 !important;
+    overflow: hidden;
+  }
+
+  .sidebar .practitioner-card {
+    justify-content: center;
+    padding: 8px 4px !important;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .sidebar:hover .practitioner-card,
+  .sidebar:focus-within .practitioner-card,
+  .sidebar.sidebar-expanded .practitioner-card {
+    justify-content: flex-start;
+    padding: 10px !important;
+    gap: 10px;
+  }
+
+  .sidebar .practitioner-details,
+  .sidebar #logoutSidebarBtn {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 200ms ease, max-width 280ms ease !important;
+  }
+
+  .sidebar:hover .practitioner-details,
+  .sidebar:focus-within .practitioner-details,
+  .sidebar.sidebar-expanded .practitioner-details {
+    opacity: 1;
+    max-width: 140px;
+    pointer-events: auto;
+  }
+
+  .sidebar:hover #logoutSidebarBtn,
+  .sidebar:focus-within #logoutSidebarBtn,
+  .sidebar.sidebar-expanded #logoutSidebarBtn {
+    opacity: 1;
+    max-width: 36px;
+    pointer-events: auto;
+  }
+}
+
+/* ==========================================================================
+   PATIENT PROFILE & CASE RECORD MULTI-TAB INTERFACE (HOMEOCARE 3.0)
+   ========================================================================== */
+.hc-profile-tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-color, #E2E9E5);
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 20px;
+}
+
+.hc-profile-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #64756C);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.hc-profile-tab-btn svg,
+.hc-profile-tab-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+.hc-profile-tab-btn:hover {
+  background: #F5F8F6;
+  color: var(--text-primary, #1B2621);
+}
+
+.hc-profile-tab-btn.active {
+  background: var(--primary-green, #176B46) !important;
+  color: #FFFFFF !important;
+  border-color: var(--primary-green, #176B46) !important;
+}
+
+.hc-profile-tab-btn.active svg,
+.hc-profile-tab-btn.active i {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.hc-tab-pane {
+  display: none;
+}
+
+.hc-tab-pane.active {
+  display: block;
+}
+
+/* Expandable Accordion Sections for Personal & Mind History */
+.hc-accordion-group {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color, #E2E9E5);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.hc-accordion-group[open] {
+  border-color: var(--primary-green, #176B46);
+}
+
+.hc-accordion-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #F5F8F6;
+  color: var(--text-primary, #1B2621);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.hc-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hc-accordion-group[open] .hc-accordion-summary {
+  background: var(--soft-green, #DDEFE3);
+  color: var(--primary-green, #176B46);
+  border-bottom: 1px solid var(--border-color, #E2E9E5);
+}
+
+.hc-accordion-body {
+  padding: 18px;
+  background: #FFFFFF;
+}
+
+/* Autosave Badge & Section Footer */
+.hc-section-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, #E2E9E5);
+}
+
+.hc-autosave-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--primary-green, #176B46);
+  background: var(--soft-green, #DDEFE3);
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+/* Chronological Progress Timeline Stepper (Day 1 -> Follow-up 1 -> Follow-up 2 -> Latest Visit) */
+.hc-timeline-flow-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #F5F8F6;
+  border: 1px solid var(--border-color, #E2E9E5);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.hc-timeline-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-color, #E2E9E5);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #64756C);
+}
+
+.hc-timeline-step-chip.recorded {
+  background: var(--soft-green, #DDEFE3);
+  border-color: var(--primary-green, #176B46);
+  color: var(--primary-green, #176B46);
+}
+
+.hc-timeline-arrow {
+  color: var(--text-secondary, #64756C);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.hc-progress-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  padding-left: 24px;
+  border-left: 2px solid var(--primary-green, #176B46);
+  margin-left: 12px;
+}
+
+.hc-progress-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color, #E2E9E5);
+  border-radius: 10px;
+  padding: 16px 20px;
+  position: relative;
+}
+
+.hc-progress-card::before {
+  content: "";
+  position: absolute;
+  left: -31px;
+  top: 20px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary-green, #176B46);
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 0 2px var(--primary-green, #176B46);
+}
+
+.hc-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #E2E9E5);
+}
+
+.hc-progress-stage {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-green, #176B46);
+}
+
+.hc-progress-date {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #64756C);
+  background: #F5F8F6;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, #E2E9E5);
+}
+
+.hc-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.hc-progress-item strong {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-secondary, #64756C);
+  margin-bottom: 3px;
+}

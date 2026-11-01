@@ -26,30 +26,17 @@ const MVP_FEATURE_FLAGS = {
   PATIENT_SELF_ENTRY: true,
   DOCTOR_RECORD_REVIEW: true,
   MULTILINGUAL_UI: true,
-
-  BILLING_INVOICES: false,       // Locked - Later Phase
-  APPOINTMENTS_CALENDAR: false,  // Locked - Later Phase
-  PRESCRIPTION_GEN: false,       // Locked - Later Phase
-  DISPENSARY_INVENTORY: false,   // Locked - Later Phase
-  PRACTICE_ANALYTICS: false,     // Locked - Later Phase
-  REPERTORY_MATERIA: false,      // Locked - Later Phase
-  AI_DIAGNOSIS: false,           // Excluded
-  WHATSAPP_AUTOMATION: false     // Locked - Later Phase
+  BILLING_INVOICES: true,
+  APPOINTMENTS_CALENDAR: true,
+  PRESCRIPTION_GEN: true,
+  DISPENSARY_INVENTORY: true,
+  PRACTICE_ANALYTICS: true,
+  REPERTORY_MATERIA: true,
+  AI_DIAGNOSIS: false,
+  WHATSAPP_AUTOMATION: false
 };
 
-const LOCKED_PAGE_MAP = {
-  "appointments": { title: "Schedules & Visits", desc: "Appointment calendar, patient scheduling, and queue automation are preserved in the codebase and locked for MVP Phase 1." },
-  "locked-appointments": { title: "Schedules & Visits", desc: "Appointment calendar, patient scheduling, and queue automation are preserved in the codebase and locked for MVP Phase 1." },
-  "invoices": { title: "Invoices & Billing", desc: "Tax invoices, payment tracking, and automated billing are preserved in the codebase and locked for MVP Phase 1." },
-  "locked-invoices": { title: "Invoices & Billing", desc: "Tax invoices, payment tracking, and automated billing are preserved in the codebase and locked for MVP Phase 1." },
-  "invoice-create": { title: "Invoice Generator", desc: "Official A4 clinical invoice generator is preserved and locked for MVP Phase 1." },
-  "repertory": { title: "Repertory & Materia Medica", desc: "Advanced repertorial lookup and materia medica panels are outside the handwritten MVP requirement and locked." },
-  "locked-repertory": { title: "Repertory & Materia Medica", desc: "Advanced repertorial lookup and materia medica panels are outside the handwritten MVP requirement and locked." },
-  "dispensary": { title: "Potency Dispensary", desc: "Medicine inventory tracking and potency stock registers are preserved and locked for MVP Phase 1." },
-  "locked-dispensary": { title: "Potency Dispensary", desc: "Medicine inventory tracking and potency stock registers are preserved and locked for MVP Phase 1." },
-  "analytics": { title: "Practice Analytics", desc: "Clinic statistical analytics and revenue graphs are preserved and locked for MVP Phase 1." },
-  "locked-analytics": { title: "Practice Analytics", desc: "Clinic statistical analytics and revenue graphs are preserved and locked for MVP Phase 1." }
-};
+const LOCKED_PAGE_MAP = {}; // All presentation sections unlocked in HomeoCare 3.0
 
 const CLINIC_STATE = {
   clinicName: "Shri Siddhivinayak Clinic",
@@ -451,6 +438,10 @@ function updateDashboardMetrics() {
   kpiTotalPatients.textContent = totalPatientsCount;
   kpiActiveCasesSub.textContent = totalPatientsCount;
   navPatientCount.textContent = totalPatientsCount;
+  const navCasesCount = document.getElementById("navCasesCount");
+  if (navCasesCount) navCasesCount.textContent = totalPatientsCount;
+  const totalConsultationsCount = CLINIC_STATE.patients.reduce((acc, p) => acc + ((p.consultations && p.consultations.length) || 0), 0);
+  CLINIC_STATE.completedCases = totalConsultationsCount;
   kpiPatientsTrend.textContent = totalPatientsCount > 0 ? `${totalPatientsCount} active` : `0 new`;
 
   kpiPendingApprovals.textContent = CLINIC_STATE.pendingApprovals;
@@ -715,7 +706,7 @@ function renderCureVector(patient) {
 function renderTimelineEmptyState() {
   timelineList.innerHTML = `
     <div class="glass-empty-state compact">
-      <p class="empty-state-desc" style="margin-bottom: 0;">No patient history available.</p>
+      <p class="empty-state-desc" style="margin-bottom: 0;">No consultations recorded yet.</p>
     </div>
   `;
 }
@@ -858,10 +849,14 @@ registrySearchInput.addEventListener("input", (e) => {
 });
 
 // Window-accessible helper to view patient dossier from any page
-window.openPatientProfile = function(patientId) {
+window.openPatientProfile = function(patientId, initialTab = "overview") {
   CLINIC_STATE.selectedPatientId = patientId;
-  navigateTo("dashboard");
-  showToast(`Opened case record for ${CLINIC_STATE.patients.find(p => p.id === patientId)?.name}`, "info");
+  window.__ACTIVE_CASE_TAB = initialTab;
+  navigateTo("cases");
+  const pt = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (pt) {
+    showToast(`Opened patient profile for ${pt.name} (${pt.id})`, "info");
+  }
 };
 
 // ==========================================================================
@@ -876,8 +871,8 @@ function renderActiveCaseRecord() {
         <div class="empty-state-icon-wrap">
           <i data-lucide="clipboard-x"></i>
         </div>
-        <h3 class="empty-state-title">No active cases.</h3>
-        <p class="empty-state-desc">There are currently no active patient cases undergoing constitutional treatment at Shri Siddhivinayak Clinic.</p>
+        <h3 class="empty-state-title">No consultations recorded yet.</h3>
+        <p class="empty-state-desc">No patients registered yet. Register a patient to open their structured Case Record, Past/Personal/Mind Histories, and Progress Timeline.</p>
         <button class="interactive-btn primary-btn" id="caseEmptyRegisterBtn">
           <i data-lucide="user-plus"></i>
           <span>Open First Clinical Case</span>
@@ -1001,6 +996,7 @@ dispensaryForm.addEventListener("submit", (e) => {
   const qty = parseInt(document.getElementById("medQtyInput").value, 10) || 1;
 
   CLINIC_STATE.medicines.push({ name, potency, form, qty });
+  persistClinicState();
   dispensaryForm.reset();
   closeDispensaryModal();
   updateDashboardMetrics();
@@ -1657,6 +1653,7 @@ document.getElementById("invoiceDoctorApproveBtn").onclick = async () => {
 };
 
 function saveInvoiceToState(isFinal) {
+  setTimeout(() => { if (typeof persistClinicState === "function") persistClinicState(); }, 20);
   const existingIdx = CLINIC_STATE.invoices.findIndex(i => i.id === ACTIVE_INVOICE_STATE.id);
   const snapshot = JSON.parse(JSON.stringify(ACTIVE_INVOICE_STATE));
 
@@ -1860,61 +1857,46 @@ appointmentModalOverlay.addEventListener("click", (e) => {
   if (e.target === appointmentModalOverlay) closeAppointmentModal();
 });
 
-// Patient Registration Form Submit (Doctor / Staff Assisted Intake)
+// Patient Registration Form Submit (Step 1 — Basic Registration Only)
 patientRegistrationForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const name = document.getElementById("pRegName").value.trim();
-  const phone = document.getElementById("pRegPhone").value.trim();
-  const age = document.getElementById("pRegAge").value.trim();
-  const gender = document.getElementById("pRegGender").value;
-  const chiefComplaint = document.getElementById("pRegChiefComplaint").value.trim();
-  const miasm = document.getElementById("pRegMiasm")?.value || "Evaluating";
-  const constitution = document.getElementById("pRegConstitution")?.value.trim() || "";
+  const name = document.getElementById("pRegName")?.value.trim() || "";
+  const phone = document.getElementById("pRegPhone")?.value.trim() || "";
+  const age = document.getElementById("pRegAge")?.value.trim() || "";
+  const gender = document.getElementById("pRegGender")?.value || "Male";
+  const address = document.getElementById("pRegAddress")?.value.trim() || "";
+  const email = document.getElementById("pRegEmail")?.value.trim() || "";
+  const chiefComplaint = document.getElementById("pRegChiefComplaint")?.value.trim() || "";
+
+  if (!name || !phone || !age || !address || !chiefComplaint) {
+    showToast("Please complete all required Basic Registration fields.", "error");
+    return;
+  }
 
   const patientData = {
     name,
     phone,
     age,
     gender,
-    chiefComplaint,
-    miasm,
-    constitution,
-    associatedComplaints: document.getElementById("pRegAssoc")?.value.trim() || "",
-    address: document.getElementById("pRegAddress")?.value.trim() || "",
-    pastHistory: document.getElementById("pRegPast")?.value.trim() || "",
-    familyHistory: document.getElementById("pRegFamily")?.value.trim() || "",
-    personalHistory: {
-      appetite: document.getElementById("pRegAppetite")?.value.trim() || "",
-      thirst: document.getElementById("pRegThirst")?.value.trim() || "",
-      craving: document.getElementById("pRegCraving")?.value.trim() || "",
-      diet: document.getElementById("pRegDiet")?.value || "Vegetarian",
-      bowel: document.getElementById("pRegBowel")?.value.trim() || "",
-      urine: document.getElementById("pRegUrine")?.value.trim() || "",
-      habit: document.getElementById("pRegHabit")?.value.trim() || "",
-      thermalModality: document.getElementById("pRegThermal")?.value || "Chilly",
-      sleep: document.getElementById("pRegSleep")?.value.trim() || "",
-      dreams: document.getElementById("pRegDreams")?.value.trim() || "",
-      hobby: document.getElementById("pRegHobby")?.value.trim() || ""
-    },
-    mindHistory: {
-      anxiety: document.getElementById("pRegAnxiety")?.value.trim() || "",
-      stress: document.getElementById("pRegStress")?.value.trim() || "",
-      thoughts: document.getElementById("pRegThoughts")?.value.trim() || "",
-      company: document.getElementById("pRegCompany")?.value || "Desires Company",
-      worried: document.getElementById("pRegWorried")?.value.trim() || "",
-      happy: document.getElementById("pRegHappy")?.value.trim() || ""
-    }
+    address,
+    email,
+    chiefComplaint
   };
 
   const record = savePatientCaseRecord(patientData, "staff_assisted");
 
   patientRegistrationForm.reset();
   closePatientModal();
+  persistClinicState();
   updateDashboardMetrics();
   renderPatientWorkspace();
+  renderPatientRegistry();
+
+  // Immediately open Patient Profile & Review view on Overview tab
+  window.__ACTIVE_CASE_TAB = "overview";
   navigateTo("cases");
 
-  showToast(`Patient "${name}" registered successfully with ID ${record.id}.`, "success");
+  showToast(`Patient "${name}" registered with ID ${record.id}. Complete Past, Personal, and Mind histories in the profile tabs.`, "success");
 });
 
 // Add Symptom Rubric to Active Patient
@@ -1946,6 +1928,7 @@ symptomForm.addEventListener("submit", (e) => {
   symptomForm.reset();
   closeSymptomModal();
   renderPatientWorkspace();
+  persistClinicState();
   showToast(`Rubric "${rubric}" added to case record.`, "success");
 });
 
@@ -1971,6 +1954,7 @@ appointmentForm.addEventListener("submit", (e) => {
   updateDashboardMetrics();
   renderAppointments();
 
+  persistClinicState();
   showToast(`Appointment scheduled for ${patient.name} at ${formatTime12h(time)}.`, "success");
 });
 
@@ -2006,6 +1990,7 @@ saveNoteBtn.addEventListener("click", () => {
     });
     renderTimeline(activePatient);
     doctorNotesInput.value = "";
+    persistClinicState();
     showToast("Clinical note recorded in patient history.", "success");
   }
 });
@@ -2131,344 +2116,22 @@ const PRESENTATION_CONFIG = {
 };
 
 function getPresentationDemoData() {
+  // HomeoCare 3.0: Strictly ZERO fake or sample records. All data comes from real persisted records.
   return {
     clinicName: "Shri Siddhivinayak Clinic",
     doctor: "Dr. Suraj D. Panigrahi",
     qualification: "B.H.M.S. (Mum.)",
-    staffRole: "Dr. Suraj D. Panigrahi [Presentation Demo]",
-    patients: [
-      {
-        id: "HOM-2026-001",
-        name: "Aarav Sharma [Sample]",
-        age: 34,
-        gender: "Male",
-        phone: "+91 98201 00001",
-        address: "Dadar West, Mumbai",
-        chiefComplaint: "Chronic Dyspepsia & Right-sided Hypochondriac Fullness with Performance Anxiety",
-        modalities: "Worse: 4 PM - 8 PM, cold food, tight collar. Better: warm drinks, gentle motion. Desires sweets.",
-        similimum: "Lycopodium Clavatum 200C — 4 pills twice weekly, followed by Placebo 30 daily.",
-        miasm: "Psora-Sycosis",
-        createdAt: "2026-10-12T10:00:00.000Z",
-        rubrics: [
-          {
-            rubric: "Stomach - Fullness, early satiety after few mouthfuls",
-            intensity: "High / Characteristic",
-            modality: "< Cold eating, > Warm tea",
-            remedies: "Lyc., Chin., Nux-v., Carb-v.",
-            date: "Oct 12, 2026"
-          },
-          {
-            rubric: "Mind - Anticipatory anxiety before meetings, lack of self-confidence",
-            intensity: "Moderate / Guiding",
-            modality: "< Stress, > When speaking begins",
-            remedies: "Lyc., Gels., Sil., Arg-n.",
-            date: "Oct 12, 2026"
-          },
-          {
-            rubric: "Abdomen - Flatulence, rumbling in right lower quadrant",
-            intensity: "High / Characteristic",
-            modality: "< 4-8 PM, > Eructations",
-            remedies: "Lyc., Aloe, Pod.",
-            date: "Oct 26, 2026"
-          }
-        ],
-        timeline: [
-          {
-            type: "Consultation Intake",
-            date: "Oct 12, 2026",
-            title: "Constitutional Case Taking",
-            desc: "Presenting with 8 months of epigastric fullness and anticipatory anxiety. Detailed generals and modalities recorded.",
-            status: "Checked"
-          },
-          {
-            type: "Remedy Formulation",
-            date: "Oct 12, 2026",
-            title: "Classical Similimum Prescribed",
-            desc: "Prescribed Lycopodium 200C (2 doses/week) based on totality of symptoms.",
-            status: "Checked"
-          },
-          {
-            type: "Clinical Follow-up",
-            date: "Oct 26, 2026",
-            title: "Two-Week Progress Review",
-            desc: "Bloating reduced by 60%. Early satiety improving steadily. Bowel habits regularized.",
-            status: "In-Progress"
-          }
-        ],
-        doctorNotes: "Constitutional response is very favorable. Continue current potency without repetition for 3 weeks."
-      },
-      {
-        id: "HOM-2026-002",
-        name: "Priya Patel [Sample]",
-        age: 28,
-        gender: "Female",
-        phone: "+91 98202 00002",
-        address: "Bandra, Mumbai",
-        chiefComplaint: "Recurrent Allergic Rhinitis with Mild Wandering Arthralgia",
-        modalities: "Worse: stuffy warm room, evening, fatty foods. Better: open cool air, gentle walking, sympathy.",
-        similimum: "Pulsatilla Nigricans 30C — 4 pills alternate mornings for 14 days.",
-        miasm: "Sycosis",
-        createdAt: "2026-10-18T11:15:00.000Z",
-        rubrics: [
-          {
-            rubric: "Nose - Coryza, bland thick yellowish-green discharge",
-            intensity: "High / Characteristic",
-            modality: "< Warm room, > Open cool air",
-            remedies: "Puls., Kali-s., All-c.",
-            date: "Oct 18, 2026"
-          },
-          {
-            rubric: "Extremities - Wandering pains shifting rapidly from joint to joint",
-            intensity: "Moderate / Guiding",
-            modality: "< Evening rest, > Slow motion",
-            remedies: "Puls., Kali-bi., Lac-c.",
-            date: "Oct 18, 2026"
-          }
-        ],
-        timeline: [
-          {
-            type: "Consultation Intake",
-            date: "Oct 18, 2026",
-            title: "Intake & Repertorization",
-            desc: "Nasal catarrh with mild migratory joint discomfort. Emotional disposition mild and tearful.",
-            status: "Checked"
-          },
-          {
-            type: "Remedy Formulation",
-            date: "Oct 19, 2026",
-            title: "Similimum Dispensed",
-            desc: "Dispensed Pulsatilla 30C globules with dietary advice to avoid rich foods.",
-            status: "Checked"
-          }
-        ],
-        doctorNotes: "Nasal discharge clearing rapidly. Advised patient to maintain daily open-air walks."
-      },
-      {
-        id: "HOM-2026-003",
-        name: "Vikram Malhotra [Sample]",
-        age: 52,
-        gender: "Male",
-        phone: "+91 98203 00003",
-        address: "Colaba, Mumbai",
-        chiefComplaint: "Executive Dyspepsia, Sour Pyrosis & Insomnia from Mental Overwork",
-        modalities: "Worse: early morning (wakes at 3 AM), excessive coffee, spices, stress. Better: warmth, undisturbed rest.",
-        similimum: "Nux Vomica 1M — Single dry dose on tongue at bedtime, followed by Passiflora Q 10 drops at night.",
-        miasm: "Psora",
-        createdAt: "2026-10-24T14:30:00.000Z",
-        rubrics: [
-          {
-            rubric: "Sleep - Sleeplessness waking at 3 AM with crowding business ideas",
-            intensity: "High / Characteristic",
-            modality: "< Coffee, mental fatigue",
-            remedies: "Nux-v., Coff., Lyc.",
-            date: "Oct 24, 2026"
-          },
-          {
-            rubric: "Stomach - Sour pyrosis, bitter eructations after dietary indiscretion",
-            intensity: "Moderate / Guiding",
-            modality: "< Fast food, stimulants",
-            remedies: "Nux-v., Iris, Robin.",
-            date: "Oct 24, 2026"
-          }
-        ],
-        timeline: [
-          {
-            type: "Consultation Intake",
-            date: "Oct 24, 2026",
-            title: "Executive Case Intake",
-            desc: "Chronic corporate stress, stimulant reliance, and disturbed sleep architecture.",
-            status: "Checked"
-          }
-        ],
-        doctorNotes: "Administered Nux Vomica 1M single dose in dispensary. Follow up in 10 days."
-      }
-    ],
-    appointments: [
-      {
-        id: "APT-2026-001",
-        patientId: "HOM-2026-001",
-        patientName: "Aarav Sharma [Sample]",
-        patientPhone: "+91 98201 00001",
-        date: "2026-11-02",
-        time: "10:30",
-        type: "Follow-up Review",
-        doctor: "Dr. Suraj D. Panigrahi",
-        status: "Confirmed",
-        notes: "Evaluate Lycopodium 200C constitutional response"
-      },
-      {
-        id: "APT-2026-002",
-        patientId: "HOM-2026-002",
-        patientName: "Priya Patel [Sample]",
-        patientPhone: "+91 98202 00002",
-        date: "2026-11-02",
-        time: "11:45",
-        type: "Remedy Evaluation",
-        doctor: "Dr. Suraj D. Panigrahi",
-        status: "Confirmed",
-        notes: "Nasal allergy audit"
-      },
-      {
-        id: "APT-2026-003",
-        patientId: "HOM-2026-003",
-        patientName: "Vikram Malhotra [Sample]",
-        patientPhone: "+91 98203 00003",
-        date: "2026-11-02",
-        time: "16:30",
-        type: "Case Review",
-        doctor: "Dr. Suraj D. Panigrahi",
-        status: "Confirmed",
-        notes: "Sleep and dyspepsia follow-up"
-      }
-    ],
-    medicines: [
-      { name: "Lycopodium Clavatum", potency: "200C", form: "Dilution", qty: 15 },
-      { name: "Pulsatilla Nigricans", potency: "30C", form: "Globules", qty: 22 },
-      { name: "Nux Vomica", potency: "1M", form: "Dilution", qty: 8 },
-      { name: "Arnica Montana", potency: "30C", form: "Globules", qty: 30 },
-      { name: "Calcarea Carbonica", potency: "200C", form: "Trituration", qty: 12 },
-      { name: "Passiflora Incarnata", potency: "Mother Tincture (Q)", form: "Liquid", qty: 18 },
-      { name: "Silicea", potency: "6X", form: "Biochemic Tablets", qty: 25 }
-    ],
-    invoices: [
-      {
-        id: "INV-2026-001",
-        patientId: "HOM-2026-001",
-        patientName: "Aarav Sharma [Sample]",
-        patientPhone: "+91 98201 00001",
-        patientAge: 34,
-        patientGender: "Male",
-        patientAddress: "Dadar West, Mumbai",
-        doctorName: "Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)",
-        date: "2026-10-26",
-        consultDate: "2026-10-26",
-        dueDate: "2026-10-26",
-        followupDate: "2026-11-09",
-        status: "Paid",
-        paymentStatus: "Paid",
-        isDraft: false,
-        isApproved: true,
-        approvedBy: "Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)",
-        approvalTime: "26/10/2026, 11:30:00",
-        amount: 1200,
-        paidAmount: 1200,
-        amountPaid: 1200,
-        remainingBalance: 0,
-        subtotal: 1200,
-        grandTotal: 1200,
-        consultFee: 800,
-        medicinesTotal: 400,
-        otherCharges: 0,
-        discount: 0,
-        tax: 0,
-        paymentMethod: "UPI / Digital",
-        doctorNote: "Constitutional case evaluation and 200C prescription dispensed.",
-        chiefComplaint: "Chronic Dyspepsia & Right-sided Hypochondriac Fullness",
-        diagnosis: "Dyspeptic Psora-Sycosis (Similimum: Lycopodium)",
-        treatmentPlan: "Lycopodium Clavatum 200C + Placebo 30",
-        consultDuration: "45 Mins",
-        treatmentDurationDays: 30,
-        showClinicalDetails: true,
-        items: [
-          { desc: "Comprehensive Constitutional Case Consultation", potency: "Classical Intake", qty: 1, days: 30, rate: 800, total: 800 },
-          { desc: "Lycopodium Clavatum (200C) + Placebo Vials", potency: "200C / 30", qty: 1, days: 30, rate: 400, total: 400 }
-        ]
-      },
-      {
-        id: "INV-2026-002",
-        patientId: "HOM-2026-002",
-        patientName: "Priya Patel [Sample]",
-        patientPhone: "+91 98202 00002",
-        patientAge: 28,
-        patientGender: "Female",
-        patientAddress: "Andheri West, Mumbai",
-        doctorName: "Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)",
-        date: "2026-10-28",
-        consultDate: "2026-10-28",
-        dueDate: "2026-10-28",
-        followupDate: "2026-11-12",
-        status: "Paid",
-        paymentStatus: "Paid",
-        isDraft: false,
-        isApproved: true,
-        approvedBy: "Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)",
-        approvalTime: "28/10/2026, 12:15:00",
-        amount: 850,
-        paidAmount: 850,
-        amountPaid: 850,
-        remainingBalance: 0,
-        subtotal: 850,
-        grandTotal: 850,
-        consultFee: 500,
-        medicinesTotal: 350,
-        otherCharges: 0,
-        discount: 0,
-        tax: 0,
-        paymentMethod: "Cash",
-        doctorNote: "Follow-up consultation and Pulsatilla 30C dispensed.",
-        chiefComplaint: "Perennial Allergic Rhinitis & Sinus Congestion",
-        diagnosis: "Hypersensitive Rhinitis (Similimum: Pulsatilla)",
-        treatmentPlan: "Pulsatilla Nigricans 30C Globules",
-        consultDuration: "30 Mins",
-        treatmentDurationDays: 14,
-        showClinicalDetails: true,
-        items: [
-          { desc: "Clinical Follow-up Consultation", potency: "Follow-up", qty: 1, days: 14, rate: 500, total: 500 },
-          { desc: "Pulsatilla Nigricans (30C) Globules Dispensed", potency: "30C", qty: 1, days: 14, rate: 350, total: 350 }
-        ]
-      },
-      {
-        id: "INV-2026-003",
-        patientId: "HOM-2026-003",
-        patientName: "Vikram Malhotra [Sample]",
-        patientPhone: "+91 98203 00003",
-        patientAge: 52,
-        patientGender: "Male",
-        patientAddress: "Bandra Kurla Complex, Mumbai",
-        doctorName: "Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)",
-        date: "2026-10-30",
-        consultDate: "2026-10-30",
-        dueDate: "2026-11-02",
-        followupDate: "2026-11-16",
-        status: "Pending",
-        paymentStatus: "Pending",
-        isDraft: false,
-        isApproved: false,
-        approvedBy: null,
-        approvalTime: null,
-        amount: 1500,
-        paidAmount: 0,
-        amountPaid: 0,
-        remainingBalance: 1500,
-        subtotal: 1500,
-        grandTotal: 1500,
-        consultFee: 1000,
-        medicinesTotal: 500,
-        otherCharges: 0,
-        discount: 0,
-        tax: 0,
-        paymentMethod: "Bank Transfer",
-        doctorNote: "Initial executive case workup, Nux Vomica 1M and Passiflora Q mother tincture.",
-        chiefComplaint: "Insomnia with Gastric Irritability & Sedentary Stress",
-        diagnosis: "Executive Stress Dyspepsia (Similimum: Nux Vomica)",
-        treatmentPlan: "Nux Vomica 1M + Passiflora Incarnata Q",
-        consultDuration: "60 Mins",
-        treatmentDurationDays: 30,
-        showClinicalDetails: true,
-        items: [
-          { desc: "Executive Chronic Consultation & Repertorization", potency: "Detailed Intake", qty: 1, days: 30, rate: 1000, total: 1000 },
-          { desc: "Passiflora Incarnata Mother Tincture (30 ml)", potency: "Q (Mother Tincture)", qty: 1, days: 30, rate: 500, total: 500 }
-        ]
-      }
-    ],
-    pendingApprovals: 1,
-    completedCases: 2,
-    notificationsCount: 1,
-    selectedPatientId: "HOM-2026-001"
+    staffRole: "Dr. Suraj D. Panigrahi",
+    patients: [],
+    appointments: [],
+    medicines: [],
+    invoices: [],
+    pendingApprovals: 0,
+    completedCases: 0,
+    notificationsCount: 0,
+    selectedPatientId: null
   };
 }
-
-
 
 function setAuthenticatedUser(user) {
   sessionStorage.setItem(AUTH_CONFIG.sessionKey, JSON.stringify(user));
@@ -2490,7 +2153,7 @@ async function logoutUser() {
     }
   }
 
-  // Reset CLINIC_STATE baseline
+  // Keep persisted storage intact; reset in-memory session view on sign out
   CLINIC_STATE.patients = [];
   CLINIC_STATE.appointments = [];
   CLINIC_STATE.invoices = [];
@@ -3086,13 +2749,9 @@ function setupAuthForms() {
       // Authenticate via server-side presentation verification
       const authenticatedUser = await window.HomeoCareAPI.auth.verifyPresentationCode(AUTHORIZED_EMAIL, code);
 
-      // Populate rich presentation cases if records are currently empty
-      if (CLINIC_STATE.patients.length === 0 && typeof getPresentationDemoData === "function") {
-        const demo = getPresentationDemoData();
-        CLINIC_STATE.patients = demo.patients || [];
-        CLINIC_STATE.completedCases = demo.completedCases || CLINIC_STATE.patients.length;
-        CLINIC_STATE.pendingApprovals = demo.pendingApprovals || 0;
-        CLINIC_STATE.selectedPatientId = demo.selectedPatientId || (CLINIC_STATE.patients[0]?.id || null);
+      // Load real persisted clinic records (never fake demo records)
+      if (typeof loadPersistedClinicState === "function") {
+        await loadPersistedClinicState();
       }
 
       // Establish authenticated session
@@ -3411,12 +3070,149 @@ function populateSelfEntryReview() {
   `;
 }
 
-// Global Patient Record Creation (Used by both Patient Self-Entry & Staff Intake)
-function savePatientCaseRecord(patientData, entrySource = "patient_self") {
+// ==========================================================================
+// HOMEOCARE 3.0 — PERSISTENCE ENGINE, MULTI-TAB PROFILE & PROGRESS TIMELINE
+// ==========================================================================
+const CLINIC_STORAGE_KEY = "homeocare_v3_clinic_db";
+window.__ACTIVE_CASE_TAB = "overview";
+
+function persistClinicState() {
+  const payload = {
+    patients: CLINIC_STATE.patients || [],
+    appointments: CLINIC_STATE.appointments || [],
+    invoices: CLINIC_STATE.invoices || [],
+    medicines: CLINIC_STATE.medicines || [],
+    selectedPatientId: CLINIC_STATE.selectedPatientId || null,
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    localStorage.setItem(CLINIC_STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem("homeocare_patients_cache", JSON.stringify(CLINIC_STATE.patients || []));
+  } catch (_) {}
+
+  // Also persist to server endpoint (/api/clinic-state)
+  fetch("/api/clinic-state", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ state: payload })
+  }).catch(() => {});
+}
+
+async function loadPersistedClinicState() {
+  let loadedState = null;
+
+  // 1. Check localStorage first for immediate zero-latency restore
+  try {
+    const raw = localStorage.getItem(CLINIC_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        loadedState = parsed;
+      }
+    }
+  } catch (_) {}
+
+  // 2. Check server /api/clinic-state if local is empty
+  if (!loadedState || (!loadedState.patients?.length && !loadedState.invoices?.length && !loadedState.appointments?.length)) {
+    try {
+      const res = await fetch("/api/clinic-state", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.ok && data.state) {
+          loadedState = data.state;
+          try {
+            localStorage.setItem(CLINIC_STORAGE_KEY, JSON.stringify(loadedState));
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Apply loaded real records (filtering out any legacy "[Sample]" demo records if ever cached)
+  if (loadedState) {
+    CLINIC_STATE.patients = (loadedState.patients || []).filter(p => !(p.name && p.name.includes("[Sample]")));
+    CLINIC_STATE.appointments = (loadedState.appointments || []).filter(a => !(a.patientName && a.patientName.includes("[Sample]")));
+    CLINIC_STATE.invoices = (loadedState.invoices || []).filter(i => !(i.patientName && i.patientName.includes("[Sample]")));
+    CLINIC_STATE.medicines = loadedState.medicines || [];
+    CLINIC_STATE.selectedPatientId =
+      loadedState.selectedPatientId ||
+      (CLINIC_STATE.patients[0]?.id || null);
+  }
+
+  updateDashboardMetrics();
+}
+
+// Global Patient Record Creation (Used by both Step 1 Basic Registration & Patient Self-Entry)
+function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
   const currentYear = new Date().getFullYear();
-  const newPatientId = `SSC-${currentYear}-${1001 + CLINIC_STATE.patients.length}`;
-  const todayStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const nextNum = 1001 + CLINIC_STATE.patients.length;
+  const newPatientId = `SSC-${currentYear}-${nextNum}`;
+  const todayStr = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const todayIso = new Date().toISOString().split("T")[0];
   const timestampIso = new Date().toISOString();
+
+  const initialPast = typeof patientData.pastHistory === "object" && patientData.pastHistory !== null
+    ? patientData.pastHistory
+    : {
+        medicalHistory: patientData.pastHistory || "",
+        previousIllnesses: "",
+        previousTreatments: "",
+        associatedComplaints: patientData.associatedComplaints || "",
+        familyFather: patientData.familyHistory || "",
+        familyMother: "",
+        familyBrother: "",
+        familySister: "",
+        previousConsultations: ""
+      };
+
+  const rawPers = patientData.personalHistory || {};
+  const initialPersonal = {
+    appetite: rawPers.appetite || "",
+    craving: rawPers.craving || "",
+    aversion: rawPers.aversion || "",
+    thirst: rawPers.thirst || "",
+    urine: rawPers.urine || "",
+    bowel: rawPers.bowel || "",
+    perspiration: rawPers.perspiration || "",
+    habits: rawPers.habits || rawPers.habit || "",
+    hobbies: rawPers.hobbies || rawPers.hobby || "",
+    thermalBath: rawPers.thermalBath || "",
+    thermalCovering: rawPers.thermalCovering || "",
+    thermalFood: rawPers.thermalFood || "",
+    thermalSeason: rawPers.thermalSeason || rawPers.thermalModality || "",
+    sleep: rawPers.sleep || "",
+    dreams: rawPers.dreams || "",
+    menstrualHistory: rawPers.menstrualHistory || ""
+  };
+
+  const rawMind = patientData.mindHistory || {};
+  const initialMind = {
+    workplaceEnv: rawMind.workplaceEnv || "",
+    familyEnv: rawMind.familyEnv || "",
+    socialPartyEnv: rawMind.socialPartyEnv || "",
+    friendsComfort: rawMind.friendsComfort || rawMind.company || "",
+    introExtrovert: rawMind.introExtrovert || "",
+    emotionsFeelings: rawMind.emotionsFeelings || rawMind.happy || "",
+    thoughts: rawMind.thoughts || "",
+    fearsCauses: rawMind.fearsCauses || rawMind.worried || "",
+    angerCauses: rawMind.angerCauses || "",
+    anxiety: rawMind.anxiety || "",
+    stressResponses: rawMind.stressResponses || rawMind.stress || "",
+    additionalObservations: rawMind.additionalObservations || ""
+  };
+
+  const initialConsultationEntry = {
+    id: `CONS-${Date.now()}`,
+    stage: "Day 1 — Initial Consultation",
+    date: todayIso,
+    displayDate: todayStr,
+    observations: `Initial Registration & Chief Complaint: ${patientData.chiefComplaint}`,
+    medicine: patientData.prescription || "Constitutional evaluation in progress",
+    status: "Initial Evaluation",
+    instructions: "Complete Past, Personal, and Mind History sections for holistic totality.",
+    doctor: "Dr. Suraj D. Panigrahi"
+  };
 
   const record = {
     id: newPatientId,
@@ -3428,35 +3224,32 @@ function savePatientCaseRecord(patientData, entrySource = "patient_self") {
     address: patientData.address || "",
     email: patientData.email || "",
     chiefComplaint: patientData.chiefComplaint,
-    associatedComplaints: patientData.associatedComplaints || "",
-    pastHistory: patientData.pastHistory || "",
-    familyHistory: patientData.familyHistory || "",
-    personalHistory: patientData.personalHistory || {},
-    mindHistory: patientData.mindHistory || {},
+    associatedComplaints: initialPast.associatedComplaints || "",
+    pastHistoryData: initialPast,
+    personalHistory: initialPersonal,
+    mindHistory: initialMind,
+    consultations: [initialConsultationEntry],
     entry_source: entrySource,
     created_at: timestampIso,
     registeredDate: todayStr,
-    miasm: patientData.miasm || "Evaluating",
-    constitution: patientData.constitution || "Evaluating",
+    miasm: patientData.miasm || "Constitutional Intake",
+    constitution: patientData.constitution || "Classical Evaluation",
+    prescription: patientData.prescription || "",
     rubrics: [],
     history: [
       {
-        title: entrySource === "patient_self" ? "Patient Self-Entry Case Record" : "Doctor / Staff Intake Record",
+        title: "Day 1 — Initial Consultation & Registration",
         date: todayStr,
-        desc: `Initial case-history recorded via ${entrySource === "patient_self" ? "Patient Self-Entry Form" : "Staff-Assisted Intake"}. Chief complaint: ${patientData.chiefComplaint}`
+        desc: `Patient registered (${newPatientId}). Chief Complaint: ${patientData.chiefComplaint}`
       }
     ]
   };
 
   CLINIC_STATE.patients.push(record);
   CLINIC_STATE.selectedPatientId = newPatientId;
+  persistClinicState();
 
-  // Persist locally
-  try {
-    localStorage.setItem("homeocare_patients_cache", JSON.stringify(CLINIC_STATE.patients));
-  } catch (_) {}
-
-  // Sync to Supabase if configured
+  // Attempt Supabase table insert when session permits
   if (window.HomeoCareAPI?.patients?.create) {
     window.HomeoCareAPI.patients.create({
       clinic_patient_id: newPatientId,
@@ -3465,141 +3258,919 @@ function savePatientCaseRecord(patientData, entrySource = "patient_self") {
       age: parseInt(record.age, 10) || 0,
       gender: record.gender,
       address: record.address
-    }).catch(err => {
-      console.warn("[HomeoCare] Supabase patient sync error (cached locally):", err);
-    });
+    }).catch(() => {});
   }
 
   updateDashboardMetrics();
   return record;
 }
 
-// Full Patient Case Record Dossier Renderer (Replaces clutter in #page-cases)
+// Helper to escape HTML safely in form values
+function escAttr(val) {
+  if (val === null || val === undefined) return "";
+  return String(val)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Render Multi-Tab Patient Profile & Case Record Dossier
 function renderPatientCaseDossier(patient) {
   if (!patient) return "";
 
   const p = patient;
+  if (!p.pastHistoryData || typeof p.pastHistoryData !== "object") {
+    p.pastHistoryData = {
+      medicalHistory: typeof p.pastHistory === "string" ? p.pastHistory : "",
+      previousIllnesses: "",
+      previousTreatments: "",
+      associatedComplaints: p.associatedComplaints || "",
+      familyFather: typeof p.familyHistory === "string" ? p.familyHistory : "",
+      familyMother: "",
+      familyBrother: "",
+      familySister: "",
+      previousConsultations: ""
+    };
+  }
+  const past = p.pastHistoryData;
   const pers = p.personalHistory || {};
   const mind = p.mindHistory || {};
-  const isSelf = p.entry_source === "patient_self";
+  if (!Array.isArray(p.consultations) || p.consultations.length === 0) {
+    p.consultations = [
+      {
+        id: "CONS-INIT",
+        stage: "Day 1 — Initial Consultation",
+        date: (p.created_at || new Date().toISOString()).split("T")[0],
+        displayDate: p.registeredDate || "Recorded",
+        observations: `Chief Complaint: ${p.chiefComplaint || "—"}`,
+        medicine: p.prescription || "Constitutional evaluation",
+        status: "Initial Evaluation",
+        instructions: "Follow up as scheduled.",
+        doctor: "Dr. Suraj D. Panigrahi"
+      }
+    ];
+  }
+
+  const activeTab = window.__ACTIVE_CASE_TAB || "overview";
+  const initials = (p.name || "PT").split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+
+  // Check completion status for badges
+  const hasPast = Boolean(past.medicalHistory || past.previousIllnesses || past.familyFather || past.familyMother);
+  const hasPers = Boolean(pers.appetite || pers.thirst || pers.craving || pers.sleep || pers.thermalSeason);
+  const hasMind = Boolean(mind.workplaceEnv || mind.familyEnv || mind.anxiety || mind.thoughts || mind.emotionsFeelings);
+
+  // Build Timeline Stage Progression Chips
+  const stagesOrder = ["Day 1 — Initial Consultation", "Follow-up 1", "Follow-up 2", "Latest Visit"];
+  const recordedStages = new Set(p.consultations.map(c => c.stage));
 
   return `
-    <div class="case-dossier-wrapper">
+    <div class="case-dossier-wrapper" data-patient-id="${escAttr(p.id)}">
       <!-- Patient Identity Banner -->
       <div class="dossier-hero-card">
         <div class="dossier-patient-main">
-          <div class="dossier-avatar">${p.name.substring(0, 2).toUpperCase()}</div>
+          <div class="dossier-avatar">${initials}</div>
           <div>
             <div class="dossier-name-row">
-              <h2>${p.name}</h2>
-              <span class="${isSelf ? 'source-badge-self' : 'source-badge-staff'}">
-                ${isSelf ? 'Patient Self-Entry' : 'Doctor/Staff-Assisted'}
-              </span>
+              <h2>${escAttr(p.name)}</h2>
+              <span class="source-badge-staff">ID: ${escAttr(p.id)}</span>
             </div>
             <div class="dossier-meta-sub">
-              <strong>ID:</strong> ${p.id} • 
-              <strong>Age/Sex:</strong> ${p.age} yrs (${p.gender}) • 
-              <strong>Phone:</strong> ${p.phone} • 
-              <strong>Registered:</strong> ${p.registeredDate}
+              <strong>Age / Gender:</strong> ${escAttr(p.age)} yrs (${escAttr(p.gender)}) •
+              <strong>Phone:</strong> ${escAttr(p.phone)}
+              ${p.email ? ` • <strong>Email:</strong> ${escAttr(p.email)}` : ""} •
+              <strong>Registered:</strong> ${escAttr(p.registeredDate)}
             </div>
-            ${p.address ? `<div class="dossier-meta-sub" style="margin-top: 4px;"><strong>Address:</strong> ${p.address}</div>` : ''}
+            <div class="dossier-meta-sub" style="margin-top: 4px;">
+              <strong>Address:</strong> ${escAttr(p.address || "—")} •
+              <strong>Attending Physician:</strong> Dr. Suraj D. Panigrahi
+            </div>
           </div>
         </div>
-        <div class="dossier-actions">
+        <div class="dossier-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="primary-btn-solid" onclick="openProgressModal('${escAttr(p.id)}')">
+            <i data-lucide="plus-circle"></i>
+            <span>Record Follow-Up Visit</span>
+          </button>
           <button type="button" class="secondary-btn-outline" onclick="window.print()">
             <i data-lucide="printer"></i>
-            <span>Print Record</span>
+            <span>Print Case</span>
           </button>
         </div>
       </div>
 
-      <!-- 1. Chief Complaint & Associated Complaints -->
-      <div class="case-record-section-card">
-        <div class="case-section-header">
-          <i data-lucide="stethoscope"></i>
-          <h3>1. Chief Complaint & Associated Complaints</h3>
-        </div>
-        <div class="case-data-grid">
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <strong>Chief Complaint (C/C)</strong>
-            <p>${p.chiefComplaint || '—'}</p>
-          </div>
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <strong>Associated Complaints</strong>
-            <p>${p.associatedComplaints || 'None reported'}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. Medical & Family History -->
-      <div class="case-record-section-card">
-        <div class="case-section-header">
+      <!-- Patient Profile Multi-Tab Navigation Bar -->
+      <div class="hc-profile-tabs-bar" role="tablist">
+        <button type="button" class="hc-profile-tab-btn ${activeTab === 'overview' ? 'active' : ''}" onclick="switchPatientProfileTab('overview')">
+          <i data-lucide="file-text"></i>
+          <span>Overview</span>
+        </button>
+        <button type="button" class="hc-profile-tab-btn ${activeTab === 'past' ? 'active' : ''}" onclick="switchPatientProfileTab('past')">
           <i data-lucide="history"></i>
-          <h3>2. Past Medical & Family History</h3>
-        </div>
-        <div class="case-data-grid">
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <strong>Past Medical History</strong>
-            <p>${p.pastHistory || 'None reported'}</p>
-          </div>
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <strong>Family History</strong>
-            <p>${p.familyHistory || 'None reported'}</p>
-          </div>
-        </div>
+          <span>Past History</span>
+        </button>
+        <button type="button" class="hc-profile-tab-btn ${activeTab === 'personal' ? 'active' : ''}" onclick="switchPatientProfileTab('personal')">
+          <i data-lucide="user-check"></i>
+          <span>Personal History</span>
+        </button>
+        <button type="button" class="hc-profile-tab-btn ${activeTab === 'mind' ? 'active' : ''}" onclick="switchPatientProfileTab('mind')">
+          <i data-lucide="brain"></i>
+          <span>Mind History</span>
+        </button>
+        <button type="button" class="hc-profile-tab-btn ${activeTab === 'consultations' ? 'active' : ''}" onclick="switchPatientProfileTab('consultations')">
+          <i data-lucide="stethoscope"></i>
+          <span>Consultation History (${p.consultations.length})</span>
+        </button>
+        <button type="button" class="hc-profile-tab-btn ${activeTab === 'timeline' ? 'active' : ''}" onclick="switchPatientProfileTab('timeline')">
+          <i data-lucide="git-commit-horizontal"></i>
+          <span>Progress Timeline</span>
+        </button>
       </div>
 
-      <!-- 3. Personal History (Physical Modalities) -->
-      <div class="case-record-section-card">
-        <div class="case-section-header">
-          <i data-lucide="activity"></i>
-          <h3>3. Personal History (Physical Modalities)</h3>
-        </div>
-        <div class="case-data-grid">
-          <div class="case-data-item"><strong>Appetite (APP)</strong><p>${pers.appetite || '—'}</p></div>
-          <div class="case-data-item"><strong>Thirst</strong><p>${pers.thirst || '—'}</p></div>
-          <div class="case-data-item"><strong>Craving / Desires</strong><p>${pers.craving || '—'}</p></div>
-          <div class="case-data-item"><strong>Diet</strong><p>${pers.diet || '—'}</p></div>
-          <div class="case-data-item"><strong>Bowel</strong><p>${pers.bowel || '—'}</p></div>
-          <div class="case-data-item"><strong>Urine</strong><p>${pers.urine || '—'}</p></div>
-          <div class="case-data-item"><strong>Habit / Addictions</strong><p>${pers.habit || '—'}</p></div>
-          <div class="case-data-item"><strong>Thermal Modality</strong><p>${pers.thermalModality || '—'}</p></div>
-          <div class="case-data-item"><strong>Sleep</strong><p>${pers.sleep || '—'}</p></div>
-          <div class="case-data-item"><strong>Dreams</strong><p>${pers.dreams || '—'}</p></div>
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <div class="label-with-badge">
-              <strong>Hobby / Pastime (h)</strong>
-              <span class="pending-badge">Pending Doctor Confirmation</span>
+      <!-- TAB 1: OVERVIEW -->
+      <div class="hc-tab-pane ${activeTab === 'overview' ? 'active' : ''}" id="hcTab-overview">
+        <div class="case-record-section-card" style="margin-bottom: 18px;">
+          <div class="case-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="clipboard-check"></i>
+              <h3>Basic Registration & Chief Complaint (Step 1)</h3>
             </div>
-            <p>${pers.hobby || 'Not provided'}</p>
+            <span class="hc-autosave-indicator" id="overviewSaveBadge">Saved in Registry</span>
+          </div>
+          <form onsubmit="saveOverviewSection(event, '${escAttr(p.id)}')">
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>Patient Full Name *</label>
+                <input type="text" id="ovFullName" class="clean-input" value="${escAttr(p.name)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>
+              </div>
+              <div class="form-group">
+                <label>Age *</label>
+                <input type="number" id="ovAge" class="clean-input" value="${escAttr(p.age)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>
+              </div>
+              <div class="form-group">
+                <label>Gender *</label>
+                <select id="ovGender" class="clean-select" onchange="autoSavePatientTabs('${escAttr(p.id)}')">
+                  <option value="Male" ${p.gender === 'Male' ? 'selected' : ''}>Male</option>
+                  <option value="Female" ${p.gender === 'Female' ? 'selected' : ''}>Female</option>
+                  <option value="Other" ${p.gender === 'Other' ? 'selected' : ''}>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>Phone Number *</label>
+                <input type="tel" id="ovPhone" class="clean-input" value="${escAttr(p.phone)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>
+              </div>
+              <div class="form-group">
+                <label>Email Address (Optional)</label>
+                <input type="email" id="ovEmail" class="clean-input" value="${escAttr(p.email)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')" placeholder="patient@example.com">
+              </div>
+              <div class="form-group">
+                <label>Residential Address *</label>
+                <input type="text" id="ovAddress" class="clean-input" value="${escAttr(p.address)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Chief Complaint (C/C) *</label>
+              <textarea id="ovChiefComplaint" class="clean-textarea" rows="3" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>${escAttr(p.chiefComplaint)}</textarea>
+            </div>
+            <div class="hc-section-save-bar">
+              <span style="font-size: 12.5px; color: var(--text-secondary);">System Patient ID: <strong>${escAttr(p.id)}</strong></span>
+              <div style="display: flex; gap: 10px;">
+                <button type="submit" class="primary-btn-solid">
+                  <i data-lucide="save"></i>
+                  <span>Save Basic Details</span>
+                </button>
+                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('past')">
+                  <span>Next: Past History →</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Case Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+          <div class="case-record-section-card">
+            <div class="case-section-header">
+              <i data-lucide="history"></i>
+              <h3>Past & Family History</h3>
+            </div>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
+              ${hasPast ? `<strong>Past:</strong> ${escAttr(past.medicalHistory || past.previousIllnesses || "Recorded")}<br><strong>Family:</strong> Father: ${escAttr(past.familyFather || "—")}, Mother: ${escAttr(past.familyMother || "—")}` : "No past or family medical history recorded yet."}
+            </p>
+            <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('past')">
+              <span>${hasPast ? "Edit Past History" : "+ Complete Past History"}</span>
+            </button>
+          </div>
+
+          <div class="case-record-section-card">
+            <div class="case-section-header">
+              <i data-lucide="user-check"></i>
+              <h3>Personal History (13 Modalities)</h3>
+            </div>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
+              ${hasPers ? `<strong>Appetite:</strong> ${escAttr(pers.appetite || "—")} • <strong>Thirst:</strong> ${escAttr(pers.thirst || "—")}<br><strong>Thermals:</strong> ${escAttr(pers.thermalSeason || "—")} • <strong>Sleep:</strong> ${escAttr(pers.sleep || "—")}` : "No physical generals or personal modalities recorded yet."}
+            </p>
+            <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('personal')">
+              <span>${hasPers ? "Edit Personal History" : "+ Complete Personal History"}</span>
+            </button>
+          </div>
+
+          <div class="case-record-section-card">
+            <div class="case-section-header">
+              <i data-lucide="brain"></i>
+              <h3>Mind & Disposition</h3>
+            </div>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
+              ${hasMind ? `<strong>Anxiety:</strong> ${escAttr(mind.anxiety || "—")}<br><strong>Thoughts:</strong> ${escAttr(mind.thoughts || mind.emotionsFeelings || "Recorded")}` : "No mental or emotional disposition recorded yet."}
+            </p>
+            <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('mind')">
+              <span>${hasMind ? "Edit Mind History" : "+ Complete Mind History"}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- 4. Mind & Emotional History -->
-      <div class="case-record-section-card">
-        <div class="case-section-header">
-          <i data-lucide="heart"></i>
-          <h3>4. Mind & Emotional State</h3>
-        </div>
-        <div class="case-data-grid">
-          <div class="case-data-item"><strong>Anxiety</strong><p>${mind.anxiety || '—'}</p></div>
-          <div class="case-data-item"><strong>Stress</strong><p>${mind.stress || '—'}</p></div>
-          <div class="case-data-item"><strong>Thoughts</strong><p>${mind.thoughts || '—'}</p></div>
-          <div class="case-data-item"><strong>Company</strong><p>${mind.company || '—'}</p></div>
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <strong>What makes patient worried or sad?</strong>
-            <p>${mind.worried || '—'}</p>
+      <!-- TAB 2: PAST HISTORY (Step 2) -->
+      <div class="hc-tab-pane ${activeTab === 'past' ? 'active' : ''}" id="hcTab-past">
+        <div class="case-record-section-card">
+          <div class="case-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="history"></i>
+              <h3>Step 2 — Past Medical, Treatment & Family History</h3>
+            </div>
+            <span class="hc-autosave-indicator" id="pastSaveBadge">Autosave Active</span>
           </div>
-          <div class="case-data-item" style="grid-column: 1 / -1;">
-            <strong>What makes patient happiest or relaxed?</strong>
-            <p>${mind.happy || '—'}</p>
+
+          <form onsubmit="savePastHistorySection(event, '${escAttr(p.id)}')">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Past Medical History</label>
+                <textarea id="phMedicalHistory" class="clean-textarea" rows="3" placeholder="Major childhood or adult illnesses, hospitalizations, surgeries..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.medicalHistory)}</textarea>
+              </div>
+              <div class="form-group">
+                <label>Previous Illnesses & Recurrent Infections</label>
+                <textarea id="phPrevIllnesses" class="clean-textarea" rows="3" placeholder="e.g. Typhoid, jaundice, recurrent tonsillitis, skin eruptions..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.previousIllnesses)}</textarea>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Previous Treatments & Medications</label>
+                <textarea id="phPrevTreatments" class="clean-textarea" rows="2" placeholder="Allopathic, Ayurvedic, or prior Homeopathic treatments taken..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.previousTreatments)}</textarea>
+              </div>
+              <div class="form-group">
+                <label>Associated Complaints</label>
+                <textarea id="phAssocComplaints" class="clean-textarea" rows="2" placeholder="Secondary or concurrent symptoms accompanying the chief complaint..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.associatedComplaints)}</textarea>
+              </div>
+            </div>
+
+            <h4 style="font-size: 14.5px; font-weight: 700; color: var(--primary-green); margin: 16px 0 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+              Family Medical History
+            </h4>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Father's Health History</label>
+                <input type="text" id="phFamilyFather" class="clean-input" placeholder="e.g. Hypertension, Diabetes, Asthma, Healthy..." value="${escAttr(past.familyFather)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+              <div class="form-group">
+                <label>Mother's Health History</label>
+                <input type="text" id="phFamilyMother" class="clean-input" placeholder="e.g. Thyroid disorder, Migraine, Arthritis..." value="${escAttr(past.familyMother)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Brother(s) Health History</label>
+                <input type="text" id="phFamilyBrother" class="clean-input" placeholder="Any hereditary or chronic conditions..." value="${escAttr(past.familyBrother)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+              <div class="form-group">
+                <label>Sister(s) Health History</label>
+                <input type="text" id="phFamilySister" class="clean-input" placeholder="Any hereditary or chronic conditions..." value="${escAttr(past.familySister)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 8px;">
+              <label>Previous Consultation Information & Diagnostic Reports</label>
+              <textarea id="phPrevConsultations" class="clean-textarea" rows="2" placeholder="Previous physician consultations, lab findings, imaging summaries..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.previousConsultations)}</textarea>
+            </div>
+
+            <div class="hc-section-save-bar">
+              <span style="font-size: 12.5px; color: var(--text-secondary);">All changes are automatically preserved for ${escAttr(p.name)}.</span>
+              <div style="display: flex; gap: 10px;">
+                <button type="submit" class="primary-btn-solid">
+                  <i data-lucide="save"></i>
+                  <span>Save Past History</span>
+                </button>
+                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('personal')">
+                  <span>Next: Personal History →</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB 3: PERSONAL HISTORY (Step 3 — Expandable Sections) -->
+      <div class="hc-tab-pane ${activeTab === 'personal' ? 'active' : ''}" id="hcTab-personal">
+        <div class="case-record-section-card">
+          <div class="case-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="user-check"></i>
+              <h3>Step 3 — Personal History (Physical Generals & Modalities)</h3>
+            </div>
+            <span class="hc-autosave-indicator" id="personalSaveBadge">Autosave Active</span>
+          </div>
+
+          <form onsubmit="savePersonalHistorySection(event, '${escAttr(p.id)}')">
+            <!-- Expandable Group 1: Appetite, Craving, Aversion, Thirst -->
+            <details class="hc-accordion-group" open>
+              <summary class="hc-accordion-summary">
+                <span>1. Appetite, Cravings, Aversions & Thirst (Items 1–4)</span>
+                <i data-lucide="chevron-down"></i>
+              </summary>
+              <div class="hc-accordion-body">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>1. Appetite</label>
+                    <input type="text" id="peAppetite" class="clean-input" placeholder="e.g. Good, ravenous, easily satiated, diminished..." value="${escAttr(pers.appetite)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>2. Craving (Desires)</label>
+                    <input type="text" id="peCraving" class="clean-input" placeholder="e.g. Sweets, salt, spicy, sour, warm food, cold drinks..." value="${escAttr(pers.craving)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>3. Aversion</label>
+                    <input type="text" id="peAversion" class="clean-input" placeholder="e.g. Milk, fats, meat, sour, slimy food..." value="${escAttr(pers.aversion)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>4. Thirst</label>
+                    <input type="text" id="peThirst" class="clean-input" placeholder="e.g. Large quantities at long intervals, small sips, thirstless..." value="${escAttr(pers.thirst)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- Expandable Group 2: Urine, Bowel, Perspiration, Habits, Hobbies -->
+            <details class="hc-accordion-group" open>
+              <summary class="hc-accordion-summary">
+                <span>2. Elimination, Perspiration, Habits & Hobbies (Items 5–9)</span>
+                <i data-lucide="chevron-down"></i>
+              </summary>
+              <div class="hc-accordion-body">
+                <div class="form-row-3">
+                  <div class="form-group">
+                    <label>5. Urine</label>
+                    <input type="text" id="peUrine" class="clean-input" placeholder="Frequency, flow, burning, odor, color..." value="${escAttr(pers.urine)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>6. Bowel</label>
+                    <input type="text" id="peBowel" class="clean-input" placeholder="Regular, constipation, unfinished sensation, loose..." value="${escAttr(pers.bowel)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>7. Perspiration (Sweat)</label>
+                    <input type="text" id="pePerspiration" class="clean-input" placeholder="Profuse, scant, palms/soles, forehead, staining, odor..." value="${escAttr(pers.perspiration)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>8. Habits / Addictions</label>
+                    <input type="text" id="peHabits" class="clean-input" placeholder="Tea, coffee, tobacco, alcohol, meal timing..." value="${escAttr(pers.habits)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>9. Hobbies & Recreations</label>
+                    <input type="text" id="peHobbies" class="clean-input" placeholder="Reading, music, sports, gardening, art..." value="${escAttr(pers.hobbies)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- Expandable Group 3: Thermals (Bath, Covering, Food, Season) -->
+            <details class="hc-accordion-group" open>
+              <summary class="hc-accordion-summary">
+                <span>3. Thermals — Bath, Covering, Food & Season (Item 10)</span>
+                <i data-lucide="chevron-down"></i>
+              </summary>
+              <div class="hc-accordion-body">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>10a. Thermal — Bath Preference</label>
+                    <input type="text" id="peThermalBath" class="clean-input" placeholder="e.g. Warm water all year, cold bath, tepid..." value="${escAttr(pers.thermalBath)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>10b. Thermal — Covering / Fan / AC</label>
+                    <input type="text" id="peThermalCovering" class="clean-input" placeholder="e.g. Needs thick blanket even in summer, uncovers feet..." value="${escAttr(pers.thermalCovering)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>10c. Thermal — Food & Drink Temperature</label>
+                    <input type="text" id="peThermalFood" class="clean-input" placeholder="e.g. Desires warm food, aggravated by cold drinks/ice..." value="${escAttr(pers.thermalFood)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>10d. Thermal — Season & Overall Reaction</label>
+                    <input type="text" id="peThermalSeason" class="clean-input" placeholder="e.g. Chilly patient (worse in winter) / Hot patient (worse in summer)..." value="${escAttr(pers.thermalSeason)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- Expandable Group 4: Sleep, Dreams & Menstrual History -->
+            <details class="hc-accordion-group" open>
+              <summary class="hc-accordion-summary">
+                <span>4. Sleep, Dreams & Menstrual History (Items 11–13)</span>
+                <i data-lucide="chevron-down"></i>
+              </summary>
+              <div class="hc-accordion-body">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>11. Sleep Pattern & Posture</label>
+                    <input type="text" id="peSleep" class="clean-input" placeholder="Sound, unrefreshing, wakes at 3 AM, sleeps on left side/abdomen..." value="${escAttr(pers.sleep)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                  <div class="form-group">
+                    <label>12. Dreams</label>
+                    <input type="text" id="peDreams" class="clean-input" placeholder="Anxious, falling, water, snakes, business, unremembered..." value="${escAttr(pers.dreams)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>13. Menstrual / Gynaecological History (When Applicable)</label>
+                  <textarea id="peMenstrual" class="clean-textarea" rows="2" placeholder="Cycle regularity, flow, dysmenorrhoea, leucorrhoea, before/during/after menses modalities (or N/A)..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(pers.menstrualHistory)}</textarea>
+                </div>
+              </div>
+            </details>
+
+            <div class="hc-section-save-bar">
+              <span style="font-size: 12.5px; color: var(--text-secondary);">All 13 Personal History parameters are structured and saved.</span>
+              <div style="display: flex; gap: 10px;">
+                <button type="submit" class="primary-btn-solid">
+                  <i data-lucide="save"></i>
+                  <span>Save Personal History</span>
+                </button>
+                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('mind')">
+                  <span>Next: Mind History →</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB 4: MIND HISTORY (Step 4) -->
+      <div class="hc-tab-pane ${activeTab === 'mind' ? 'active' : ''}" id="hcTab-mind">
+        <div class="case-record-section-card">
+          <div class="case-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="brain"></i>
+              <h3>Step 4 — Mind & Emotional Disposition (12 Clinical Rubrics)</h3>
+            </div>
+            <span class="hc-autosave-indicator" id="mindSaveBadge">Autosave Active</span>
+          </div>
+
+          <form onsubmit="saveMindHistorySection(event, '${escAttr(p.id)}')">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>1. Workplace Environment</label>
+                <textarea id="miWorkplaceEnv" class="clean-textarea" rows="2" placeholder="Nature of occupation, work atmosphere, relations with colleagues/superiors..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.workplaceEnv)}</textarea>
+              </div>
+              <div class="form-group">
+                <label>2. Family Environment</label>
+                <textarea id="miFamilyEnv" class="clean-textarea" rows="2" placeholder="Home environment, bonding, support system, domestic harmony or friction..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.familyEnv)}</textarea>
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>3. Social & Party Environment</label>
+                <input type="text" id="miSocialParty" class="clean-input" placeholder="Enjoys gatherings, avoids crowds, feels drained..." value="${escAttr(mind.socialPartyEnv)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+              <div class="form-group">
+                <label>4. Friends & Social Comfort</label>
+                <input type="text" id="miFriendsComfort" class="clean-input" placeholder="Few close friends vs large circle, sharing vs reserved..." value="${escAttr(mind.friendsComfort)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+              <div class="form-group">
+                <label>5. Introvert / Extrovert Tendencies</label>
+                <input type="text" id="miIntroExtrovert" class="clean-input" placeholder="e.g. Introverted, observant, expressive extrovert..." value="${escAttr(mind.introExtrovert)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>6. Emotions & Feelings</label>
+                <textarea id="miEmotions" class="clean-textarea" rows="2" placeholder="Sensitivity, weeping tendency, consolation (< or >), affection, grief..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.emotionsFeelings)}</textarea>
+              </div>
+              <div class="form-group">
+                <label>7. Thoughts</label>
+                <textarea id="miThoughts" class="clean-textarea" rows="2" placeholder="Brooding over past, anticipatory thoughts, racing mind at night..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.thoughts)}</textarea>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>8. Fears & Their Causes</label>
+                <input type="text" id="miFears" class="clean-input" placeholder="e.g. Dark, heights, disease, poverty, being alone, water..." value="${escAttr(mind.fearsCauses)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+              <div class="form-group">
+                <label>9. Anger & Its Causes</label>
+                <input type="text" id="miAnger" class="clean-input" placeholder="e.g. Contradiction, injustice, suppressed anger, quick temper..." value="${escAttr(mind.angerCauses)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>10. Anxiety</label>
+                <input type="text" id="miAnxiety" class="clean-input" placeholder="Health anxiety, anxiety for others, before exams/meetings, trifles..." value="${escAttr(mind.anxiety)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+              <div class="form-group">
+                <label>11. Stress & Emotional Responses</label>
+                <input type="text" id="miStress" class="clean-input" placeholder="How patient reacts under acute or prolonged mental stress..." value="${escAttr(mind.stressResponses)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>12. Additional Mental or Emotional Observations</label>
+              <textarea id="miAdditional" class="clean-textarea" rows="2" placeholder="Fastidiousness, jealousy, memory, willpower, characteristic mental keynotes..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.additionalObservations)}</textarea>
+            </div>
+
+            <div class="hc-section-save-bar">
+              <span style="font-size: 12.5px; color: var(--text-secondary);">All 12 Mind & Disposition rubrics are saved to this case record.</span>
+              <div style="display: flex; gap: 10px;">
+                <button type="submit" class="primary-btn-solid">
+                  <i data-lucide="save"></i>
+                  <span>Save Mind History</span>
+                </button>
+                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('consultations')">
+                  <span>Next: Consultation History →</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB 5: CONSULTATION HISTORY -->
+      <div class="hc-tab-pane ${activeTab === 'consultations' ? 'active' : ''}" id="hcTab-consultations">
+        <div class="case-record-section-card">
+          <div class="case-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="stethoscope"></i>
+              <h3>Consultation History & Prescribed Treatments</h3>
+            </div>
+            <button type="button" class="primary-btn-solid" onclick="openProgressModal('${escAttr(p.id)}')">
+              <i data-lucide="plus"></i>
+              <span>Add Consultation / Follow-Up</span>
+            </button>
+          </div>
+
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Visit Stage</th>
+                  <th>Date</th>
+                  <th>Follow-up Observations & Symptoms</th>
+                  <th>Medicines & Treatment</th>
+                  <th>Progress Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${p.consultations.map(c => `
+                  <tr>
+                    <td><strong style="color: var(--primary-green);">${escAttr(c.stage)}</strong></td>
+                    <td>${escAttr(c.displayDate || c.date)}</td>
+                    <td style="max-width: 340px;">${escAttr(c.observations)}</td>
+                    <td>
+                      <strong>${escAttr(c.medicine)}</strong>
+                      ${c.instructions ? `<div style="font-size: 12px; color: var(--text-secondary);">${escAttr(c.instructions)}</div>` : ""}
+                    </td>
+                    <td><span class="pill-indicator pill-good">${escAttr(c.status || "Recorded")}</span></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: PROGRESS TIMELINE -->
+      <div class="hc-tab-pane ${activeTab === 'timeline' ? 'active' : ''}" id="hcTab-timeline">
+        <div class="case-record-section-card">
+          <div class="case-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="git-commit-horizontal"></i>
+              <h3>Chronological Case Progress Timeline</h3>
+            </div>
+            <button type="button" class="primary-btn-solid" onclick="openProgressModal('${escAttr(p.id)}')">
+              <i data-lucide="plus-circle"></i>
+              <span>Record Follow-Up Progress</span>
+            </button>
+          </div>
+
+          <!-- Visual Stage Flow Banner: Day 1 -> Follow-up 1 -> Follow-up 2 -> Latest Visit -->
+          <div class="hc-timeline-flow-banner">
+            ${stagesOrder.map((stg, idx) => `
+              <span class="hc-timeline-step-chip ${recordedStages.has(stg) ? 'recorded' : ''}">
+                <i data-lucide="${recordedStages.has(stg) ? 'check-circle-2' : 'circle'}"></i>
+                <span>${stg}</span>
+              </span>
+              ${idx < stagesOrder.length - 1 ? '<span class="hc-timeline-arrow">→</span>' : ''}
+            `).join("")}
+          </div>
+
+          <div class="hc-progress-timeline-list">
+            ${p.consultations.map((c, index) => `
+              <div class="hc-progress-card">
+                <div class="hc-progress-header">
+                  <span class="hc-progress-stage">Visit #${index + 1}: ${escAttr(c.stage)}</span>
+                  <span class="hc-progress-date">${escAttr(c.displayDate || c.date)}</span>
+                </div>
+                <div class="hc-progress-grid">
+                  <div class="hc-progress-item" style="grid-column: 1 / -1;">
+                    <strong>Follow-Up Observations & Clinical Notes</strong>
+                    <span>${escAttr(c.observations)}</span>
+                  </div>
+                  <div class="hc-progress-item">
+                    <strong>Medicines & Treatment Prescribed</strong>
+                    <span>${escAttr(c.medicine)}</span>
+                  </div>
+                  <div class="hc-progress-item">
+                    <strong>Clinical Status & Instructions</strong>
+                    <span><strong>${escAttr(c.status)}</strong> — ${escAttr(c.instructions || "Continue observation")}</span>
+                  </div>
+                </div>
+              </div>
+            `).join("")}
           </div>
         </div>
       </div>
     </div>
   `;
 }
+
+// Switch active tab inside Patient Profile & Case Record view
+window.switchPatientProfileTab = function(tabId) {
+  window.__ACTIVE_CASE_TAB = tabId;
+  document.querySelectorAll(".hc-profile-tab-btn").forEach(btn => {
+    const onClickAttr = btn.getAttribute("onclick") || "";
+    btn.classList.toggle("active", onClickAttr.includes(`'${tabId}'`));
+  });
+  document.querySelectorAll(".hc-tab-pane").forEach(pane => {
+    pane.classList.toggle("active", pane.id === `hcTab-${tabId}`);
+  });
+  if (window.lucide) lucide.createIcons();
+};
+
+// Collect current form values from DOM into patient record & persist
+function collectAndSyncPatientProfile(patientId) {
+  const p = CLINIC_STATE.patients.find(pt => pt.id === patientId);
+  if (!p) return null;
+
+  const val = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : null;
+  };
+
+  // Overview fields
+  if (document.getElementById("ovFullName")) {
+    p.name = val("ovFullName") || p.name;
+    p.age = val("ovAge") || p.age;
+    p.gender = val("ovGender") || p.gender;
+    p.phone = val("ovPhone") || p.phone;
+    p.email = val("ovEmail") ?? p.email;
+    p.address = val("ovAddress") || p.address;
+    p.chiefComplaint = val("ovChiefComplaint") || p.chiefComplaint;
+  }
+
+  // Past History fields
+  if (document.getElementById("phMedicalHistory")) {
+    p.pastHistoryData = {
+      medicalHistory: val("phMedicalHistory"),
+      previousIllnesses: val("phPrevIllnesses"),
+      previousTreatments: val("phPrevTreatments"),
+      associatedComplaints: val("phAssocComplaints"),
+      familyFather: val("phFamilyFather"),
+      familyMother: val("phFamilyMother"),
+      familyBrother: val("phFamilyBrother"),
+      familySister: val("phFamilySister"),
+      previousConsultations: val("phPrevConsultations")
+    };
+    p.associatedComplaints = p.pastHistoryData.associatedComplaints;
+    p.pastHistory = p.pastHistoryData.medicalHistory;
+    p.familyHistory = `Father: ${p.pastHistoryData.familyFather || '—'}; Mother: ${p.pastHistoryData.familyMother || '—'}`;
+  }
+
+  // Personal History fields
+  if (document.getElementById("peAppetite")) {
+    p.personalHistory = {
+      appetite: val("peAppetite"),
+      craving: val("peCraving"),
+      aversion: val("peAversion"),
+      thirst: val("peThirst"),
+      urine: val("peUrine"),
+      bowel: val("peBowel"),
+      perspiration: val("pePerspiration"),
+      habits: val("peHabits"),
+      hobbies: val("peHobbies"),
+      thermalBath: val("peThermalBath"),
+      thermalCovering: val("peThermalCovering"),
+      thermalFood: val("peThermalFood"),
+      thermalSeason: val("peThermalSeason"),
+      sleep: val("peSleep"),
+      dreams: val("peDreams"),
+      menstrualHistory: val("peMenstrual")
+    };
+  }
+
+  // Mind History fields
+  if (document.getElementById("miWorkplaceEnv")) {
+    p.mindHistory = {
+      workplaceEnv: val("miWorkplaceEnv"),
+      familyEnv: val("miFamilyEnv"),
+      socialPartyEnv: val("miSocialParty"),
+      friendsComfort: val("miFriendsComfort"),
+      introExtrovert: val("miIntroExtrovert"),
+      emotionsFeelings: val("miEmotions"),
+      thoughts: val("miThoughts"),
+      fearsCauses: val("miFears"),
+      angerCauses: val("miAnger"),
+      anxiety: val("miAnxiety"),
+      stressResponses: val("miStress"),
+      additionalObservations: val("miAdditional")
+    };
+  }
+
+  persistClinicState();
+  return p;
+}
+
+let _autosaveTimer = null;
+window.autoSavePatientTabs = function(patientId) {
+  if (_autosaveTimer) clearTimeout(_autosaveTimer);
+  _autosaveTimer = setTimeout(() => {
+    collectAndSyncPatientProfile(patientId);
+    const nowTime = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    ["overviewSaveBadge", "pastSaveBadge", "personalSaveBadge", "mindSaveBadge"].forEach(bId => {
+      const el = document.getElementById(bId);
+      if (el) el.textContent = `Autosaved at ${nowTime}`;
+    });
+  }, 350);
+};
+
+window.saveOverviewSection = function(e, patientId) {
+  if (e) e.preventDefault();
+  const p = collectAndSyncPatientProfile(patientId);
+  if (p) {
+    updateDashboardMetrics();
+    renderPatientWorkspace();
+    renderPatientRegistry();
+    showToast(`Saved Basic Registration details for ${p.name}.`, "success");
+  }
+};
+
+window.savePastHistorySection = function(e, patientId) {
+  if (e) e.preventDefault();
+  const p = collectAndSyncPatientProfile(patientId);
+  if (p) {
+    showToast(`Saved Past & Family History for ${p.name}.`, "success");
+  }
+};
+
+window.savePersonalHistorySection = function(e, patientId) {
+  if (e) e.preventDefault();
+  const p = collectAndSyncPatientProfile(patientId);
+  if (p) {
+    showToast(`Saved Personal History (13 modalities) for ${p.name}.`, "success");
+  }
+};
+
+window.saveMindHistorySection = function(e, patientId) {
+  if (e) e.preventDefault();
+  const p = collectAndSyncPatientProfile(patientId);
+  if (p) {
+    showToast(`Saved Mind & Emotional History for ${p.name}.`, "success");
+  }
+};
+
+// Follow-Up / Progress Modal Handlers (Appends chronologically without overwriting)
+window.openProgressModal = function(patientId) {
+  const targetId = patientId || CLINIC_STATE.selectedPatientId;
+  const p = CLINIC_STATE.patients.find(pt => pt.id === targetId);
+  if (!p) {
+    showToast("Please select or register a patient first.", "info");
+    return;
+  }
+  CLINIC_STATE.selectedPatientId = p.id;
+  const modal = document.getElementById("progressModalOverlay");
+  const dateInput = document.getElementById("progVisitDate");
+  const stageSelect = document.getElementById("progVisitStage");
+
+  if (dateInput) dateInput.value = new Date().toISOString().split("T")[0];
+  if (stageSelect) {
+    const count = (p.consultations || []).length;
+    if (count === 1) stageSelect.value = "Follow-up 1";
+    else if (count === 2) stageSelect.value = "Follow-up 2";
+    else stageSelect.value = "Latest Visit";
+  }
+
+  if (modal) modal.classList.add("active");
+  if (window.lucide) lucide.createIcons();
+};
+
+function closeProgressModal() {
+  const modal = document.getElementById("progressModalOverlay");
+  if (modal) modal.classList.remove("active");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  // Load persisted clinic state on initial page load
+  loadPersistedClinicState();
+
+  // Setup Automatic Hover-Expanding Sidebar class sync
+  const sidebarEl = document.getElementById("sidebar");
+  if (sidebarEl) {
+    sidebarEl.addEventListener("mouseenter", () => {
+      if (window.innerWidth >= 1025) {
+        sidebarEl.classList.add("sidebar-expanded");
+        document.body.classList.add("sidebar-hover-active");
+      }
+    });
+    sidebarEl.addEventListener("mouseleave", () => {
+      if (window.innerWidth >= 1025) {
+        sidebarEl.classList.remove("sidebar-expanded");
+        document.body.classList.remove("sidebar-hover-active");
+      }
+    });
+  }
+
+  // Bind Follow-up Progress Modal
+  const progModal = document.getElementById("progressModalOverlay");
+  const progClose = document.getElementById("progressModalCloseBtn");
+  const progCancel = document.getElementById("progressModalCancelBtn");
+  const progForm = document.getElementById("progressEntryForm");
+
+  if (progClose) progClose.addEventListener("click", closeProgressModal);
+  if (progCancel) progCancel.addEventListener("click", closeProgressModal);
+  if (progModal) {
+    progModal.addEventListener("click", (e) => {
+      if (e.target === progModal) closeProgressModal();
+    });
+  }
+
+  if (progForm) {
+    progForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const p = CLINIC_STATE.patients.find(pt => pt.id === CLINIC_STATE.selectedPatientId);
+      if (!p) return;
+
+      const stage = document.getElementById("progVisitStage")?.value || "Follow-up 1";
+      const dateRaw = document.getElementById("progVisitDate")?.value || new Date().toISOString().split("T")[0];
+      const observations = document.getElementById("progObservations")?.value.trim() || "";
+      const medicine = document.getElementById("progMedicine")?.value.trim() || "";
+      const status = document.getElementById("progOutcomeStatus")?.value || "Improving";
+      const instructions = document.getElementById("progNextInstructions")?.value.trim() || "";
+
+      const displayDate = new Date(dateRaw + "T00:00:00").toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+
+      if (!Array.isArray(p.consultations)) p.consultations = [];
+
+      // Append chronologically without overwriting previous visits
+      p.consultations.push({
+        id: `CONS-${Date.now()}`,
+        stage,
+        date: dateRaw,
+        displayDate,
+        observations,
+        medicine,
+        status,
+        instructions,
+        doctor: "Dr. Suraj D. Panigrahi"
+      });
+
+      p.prescription = medicine;
+      if (!Array.isArray(p.history)) p.history = [];
+      p.history.unshift({
+        title: `${stage} (${status})`,
+        date: displayDate,
+        desc: `Observations: ${observations} • Rx: ${medicine}`
+      });
+
+      persistClinicState();
+      updateDashboardMetrics();
+      renderPatientWorkspace();
+      window.__ACTIVE_CASE_TAB = "timeline";
+      renderActiveCaseRecord();
+
+      progForm.reset();
+      closeProgressModal();
+      showToast(`Recorded "${stage}" for ${p.name}. Previous consultation history preserved.`, "success");
+    });
+  }
+});
 
 // Attach listeners for MVP Dual Entry & Language Switcher
 window.addEventListener("DOMContentLoaded", () => {

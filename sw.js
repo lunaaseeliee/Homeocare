@@ -8,7 +8,7 @@
  * 3. Handles network loss transparently without fabricating stored updates.
  */
 
-const CACHE_NAME = 'homeocare-shell-v3';
+const CACHE_NAME = 'homeocare-v7-presentation-3.0';
 
 const STATIC_SHELL_ASSETS = [
   '/',

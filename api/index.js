@@ -64,26 +64,17 @@ const MVP_FEATURE_FLAGS = {
   DOCTOR_RECORD_REVIEW: true,    // In scope: Search, open, review patient case records
   MULTILINGUAL_UI: true,         // In scope: English, Hindi, Marathi
 
-  BILLING_INVOICES: false,       // Locked: Outside MVP handoff
-  APPOINTMENTS_CALENDAR: false,  // Locked: Outside MVP handoff
-  PRESCRIPTION_GEN: false,       // Locked: Outside MVP handoff
-  DISPENSARY_INVENTORY: false,   // Locked: Outside MVP handoff
-  PRACTICE_ANALYTICS: false,     // Locked: Outside MVP handoff
-  REPERTORY_MATERIA: false,      // Locked: Outside MVP handoff
+  BILLING_INVOICES: true,        // Unlocked for HomeoCare 3.0 Presentation
+  APPOINTMENTS_CALENDAR: true,   // Unlocked for HomeoCare 3.0 Presentation
+  PRESCRIPTION_GEN: true,        // Unlocked for HomeoCare 3.0 Presentation
+  DISPENSARY_INVENTORY: true,    // Unlocked for HomeoCare 3.0 Presentation
+  PRACTICE_ANALYTICS: true,      // Unlocked for HomeoCare 3.0 Presentation
+  REPERTORY_MATERIA: true,       // Unlocked for HomeoCare 3.0 Presentation
   AI_DIAGNOSIS: false,           // Excluded: Avoid implying clinical decision-making
   WHATSAPP_AUTOMATION: false     // Locked: Outside MVP handoff
 };
 
-const LOCKED_API_PREFIXES = [
-  '/api/invoices',
-  '/api/billing',
-  '/api/payments',
-  '/api/appointments',
-  '/api/dispensary',
-  '/api/prescriptions',
-  '/api/repertory',
-  '/api/analytics'
-];
+const LOCKED_API_PREFIXES = []; // All modules unlocked for HomeoCare 3.0 Presentation
 
 function computeCaptchaHmac(nonce, expiresAt, answerUpper) {
   return crypto
@@ -320,7 +311,7 @@ async function parseBody(req) {
     let body = '';
     req.on('data', (chunk) => {
       body += chunk;
-      if (body.length > 8192) {
+      if (body.length > 262144) {
         req.destroy();
         resolve({});
       }
@@ -394,6 +385,37 @@ module.exports = async function handler(req, res) {
   // 1. Safe Supabase Public Config (Publishable Key + URL only)
   if (pathname === '/api/supabase-config' && req.method === 'GET') {
     return sendJson(res, 200, getSafePublicConfig());
+  }
+
+  
+  // 1a-2. Clinic State Persistence Endpoint (HomeoCare 3.0)
+  if (pathname === '/api/clinic-state') {
+    const stateFilePath = process.env.VERCEL
+      ? path.join('/tmp', '.homeocare-v3-clinic-state.json')
+      : path.join(__dirname, '..', '.homeocare-v3-clinic-state.json');
+
+    if (req.method === 'GET') {
+      try {
+        if (fs.existsSync(stateFilePath)) {
+          const data = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
+          return sendJson(res, 200, { ok: true, state: data });
+        }
+      } catch (_) {}
+      return sendJson(res, 200, { ok: true, state: null });
+    }
+
+    if (req.method === 'POST') {
+      try {
+        const body = await parseBody(req);
+        if (body && typeof body === 'object' && body.state) {
+          fs.writeFileSync(stateFilePath, JSON.stringify(body.state, null, 2), 'utf8');
+          return sendJson(res, 200, { ok: true });
+        }
+        return sendJson(res, 400, { ok: false, error: 'Missing state object.' });
+      } catch (err) {
+        return sendJson(res, 500, { ok: false, error: err.message });
+      }
+    }
   }
 
   // 1a. Feature Flags Endpoint (HomeoCare MVP Developer Handoff specification)
