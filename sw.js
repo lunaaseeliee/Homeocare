@@ -8,7 +8,7 @@
  * 3. Handles network loss transparently without fabricating stored updates.
  */
 
-const CACHE_NAME = 'homeocare-v14-medical-history-refinement';
+const CACHE_NAME = 'homeocare-v15-remove-field-taglines';
 
 const STATIC_SHELL_ASSETS = [
   '/',

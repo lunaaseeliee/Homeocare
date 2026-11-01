@@ -5723,7 +5723,7 @@ body,
   background: #FAFBF9;
   border: 1px solid #E5EAE6;
   border-radius: 10px;
-  padding: 11px 14px;
+  padding: 10px 14px;
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -5768,12 +5768,7 @@ body,
 }
 
 .hc-smart-desc {
-  display: block;
-  color: #59675E !important;
-  font-weight: 400 !important;
-  font-size: 12px !important;
-  line-height: 1.25;
-  margin: 0;
+  display: none !important;
 }
 
 /* + Add Button Anchor & Right Alignment */
