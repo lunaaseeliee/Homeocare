@@ -175,12 +175,12 @@ function applyTheme(theme) {
     localStorage.setItem("homeocare_theme", normalizedTheme);
   } catch (e) {}
 
-  const label = (normalizedTheme === "dark") ? "Dark Glass" : "Light Peach";
+  const label = (normalizedTheme === "dark") ? "Midnight Emerald" : "Light Peach";
   if (themeTextLabel) themeTextLabel.textContent = label;
   const authLabel = document.getElementById("authThemeTextLabel");
   if (authLabel) authLabel.textContent = label;
 
-  const titleText = normalizedTheme === "dark" ? "Switch to Light Peach" : "Switch to Dark Glass";
+  const titleText = normalizedTheme === "dark" ? "Switch to Light Peach" : "Switch to Midnight Emerald";
   if (themeToggleBtn) {
     themeToggleBtn.setAttribute("title", titleText);
     themeToggleBtn.setAttribute("aria-label", `Current theme: ${label}. Click to switch theme.`);
@@ -215,7 +215,7 @@ function toggleTheme(event) {
 
   if (prefersReducedMotion) {
     applyTheme(target);
-    showToast(`Switched to ${target === "dark" ? "Dark Glass" : "Light Peach"} Theme`, "info");
+    showToast(`Switched to ${target === "dark" ? "Midnight Emerald" : "Light Peach"} Theme`, "info");
     return;
   }
 
@@ -229,7 +229,7 @@ function toggleTheme(event) {
     isThemeTransitioning = false;
   }, 300);
 
-  showToast(`Switched to ${target === "dark" ? "Dark Glass" : "Light Peach"} Theme`, "info");
+  showToast(`Switched to ${target === "dark" ? "Midnight Emerald" : "Light Peach"} Theme`, "info");
 }
 
 if (themeToggleBtn) {
@@ -418,11 +418,13 @@ function updateDashboardMetrics() {
   }
 
   // Notification badge
-  if (CLINIC_STATE.notificationsCount > 0) {
-    notifBadge.style.display = "flex";
-    notifBadge.textContent = CLINIC_STATE.notificationsCount;
-  } else {
-    notifBadge.style.display = "none";
+  if (notifBadge) {
+    if (CLINIC_STATE.notificationsCount > 0) {
+      notifBadge.style.display = "flex";
+      notifBadge.textContent = CLINIC_STATE.notificationsCount;
+    } else {
+      notifBadge.style.display = "none";
+    }
   }
 
   // Clinic topbar queue summary
