@@ -8,7 +8,7 @@
  * 3. Handles network loss transparently without fabricating stored updates.
  */
 
-const CACHE_NAME = 'homeocare-shell-v2';
+const CACHE_NAME = 'homeocare-shell-v3';
 
 const STATIC_SHELL_ASSETS = [
   '/',
@@ -78,35 +78,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Static application shell: Cache-First with Network Revalidate
+  // 2. Static application shell: Network-First with Cache Fallback (guarantees fresh code while preserving offline resilience)
   event.respondWith(
-    caches.match(req).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Refresh cache in background
-        fetch(req).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, networkResponse));
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-
-      return fetch(req).then((networkResponse) => {
+    fetch(req)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const clone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
         }
         return networkResponse;
-      }).catch(() => {
-        if (req.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-        return new Response('Offline: Content unavailable without network connection.', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      })
+      .catch(() => {
+        return caches.match(req).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (req.mode === 'navigate') return caches.match('/index.html');
+          return new Response('Offline: Content unavailable without network connection.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
         });
-      });
-    })
+      })
   );
 });
-

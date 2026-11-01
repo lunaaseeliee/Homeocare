@@ -137,8 +137,8 @@
           <!-- Generic Alert Container -->
           <div class="auth-alert-message" id="authAlertBox" style="display: none;"></div>
 
-          <!-- STEP 1: REQUEST OTP FORM -->
-          <form class="auth-form" id="otpRequestForm">
+          <!-- STEP 1: REQUEST OTP / PRESENTATION ACCESS FORM -->
+          <form class="auth-form" id="otpRequestForm" action="javascript:void(0);" onsubmit="event.preventDefault(); return false;">
             <div class="form-group">
               <label for="otpEmailInput">Authorized Clinic Email</label>
               <div class="auth-input-wrapper">
@@ -160,26 +160,26 @@
             </div>
 
             <div class="auth-action-row" style="margin-top: 20px;">
-              <button type="submit" class="interactive-btn primary-btn-solid full-width-btn" id="sendOtpSubmitBtn">
-                <i data-lucide="send"></i>
-                <span>Send Verification Code</span>
+              <button type="button" class="interactive-btn primary-btn-solid full-width-btn" id="sendOtpSubmitBtn">
+                <i data-lucide="arrow-right"></i>
+                <span>Proceed to Clinical Verification</span>
               </button>
             </div>
           </form>
 
-          <!-- STEP 2: VERIFY 6-DIGIT OTP FORM (Initially Hidden) -->
-          <form class="auth-form" id="otpVerifyForm" style="display: none;">
+          <!-- STEP 2: 6-DIGIT PRESENTATION ACCESS CODE (Initially Hidden) -->
+          <form class="auth-form" id="otpVerifyForm" action="javascript:void(0);" onsubmit="event.preventDefault(); return false;" style="display: none;">
             <div class="otp-sent-banner">
-              <i data-lucide="mail-check" class="otp-banner-icon"></i>
+              <i data-lucide="key-round" class="otp-banner-icon"></i>
               <div class="otp-banner-text">
-                <strong>Verification Code Sent</strong>
-                <p>A 6-digit code was sent to <span id="otpTargetEmailDisplay">homeocareadmin@gmail.com</span>.</p>
+                <strong>Presentation Access Mode</strong>
+                <p>Enter the 6-digit clinical presentation code for Dr. Suraj D. Panigrahi.</p>
               </div>
             </div>
 
             <div class="form-group" style="margin-top: 14px;">
               <label style="display: block; text-align: center; margin-bottom: 12px; font-weight: 600;">
-                Enter 6-Digit Verification Code
+                Enter 6-Digit Presentation Access Code
               </label>
               <div class="otp-inputs-row" id="otpInputsContainer">
                 <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="0" autocomplete="off" autofocus>
@@ -192,20 +192,16 @@
             </div>
 
             <div class="auth-action-row" style="margin-top: 18px;">
-              <button type="submit" class="interactive-btn primary-btn-solid full-width-btn" id="verifyOtpSubmitBtn">
+              <button type="button" class="interactive-btn primary-btn-solid full-width-btn" id="verifyOtpSubmitBtn">
                 <i data-lucide="check-circle"></i>
-                <span>Verify & Login</span>
+                <span>Verify & Enter HomeoCare</span>
               </button>
             </div>
 
-            <div class="otp-aux-actions">
-              <button type="button" class="otp-link-btn" id="resendOtpBtn" disabled>
-                <i data-lucide="rotate-cw"></i>
-                <span id="resendTimerText">Resend code in 60s</span>
-              </button>
+            <div class="otp-aux-actions" style="justify-content: center;">
               <button type="button" class="otp-link-btn" id="backToEmailBtn">
                 <i data-lucide="arrow-left"></i>
-                <span>Change Email</span>
+                <span>Back to Email</span>
               </button>
             </div>
           </form>
@@ -1905,9 +1901,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Supabase Client Layer -->
-  <script src="supabase-client.js"></script>
+  <script src="supabase-client.js?v=20261101_pres"></script>
   <!-- Application Logic -->
-  <script src="app.js"></script>
+  <script src="app.js?v=20261101_pres"></script>
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {

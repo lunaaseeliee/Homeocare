@@ -18,6 +18,7 @@ const path = require('path');
 
 const CAPTCHA_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const AUTHORIZED_ADMIN_EMAIL = 'homeocareadmin@gmail.com';
+const PRESENTATION_ACCESS_CODE = process.env.PRESENTATION_ACCESS_CODE || '749261';
 const CAPTCHA_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 const COMMONLY_USED_PASSWORDS = new Set([
@@ -448,67 +449,66 @@ module.exports = async function handler(req, res) {
 
   // 1c. Single-Email OTP Authentication Endpoints (Authorized: homeocareadmin@gmail.com)
   if (pathname === '/api/auth/send-otp' && req.method === 'POST') {
-    const limit = checkRateLimit('send-otp', clientIp, 10, 15 * 60 * 1000);
+    const limit = checkRateLimit('send-otp', clientIp, 20, 15 * 60 * 1000);
     if (!limit.allowed) {
-      return sendJson(
-        res,
-        429,
-        {
-          ok: false,
-          error: `Too many verification code requests. Please wait ${Math.ceil(limit.retryAfterSec / 60)} minutes before retrying.`
-        },
-        { 'Retry-After': String(limit.retryAfterSec) }
-      );
+      return sendJson(res, 429, { ok: false, error: 'Too many requests. Please wait before retrying.' });
     }
-
     try {
       const body = await parseBody(req);
       const email = String(body.email || '').trim().toLowerCase();
+      if (email !== AUTHORIZED_ADMIN_EMAIL) {
+        return sendJson(res, 403, { ok: false, error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.` });
+      }
+      // Presentation Mode: do not call external email service to avoid email rate limits
+      return sendJson(res, 200, {
+        ok: true,
+        presentationMode: true,
+        email: AUTHORIZED_ADMIN_EMAIL,
+        message: 'Presentation verification ready. Please enter your 6-digit access code.'
+      });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err.message });
+    }
+  }
+
+  if (pathname === '/api/auth/verify-presentation-code' && req.method === 'POST') {
+    const limit = checkRateLimit('pres-code', clientIp, 15, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      return sendJson(res, 429, { ok: false, error: 'Too many verification attempts. Please wait a moment.' });
+    }
+    try {
+      const body = await parseBody(req);
+      const email = String(body.email || '').trim().toLowerCase();
+      const code = String(body.code || body.token || '').trim();
 
       if (email !== AUTHORIZED_ADMIN_EMAIL) {
-        return sendJson(res, 403, {
-          ok: false,
-          error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted to request access.`
-        });
+        return sendJson(res, 403, { ok: false, error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.` });
       }
 
-      const config = getSafePublicConfig();
-      if (!config.configured) {
-        return sendJson(res, 500, { ok: false, error: 'Supabase configuration is missing on server.' });
+      if (code !== PRESENTATION_ACCESS_CODE) {
+        return sendJson(res, 400, { ok: false, error: 'Invalid presentation access code. Please verify the 6-digit code and try again.' });
       }
 
-      const otpRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/otp`, {
-        method: 'POST',
-        headers: {
-          apikey: config.publishableKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: AUTHORIZED_ADMIN_EMAIL,
-          create_user: false
-        })
-      });
-
-      if (otpRes.status === 429) {
-        const data = await otpRes.json().catch(() => ({}));
-        return sendJson(res, 429, {
-          ok: false,
-          error: data.msg || 'For security purposes, you can only request a code once per minute. Please check your inbox or wait before retrying.'
-        });
-      }
-
-      if (!otpRes.ok) {
-        const errData = await otpRes.json().catch(() => ({}));
-        return sendJson(res, otpRes.status, {
-          ok: false,
-          error: errData.msg || errData.message || 'Failed to dispatch verification code.'
-        });
-      }
+      const sessionUser = {
+        id: 'dr-suraj-panigrahi',
+        email: AUTHORIZED_ADMIN_EMAIL,
+        username: 'dr.suraj',
+        dbRole: 'doctor',
+        isDoctor: true,
+        isAdmin: true,
+        role: 'Dr. Suraj D. Panigrahi',
+        name: 'Dr. Suraj D. Panigrahi',
+        qualification: 'B.H.M.S. (Mum.)',
+        licenseNumber: 'REG-BHMS-MUM-2026',
+        loginTime: new Date().toISOString()
+      };
 
       return sendJson(res, 200, {
         ok: true,
-        email: AUTHORIZED_ADMIN_EMAIL,
-        message: `A 6-digit verification code has been dispatched to ${AUTHORIZED_ADMIN_EMAIL}.`
+        presentationMode: true,
+        session: { user: sessionUser, access_token: 'presentation-session-token' },
+        user: sessionUser,
+        message: 'Presentation access code verified. Welcome to HomeoCare!'
       });
     } catch (err) {
       return sendJson(res, 500, { ok: false, error: err.message });
@@ -538,6 +538,29 @@ module.exports = async function handler(req, res) {
         return sendJson(res, 403, {
           ok: false,
           error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.`
+        });
+      }
+
+      if (token === PRESENTATION_ACCESS_CODE) {
+        const sessionUser = {
+          id: 'dr-suraj-panigrahi',
+          email: AUTHORIZED_ADMIN_EMAIL,
+          username: 'dr.suraj',
+          dbRole: 'doctor',
+          isDoctor: true,
+          isAdmin: true,
+          role: 'Dr. Suraj D. Panigrahi',
+          name: 'Dr. Suraj D. Panigrahi',
+          qualification: 'B.H.M.S. (Mum.)',
+          licenseNumber: 'REG-BHMS-MUM-2026',
+          loginTime: new Date().toISOString()
+        };
+        return sendJson(res, 200, {
+          ok: true,
+          presentationMode: true,
+          session: { user: sessionUser, access_token: 'presentation-session-token' },
+          user: sessionUser,
+          message: 'Presentation access code verified. Welcome to HomeoCare!'
         });
       }
 

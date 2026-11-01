@@ -2931,16 +2931,12 @@ function setupAuthForms() {
   const otpEmailInput = document.getElementById("otpEmailInput");
   const sendOtpSubmitBtn = document.getElementById("sendOtpSubmitBtn");
   const verifyOtpSubmitBtn = document.getElementById("verifyOtpSubmitBtn");
-  const resendOtpBtn = document.getElementById("resendOtpBtn");
-  const resendTimerText = document.getElementById("resendTimerText");
   const backToEmailBtn = document.getElementById("backToEmailBtn");
   const otpTargetEmailDisplay = document.getElementById("otpTargetEmailDisplay");
   const alertBox = document.getElementById("authAlertBox");
   const digitBoxes = Array.from(document.querySelectorAll(".otp-digit-box"));
 
   const AUTHORIZED_EMAIL = "homeocareadmin@gmail.com";
-  let resendInterval = null;
-  let secondsRemaining = 0;
 
   function showOtpAlert(msg, type = "error") {
     if (!alertBox) return;
@@ -2953,25 +2949,6 @@ function setupAuthForms() {
     if (!alertBox) return;
     alertBox.style.display = "none";
     alertBox.textContent = "";
-  }
-
-  function startResendCooldown(durationSec = 60) {
-    if (resendInterval) clearInterval(resendInterval);
-    secondsRemaining = durationSec;
-    if (resendOtpBtn) resendOtpBtn.disabled = true;
-    if (resendTimerText) resendTimerText.textContent = `Resend code in ${secondsRemaining}s`;
-
-    resendInterval = setInterval(() => {
-      secondsRemaining--;
-      if (secondsRemaining <= 0) {
-        clearInterval(resendInterval);
-        resendInterval = null;
-        if (resendOtpBtn) resendOtpBtn.disabled = false;
-        if (resendTimerText) resendTimerText.textContent = "Resend code";
-      } else {
-        if (resendTimerText) resendTimerText.textContent = `Resend code in ${secondsRemaining}s`;
-      }
-    }, 1000);
   }
 
   // Setup 6-digit box auto-advance, backspace, and paste handlers
@@ -2990,8 +2967,8 @@ function setupAuthForms() {
 
       // Check if all 6 boxes are filled
       const fullCode = digitBoxes.map(b => b.value.trim()).join("");
-      if (fullCode.length === 6 && otpVerifyForm) {
-        otpVerifyForm.requestSubmit();
+      if (fullCode.length === 6) {
+        handleVerifyPresentationCode(e);
       }
     });
 
@@ -3030,136 +3007,150 @@ function setupAuthForms() {
       const nextFocus = Math.min(pasteData.length, digitBoxes.length - 1);
       digitBoxes[nextFocus].focus();
 
-      if (pasteData.length === 6 && otpVerifyForm) {
-        otpVerifyForm.requestSubmit();
+      if (pasteData.length === 6) {
+        handleVerifyPresentationCode(e);
       }
     });
   });
 
-  // Step 1: Send OTP
-  if (otpRequestForm) {
-    otpRequestForm.onsubmit = async (e) => {
+  // Step 1: Proceed to Clinical Verification (Defensive zero-reload handling)
+  async function handleProceedToVerification(e) {
+    if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
-      hideOtpAlert();
+      e.stopPropagation();
+    }
+    hideOtpAlert();
 
-      const email = otpEmailInput ? otpEmailInput.value.trim().toLowerCase() : "";
-      if (email !== AUTHORIZED_EMAIL) {
-        showOtpAlert(
-          `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_EMAIL}) is permitted to log in.`,
-          "error"
-        );
-        return;
+    const email = otpEmailInput ? otpEmailInput.value.trim().toLowerCase() : "";
+    if (email !== AUTHORIZED_EMAIL) {
+      showOtpAlert(
+        `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_EMAIL}) is permitted to log in.`,
+        "error"
+      );
+      return false;
+    }
+
+    if (sendOtpSubmitBtn) {
+      sendOtpSubmitBtn.disabled = true;
+      sendOtpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Verifying access...</span>';
+      refreshIcons();
+    }
+
+    try {
+      // Transition smoothly inside the SAME card to Step 2
+      if (otpRequestForm) otpRequestForm.style.display = "none";
+      if (otpVerifyForm) otpVerifyForm.style.display = "block";
+      if (otpTargetEmailDisplay) otpTargetEmailDisplay.textContent = email;
+
+      digitBoxes.forEach(b => {
+        b.value = "";
+        b.classList.remove("has-val");
+      });
+      if (digitBoxes[0]) {
+        setTimeout(() => digitBoxes[0].focus(), 60);
       }
-
+      refreshIcons();
+    } catch (err) {
+      showOtpAlert(err?.message || "Could not switch to verification screen.", "error");
+    } finally {
       if (sendOtpSubmitBtn) {
-        sendOtpSubmitBtn.disabled = true;
-        sendOtpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Sending code...</span>';
-        if (window.lucide) lucide.createIcons();
+        sendOtpSubmitBtn.disabled = false;
+        sendOtpSubmitBtn.innerHTML = '<i data-lucide="arrow-right"></i><span>Proceed to Clinical Verification</span>';
+        refreshIcons();
       }
-
-      try {
-        await window.HomeoCareAPI.auth.sendOtp(email);
-
-        // Switch to Step 2
-        otpRequestForm.style.display = "none";
-        if (otpVerifyForm) otpVerifyForm.style.display = "block";
-        if (otpTargetEmailDisplay) otpTargetEmailDisplay.textContent = email;
-
-        digitBoxes.forEach(b => {
-          b.value = "";
-          b.classList.remove("has-val");
-        });
-        if (digitBoxes[0]) digitBoxes[0].focus();
-
-        startResendCooldown(60);
-        showToast(`Verification code sent to ${email}.`, "info");
-      } catch (err) {
-        showOtpAlert(err?.message || "Failed to dispatch verification code. Please check Supabase Auth settings.", "error");
-        showToast("Could not send code.", "error");
-      } finally {
-        if (sendOtpSubmitBtn) {
-          sendOtpSubmitBtn.disabled = false;
-          sendOtpSubmitBtn.innerHTML = '<i data-lucide="send"></i><span>Send Verification Code</span>';
-          if (window.lucide) lucide.createIcons();
-        }
-      }
-    };
+    }
+    return false;
   }
 
-  // Step 2: Verify OTP & Establish Session
-  if (otpVerifyForm) {
-    otpVerifyForm.onsubmit = async (e) => {
+  // Step 2: Verify 6-Digit Presentation Access Code & Establish Legitimate Session
+  async function handleVerifyPresentationCode(e) {
+    if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
-      hideOtpAlert();
+      e.stopPropagation();
+    }
+    hideOtpAlert();
 
-      const code = digitBoxes.map(b => b.value.trim()).join("");
-      if (code.length !== 6) {
-        showOtpAlert("Please enter the complete 6-digit verification code.", "error");
-        return;
+    const code = digitBoxes.map(b => b.value.trim()).join("");
+    if (code.length !== 6) {
+      showOtpAlert("Please enter the complete 6-digit presentation access code.", "error");
+      return false;
+    }
+
+    if (verifyOtpSubmitBtn) {
+      verifyOtpSubmitBtn.disabled = true;
+      verifyOtpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Verifying code...</span>';
+      refreshIcons();
+    }
+
+    try {
+      // Authenticate via server-side presentation verification
+      const authenticatedUser = await window.HomeoCareAPI.auth.verifyPresentationCode(AUTHORIZED_EMAIL, code);
+
+      // Populate rich presentation cases if records are currently empty
+      if (CLINIC_STATE.patients.length === 0 && typeof getPresentationDemoData === "function") {
+        const demo = getPresentationDemoData();
+        CLINIC_STATE.patients = demo.patients || [];
+        CLINIC_STATE.completedCases = demo.completedCases || CLINIC_STATE.patients.length;
+        CLINIC_STATE.pendingApprovals = demo.pendingApprovals || 0;
+        CLINIC_STATE.selectedPatientId = demo.selectedPatientId || (CLINIC_STATE.patients[0]?.id || null);
       }
 
+      // Establish authenticated session
+      setAuthenticatedUser(authenticatedUser);
+      applyAuthenticatedSession(authenticatedUser);
+      updateDashboardMetrics();
+      renderPatientWorkspace();
+      navigateTo("dashboard");
+
+      showToast(`Welcome back, ${authenticatedUser.name}!`, "success");
+    } catch (err) {
+      showOtpAlert(
+        err?.message || "Invalid presentation access code. Please verify the 6-digit code and try again.",
+        "error"
+      );
+      digitBoxes.forEach(b => {
+        b.value = "";
+        b.classList.remove("has-val");
+      });
+      if (digitBoxes[0]) digitBoxes[0].focus();
+      showToast("Verification failed.", "error");
+    } finally {
       if (verifyOtpSubmitBtn) {
-        verifyOtpSubmitBtn.disabled = true;
-        verifyOtpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Verifying...</span>';
-        if (window.lucide) lucide.createIcons();
+        verifyOtpSubmitBtn.disabled = false;
+        verifyOtpSubmitBtn.innerHTML = '<i data-lucide="check-circle"></i><span>Verify & Enter HomeoCare</span>';
+        refreshIcons();
       }
-
-      try {
-        const authenticatedUser = await window.HomeoCareAPI.auth.verifyOtp(AUTHORIZED_EMAIL, code);
-
-        if (resendInterval) clearInterval(resendInterval);
-
-        setAuthenticatedUser(authenticatedUser);
-        applyAuthenticatedSession(authenticatedUser);
-        updateDashboardMetrics();
-        renderPatientWorkspace();
-        navigateTo("dashboard");
-
-        showToast(`Welcome back, ${authenticatedUser.name}!`, "success");
-      } catch (err) {
-        showOtpAlert(
-          err?.message || "Verification code is invalid or has expired. Please check your inbox or request a new code.",
-          "error"
-        );
-        digitBoxes.forEach(b => {
-          b.value = "";
-          b.classList.remove("has-val");
-        });
-        if (digitBoxes[0]) digitBoxes[0].focus();
-        showToast("Verification failed.", "error");
-      } finally {
-        if (verifyOtpSubmitBtn) {
-          verifyOtpSubmitBtn.disabled = false;
-          verifyOtpSubmitBtn.innerHTML = '<i data-lucide="check-circle"></i><span>Verify & Login</span>';
-          if (window.lucide) lucide.createIcons();
-        }
-      }
-    };
+    }
+    return false;
   }
 
-  // Resend OTP
-  if (resendOtpBtn) {
-    resendOtpBtn.onclick = async () => {
-      hideOtpAlert();
-      resendOtpBtn.disabled = true;
-      try {
-        await window.HomeoCareAPI.auth.sendOtp(AUTHORIZED_EMAIL);
-        startResendCooldown(60);
-        showToast("New verification code sent to your inbox.", "info");
-      } catch (err) {
-        showOtpAlert(err?.message || "Could not resend code. Please try again.", "error");
-      }
-    };
+  // Event Listeners (both onsubmit and onclick wired for 100% reliability)
+  if (otpRequestForm) {
+    otpRequestForm.onsubmit = handleProceedToVerification;
+  }
+  if (sendOtpSubmitBtn) {
+    sendOtpSubmitBtn.onclick = handleProceedToVerification;
   }
 
-  // Change Email / Back
+  if (otpVerifyForm) {
+    otpVerifyForm.onsubmit = handleVerifyPresentationCode;
+  }
+  if (verifyOtpSubmitBtn) {
+    verifyOtpSubmitBtn.onclick = handleVerifyPresentationCode;
+  }
+
+  // Back to Email (returns to Step 1 smoothly without page refresh)
   if (backToEmailBtn) {
-    backToEmailBtn.onclick = () => {
-      if (resendInterval) clearInterval(resendInterval);
+    backToEmailBtn.onclick = (e) => {
+      if (e && typeof e.preventDefault === "function") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       hideOtpAlert();
       if (otpVerifyForm) otpVerifyForm.style.display = "none";
       if (otpRequestForm) otpRequestForm.style.display = "block";
       if (otpEmailInput) otpEmailInput.focus();
+      refreshIcons();
     };
   }
 }

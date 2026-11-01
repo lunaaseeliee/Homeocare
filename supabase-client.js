@@ -291,6 +291,29 @@ const HomeoCareAPI = {
     /**
      * Verify 6-digit OTP code and establish authenticated session.
      */
+    async verifyPresentationCode(email, code) {
+      const cleanEmail = String(email || "").trim().toLowerCase();
+      const cleanCode = String(code || "").trim();
+
+      if (cleanEmail !== "homeocareadmin@gmail.com") {
+        throw new Error("Access restricted: Only the authorized HomeoCare administrator (homeocareadmin@gmail.com) is permitted.");
+      }
+      if (!cleanCode || cleanCode.length !== 6) {
+        throw new Error("Please enter the complete 6-digit presentation access code.");
+      }
+
+      const res = await fetch("/api/auth/verify-presentation-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, code: cleanCode })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Invalid presentation access code. Please verify the 6-digit code and try again.");
+      }
+      return data.user;
+    },
+
     async verifyOtp(email, token) {
       const cleanEmail = String(email || "").trim().toLowerCase();
       const cleanToken = String(token || "").trim();

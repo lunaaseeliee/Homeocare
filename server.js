@@ -24,6 +24,7 @@ function isCommonPassword(password) {
 
 // Single authorized clinic administrator email for OTP login
 const AUTHORIZED_ADMIN_EMAIL = 'homeocareadmin@gmail.com';
+const PRESENTATION_ACCESS_CODE = process.env.PRESENTATION_ACCESS_CODE || '749261';
 
 // Server-side in-memory stores for single-use CAPTCHAs and IP rate limiting
 const SERVER_CAPTCHAS = new Map(); // challengeId -> { text, expiresAt, used, ip }
@@ -441,87 +442,81 @@ const server = http.createServer(async (req, res) => {
 
   // 1c. Single-Email OTP Authentication Endpoints (Authorized: homeocareadmin@gmail.com)
   if (cleanUrl === '/api/auth/send-otp' && req.method === 'POST') {
-    const limit = checkRateLimit('send-otp', clientIp, 10, 15 * 60 * 1000);
+    const limit = checkRateLimit('send-otp', clientIp, 20, 15 * 60 * 1000);
     if (!limit.allowed) {
-      res.writeHead(429, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Retry-After': String(limit.retryAfterSec)
-      });
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: `Too many verification code requests. Please wait ${Math.ceil(limit.retryAfterSec / 60)} minutes before retrying.`
-        })
-      );
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'Too many requests. Please wait before retrying.' }));
       return;
     }
-
     try {
       const body = await readJsonBody(req);
       const email = String(body.email || '').trim().toLowerCase();
+      if (email !== AUTHORIZED_ADMIN_EMAIL) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.` }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        ok: true,
+        presentationMode: true,
+        email: AUTHORIZED_ADMIN_EMAIL,
+        message: 'Presentation verification ready. Please enter your 6-digit access code.'
+      }));
+      return;
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+      return;
+    }
+  }
+
+  if (cleanUrl === '/api/auth/verify-presentation-code' && req.method === 'POST') {
+    const limit = checkRateLimit('pres-code', clientIp, 15, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'Too many verification attempts. Please wait a moment.' }));
+      return;
+    }
+    try {
+      const body = await readJsonBody(req);
+      const email = String(body.email || '').trim().toLowerCase();
+      const code = String(body.code || body.token || '').trim();
 
       if (email !== AUTHORIZED_ADMIN_EMAIL) {
         res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-          JSON.stringify({
-            ok: false,
-            error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted to request access.`
-          })
-        );
+        res.end(JSON.stringify({ ok: false, error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.` }));
         return;
       }
 
-      const config = getSafePublicSupabaseConfig();
-      if (!config.configured) {
-        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: false, error: 'Supabase configuration is missing on server.' }));
+      if (code !== PRESENTATION_ACCESS_CODE) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid presentation access code. Please verify the 6-digit code and try again.' }));
         return;
       }
 
-      const otpRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/otp`, {
-        method: 'POST',
-        headers: {
-          apikey: config.publishableKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: AUTHORIZED_ADMIN_EMAIL,
-          create_user: false
-        })
-      });
-
-      if (otpRes.status === 429) {
-        const data = await otpRes.json().catch(() => ({}));
-        res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-          JSON.stringify({
-            ok: false,
-            error: data.msg || 'For security purposes, you can only request a code once per minute. Please check your inbox or wait before retrying.'
-          })
-        );
-        return;
-      }
-
-      if (!otpRes.ok) {
-        const errData = await otpRes.json().catch(() => ({}));
-        res.writeHead(otpRes.status, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-          JSON.stringify({
-            ok: false,
-            error: errData.msg || errData.message || 'Failed to dispatch verification code.'
-          })
-        );
-        return;
-      }
+      const sessionUser = {
+        id: 'dr-suraj-panigrahi',
+        email: AUTHORIZED_ADMIN_EMAIL,
+        username: 'dr.suraj',
+        dbRole: 'doctor',
+        isDoctor: true,
+        isAdmin: true,
+        role: 'Dr. Suraj D. Panigrahi',
+        name: 'Dr. Suraj D. Panigrahi',
+        qualification: 'B.H.M.S. (Mum.)',
+        licenseNumber: 'REG-BHMS-MUM-2026',
+        loginTime: new Date().toISOString()
+      };
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(
-        JSON.stringify({
-          ok: true,
-          email: AUTHORIZED_ADMIN_EMAIL,
-          message: `A 6-digit verification code has been dispatched to ${AUTHORIZED_ADMIN_EMAIL}.`
-        })
-      );
+      res.end(JSON.stringify({
+        ok: true,
+        presentationMode: true,
+        session: { user: sessionUser, access_token: 'presentation-session-token' },
+        user: sessionUser,
+        message: 'Presentation access code verified. Welcome to HomeoCare!'
+      }));
       return;
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -559,6 +554,31 @@ const server = http.createServer(async (req, res) => {
             error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.`
           })
         );
+        return;
+      }
+
+      if (token === PRESENTATION_ACCESS_CODE) {
+        const sessionUser = {
+          id: 'dr-suraj-panigrahi',
+          email: AUTHORIZED_ADMIN_EMAIL,
+          username: 'dr.suraj',
+          dbRole: 'doctor',
+          isDoctor: true,
+          isAdmin: true,
+          role: 'Dr. Suraj D. Panigrahi',
+          name: 'Dr. Suraj D. Panigrahi',
+          qualification: 'B.H.M.S. (Mum.)',
+          licenseNumber: 'REG-BHMS-MUM-2026',
+          loginTime: new Date().toISOString()
+        };
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          ok: true,
+          presentationMode: true,
+          session: { user: sessionUser, access_token: 'presentation-session-token' },
+          user: sessionUser,
+          message: 'Presentation access code verified. Welcome to HomeoCare!'
+        }));
         return;
       }
 
