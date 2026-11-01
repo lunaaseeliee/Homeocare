@@ -484,9 +484,9 @@ function updateDashboardMetrics() {
 
   // Top action button text
   if (totalPatientsCount === 0) {
-    quickIntakeLabel.textContent = "Register First Patient";
+    if (quickIntakeLabel) quickIntakeLabel.textContent = "Register First Patient";
   } else {
-    quickIntakeLabel.textContent = "New Patient Intake";
+    if (quickIntakeLabel) quickIntakeLabel.textContent = "New Patient Intake";
   }
 }
 
@@ -549,8 +549,8 @@ function renderPatientWorkspace() {
     .toUpperCase();
 
   patientWorkspaceContent.innerHTML = `
-    <!-- Patient Profile Header -->
-    <div class="patient-profile-banner">
+    <!-- Patient Profile Header (Clean Information Card) -->
+    <div class="patient-profile-banner" style="margin-bottom: 0;">
       <div class="patient-identity-cluster">
         <div class="patient-portrait">${initials}</div>
         <div class="patient-main-meta">
@@ -566,72 +566,8 @@ function renderPatientWorkspace() {
           </div>
         </div>
       </div>
-
-      <div class="patient-quick-actions">
-        <button class="interactive-btn peach-solid-btn" id="recordSymptomBtn">
-          <i data-lucide="plus-circle"></i>
-          <span>Log Rubric</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Totality & Modalities Matrix -->
-    <div class="totality-matrix">
-      <div class="matrix-card">
-        <div class="matrix-head">
-          <i data-lucide="activity"></i>
-          <span>Chief Clinical Complaint</span>
-        </div>
-        <p class="matrix-body">${activePatient.chiefComplaint}</p>
-        <div class="matrix-tags">
-          <span class="spec-tag">Registered: ${activePatient.registeredDate}</span>
-        </div>
-      </div>
-
-      <div class="matrix-card">
-        <div class="matrix-head">
-          <i data-lucide="compass"></i>
-          <span>Modalities & Generals</span>
-        </div>
-        <p class="matrix-body">${activePatient.rubrics.length > 0 ? activePatient.rubrics.map(r => r.modality).filter(Boolean).join("; ") : "No specific aggravations or ameliorations recorded yet."}</p>
-        <div class="matrix-tags">
-          <span class="spec-tag">${activePatient.rubrics.length} Rubrics Recorded</span>
-        </div>
-      </div>
-
-      <div class="matrix-card">
-        <div class="matrix-head">
-          <i data-lucide="flask-conical"></i>
-          <span>Active Similimum Prescription</span>
-        </div>
-        <p class="matrix-body">${activePatient.prescription || "Initial case intake under evaluation by Dr. Suraj D. Panigrahi."}</p>
-        <div class="matrix-tags">
-          <span class="spec-tag mod-better">Dr. Suraj D. Panigrahi</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Repertorial Totality Grid -->
-    <div class="repertory-workbench">
-      <div class="workbench-header">
-        <div>
-          <h3 class="panel-section-title">Repertorial Totality Grid (Boenninghausen / Kent)</h3>
-          <p class="panel-section-subtitle">Real-time symptom rubrics recorded for this patient</p>
-        </div>
-        <button class="interactive-btn secondary-btn" id="logRubricSecondaryBtn">
-          <i data-lucide="plus"></i>
-          <span>Add Rubric</span>
-        </button>
-      </div>
-
-      <div id="rubricsTableWrap">
-        ${renderRubricsTableHTML(activePatient.rubrics)}
-      </div>
     </div>
   `;
-
-  document.getElementById("recordSymptomBtn").addEventListener("click", openSymptomModal);
-  document.getElementById("logRubricSecondaryBtn").addEventListener("click", openSymptomModal);
 
   renderCureVector(activePatient);
   renderTimeline(activePatient);
@@ -1888,7 +1824,7 @@ function closeAppointmentModal() {
 }
 
 // Action button bindings
-quickIntakeBtn.addEventListener("click", openPatientModal);
+if (quickIntakeBtn) quickIntakeBtn.addEventListener("click", openPatientModal);
 registerPatientHeroBtn.addEventListener("click", openPatientModal);
 registryNewPatientBtn.addEventListener("click", openPatientModal);
 casesRegisterBtn.addEventListener("click", openPatientModal);

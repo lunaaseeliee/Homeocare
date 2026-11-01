@@ -1111,7 +1111,15 @@ p {
 
 /* Patient Dossier Card */
 .patient-dossier-card {
-  padding: 28px;
+  padding: 24px;
+}
+
+.patient-dossier-card .card-header-flex {
+  margin-bottom: 16px;
+}
+
+.patient-dossier-card .patient-profile-banner {
+  margin-bottom: 0 !important;
 }
 
 .card-header-flex {
