@@ -8,7 +8,7 @@
  * 3. Handles network loss transparently without fabricating stored updates.
  */
 
-const CACHE_NAME = 'homeocare-v12-dashboard-cleanup';
+const CACHE_NAME = 'homeocare-v13-button-hierarchy';
 
 const STATIC_SHELL_ASSETS = [
   '/',

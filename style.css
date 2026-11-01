@@ -268,31 +268,42 @@ p {
   transition: transform 0.28s var(--trans-spring), box-shadow 0.28s ease, background 0.25s ease, border-color 0.25s ease, color 0.2s ease !important;
 }
 
-/* Hover enlarges (1.12x), lifts upward by 10-12px, soft peach glow */
+/* Subtle 2px lift on hover - Smooth 180-220ms transition, no jumping */
 .interactive-btn:not(:disabled):hover,
 .glow-cta-btn:not(:disabled):hover,
 .theme-toggle-btn:not(:disabled):hover,
 .action-circle-btn:not(:disabled):hover {
-  transform: translateY(-11px) scale(1.12) !important;
-  box-shadow: 0 16px 32px -4px var(--peach-glow), 0 6px 14px -2px var(--peach-glow-heavy) !important;
-  z-index: 20;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  z-index: 5;
 }
 
-/* Click compresses briefly and springs back */
+/* Click compresses gently and springs back */
 .interactive-btn:not(:disabled):active,
 .glow-cta-btn:not(:disabled):active,
 .theme-toggle-btn:not(:disabled):active,
 .action-circle-btn:not(:disabled):active {
-  transform: translateY(-2px) scale(0.96) !important;
-  box-shadow: 0 6px 14px -2px var(--peach-glow) !important;
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
   transition: transform 0.08s ease-out, box-shadow 0.08s ease-out !important;
+}
+
+/* Accessible focus outline */
+.interactive-btn:focus-visible,
+.primary-btn-solid:focus-visible,
+.secondary-btn-outline:focus-visible,
+.tertiary-btn-minimal:focus-visible {
+  outline: 2px solid var(--primary-green) !important;
+  outline-offset: 2px !important;
 }
 
 .interactive-btn:disabled,
 .symptom-chip:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  pointer-events: none;
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Specific button variants */
@@ -1946,6 +1957,15 @@ p {
   .welcome-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 16px;
+  }
+
+  .welcome-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
   }
 
   .patient-profile-banner {
@@ -3627,32 +3647,57 @@ html, body {
   font-weight: 500;
 }
 
-/* Buttons: Solid Colors, Strictly NO Gradients */
+/* ==========================================================================
+   CLINICAL DASHBOARD BUTTON ACTION HIERARCHY
+   - PRIMARY: Add Patient — Solid Forest Green (height 42px, radius 10px, 16px icon)
+   - SECONDARY: Book Visit — Light Surface + Thin Outline (height 42px, radius 10px, 16px icon)
+   - TERTIARY: Save Note — Compact Minimal Button (height 32px, radius 8px)
+   ========================================================================== */
+
+/* Universal button icon standardization */
+.primary-btn-solid svg,
+.primary-btn svg,
+.secondary-btn-outline svg,
+.secondary-btn svg,
+.interactive-btn svg,
+#registerPatientHeroBtn svg,
+#newAppointmentQuickBtn svg,
+#bookVisitFooterBtn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2px;
+  flex-shrink: 0;
+}
+
+/* PRIMARY ACTION — Forest Green (Single prominent call-to-action per section) */
 .primary-btn-solid,
 .primary-btn,
 .glow-cta-btn,
 .interactive-btn.primary-btn,
 #registerPatientHeroBtn,
-#quickIntakeBtn,
+#emptyStateRegisterBtn,
 #loginSubmitBtn,
 #registerSubmitBtn {
-  background: var(--primary-green) !important;
-  color: #FFFFFF !important;
-  border: 1px solid var(--primary-green) !important;
-  border-radius: 8px !important;
-  padding: 9px 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  box-sizing: border-box !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+  font-family: 'Inter', sans-serif !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-  font-family: 'Inter', sans-serif !important;
-  box-shadow: none !important;
+  line-height: 1 !important;
+  color: #FFFFFF !important;
+  background: var(--primary-green) !important;
+  border: 1px solid var(--primary-green) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  gap: 8px !important;
+  cursor: pointer !important;
   text-shadow: none !important;
-  transform: none !important;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
 }
 
 .primary-btn-solid:hover,
@@ -3660,51 +3705,227 @@ html, body {
 .glow-cta-btn:hover,
 .interactive-btn.primary-btn:hover,
 #registerPatientHeroBtn:hover,
-#quickIntakeBtn:hover,
+#emptyStateRegisterBtn:hover,
 #loginSubmitBtn:hover,
 #registerSubmitBtn:hover {
   background: var(--dark-green) !important;
   border-color: var(--dark-green) !important;
   color: #FFFFFF !important;
-  box-shadow: none !important;
-  transform: none !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(23, 107, 70, 0.22) !important;
 }
 
+.primary-btn-solid:active,
+.primary-btn:active,
+.glow-cta-btn:active,
+.interactive-btn.primary-btn:active,
+#registerPatientHeroBtn:active,
+#emptyStateRegisterBtn:active {
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 0 1px 3px rgba(23, 107, 70, 0.16) !important;
+}
+
+.primary-btn-solid:focus-visible,
+.primary-btn:focus-visible,
+#registerPatientHeroBtn:focus-visible {
+  outline: 2px solid var(--primary-green) !important;
+  outline-offset: 2px !important;
+}
+
+/* SECONDARY ACTION — Subtle Outline (Light background + thin border) */
 .secondary-btn-outline,
 .secondary-btn,
 .interactive-btn.secondary-btn,
-#newAppointmentQuickBtn {
-  background: #FFFFFF !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 8px !important;
-  padding: 9px 16px !important;
+#newAppointmentQuickBtn,
+#bookVisitFooterBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  box-sizing: border-box !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+  font-family: 'Inter', sans-serif !important;
   font-size: 14px !important;
   font-weight: 500 !important;
-  font-family: 'Inter', sans-serif !important;
+  line-height: 1 !important;
+  color: var(--text-primary) !important;
+  background: #FFF9F5 !important;
+  border: 1px solid var(--border-color) !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
-  transform: none !important;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
 }
 
 .secondary-btn-outline:hover,
 .secondary-btn:hover,
 .interactive-btn.secondary-btn:hover,
-#newAppointmentQuickBtn:hover {
+#newAppointmentQuickBtn:hover,
+#bookVisitFooterBtn:hover {
   background: #FFF5EF !important;
-  border-color: #CBD5E1 !important;
+  border-color: var(--primary-green) !important;
   color: var(--primary-green) !important;
-  transform: none !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Dashboard Hero & Date Badge */
+.secondary-btn-outline:active,
+.secondary-btn:active,
+.interactive-btn.secondary-btn:active,
+#newAppointmentQuickBtn:active,
+#bookVisitFooterBtn:active {
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.secondary-btn-outline:focus-visible,
+.secondary-btn:focus-visible,
+#newAppointmentQuickBtn:focus-visible {
+  outline: 2px solid var(--primary-green) !important;
+  outline-offset: 2px !important;
+}
+
+/* TERTIARY ACTION — Minimal (Compact low-emphasis outline / text button) */
+.tertiary-btn-minimal,
+.tertiary-btn,
+#saveNoteBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  box-sizing: border-box !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: var(--text-secondary) !important;
+  background: #FFF9F5 !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: none !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+}
+
+.tertiary-btn-minimal svg,
+.tertiary-btn svg,
+#saveNoteBtn svg {
+  width: 14px !important;
+  height: 14px !important;
+  stroke-width: 2px;
+}
+
+.tertiary-btn-minimal:hover,
+.tertiary-btn:hover,
+#saveNoteBtn:hover {
+  background: #FFF5EF !important;
+  border-color: var(--primary-green) !important;
+  color: var(--primary-green) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03) !important;
+}
+
+.tertiary-btn-minimal:active,
+.tertiary-btn:active,
+#saveNoteBtn:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+.tertiary-btn-minimal:focus-visible,
+.tertiary-btn:focus-visible,
+#saveNoteBtn:focus-visible {
+  outline: 2px solid var(--primary-green) !important;
+  outline-offset: 2px !important;
+}
+
+/* Disabled state across all button types */
+.primary-btn-solid:disabled,
+.secondary-btn-outline:disabled,
+.tertiary-btn-minimal:disabled,
+#registerPatientHeroBtn:disabled,
+#newAppointmentQuickBtn:disabled,
+#saveNoteBtn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Dashboard Hero & Action Group Alignment */
 .welcome-header {
-  margin-bottom: 8px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  margin-bottom: 20px !important;
+}
+
+.welcome-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.welcome-actions button {
+  width: auto !important;
+}
+
+.notes-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 16px !important;
+}
+
+.notes-tools {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+/* Dark theme adaptations for secondary & tertiary buttons */
+[data-theme="dark"] .secondary-btn-outline,
+[data-theme="dark"] .secondary-btn,
+[data-theme="dark"] .interactive-btn.secondary-btn,
+[data-theme="dark"] #newAppointmentQuickBtn,
+[data-theme="dark"] #bookVisitFooterBtn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .secondary-btn-outline:hover,
+[data-theme="dark"] .secondary-btn:hover,
+[data-theme="dark"] .interactive-btn.secondary-btn:hover,
+[data-theme="dark"] #newAppointmentQuickBtn:hover,
+[data-theme="dark"] #bookVisitFooterBtn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--primary-green) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .tertiary-btn-minimal,
+[data-theme="dark"] .tertiary-btn,
+[data-theme="dark"] #saveNoteBtn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .tertiary-btn-minimal:hover,
+[data-theme="dark"] .tertiary-btn:hover,
+[data-theme="dark"] #saveNoteBtn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--primary-green) !important;
+  color: #FFFFFF !important;
 }
 
 .dashboard-date-badge {
