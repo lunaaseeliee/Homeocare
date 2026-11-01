@@ -1249,7 +1249,7 @@ function openInvoiceCreator(invoiceToEdit = null) {
       patientAge: defaultPatient.age,
       patientGender: defaultPatient.gender,
       patientPhone: defaultPatient.phone,
-      patientAddress: "Dadar (W), Mumbai",
+      patientAddress: defaultPatient.address || defaultPatient.city || "Tower Bldg., Dadar (W), Mumbai",
       date: todayStr,
       consultDate: todayStr,
       followupDate: "",
@@ -1322,6 +1322,9 @@ function attachInvoiceBuilderListeners() {
       ACTIVE_INVOICE_STATE.patientAge = selected.age;
       ACTIVE_INVOICE_STATE.patientGender = selected.gender;
       ACTIVE_INVOICE_STATE.patientPhone = selected.phone;
+      ACTIVE_INVOICE_STATE.patientAddress = selected.address || selected.city || "Tower Bldg., Dadar (W), Mumbai";
+      const addrInput = document.getElementById("invFormAddress");
+      if (addrInput) addrInput.value = ACTIVE_INVOICE_STATE.patientAddress;
       ACTIVE_INVOICE_STATE.chiefComplaint = selected.chiefComplaint || "";
       document.getElementById("invFormChiefComplaint").value = selected.chiefComplaint || "";
       if (selected.constitution) {
@@ -1330,7 +1333,16 @@ function attachInvoiceBuilderListeners() {
       }
       if (selected.prescription) {
         ACTIVE_INVOICE_STATE.treatmentPlan = selected.prescription;
-        document.getElementById("invFormTreatmentPlan").value = selected.prescription;
+        const planInput = document.getElementById("invFormTreatmentPlan");
+        if (planInput) planInput.value = selected.prescription;
+        const remedyItem = ACTIVE_INVOICE_STATE.items.find(it => {
+          const d = (it.desc || "").toLowerCase();
+          return d.includes("remedy") || d.includes("dispens") || d.includes("prescri");
+        });
+        if (remedyItem) {
+          remedyItem.desc = "Prescribed Remedy: " + selected.prescription;
+          renderInvoiceItemsTable();
+        }
       }
       updateLiveDocumentPreview();
     }
@@ -1373,7 +1385,24 @@ function attachInvoiceBuilderListeners() {
     }
   };
 
-  numberSync("invFormConsultFee", "consultFee");
+  const consultEl = document.getElementById("invFormConsultFee");
+  if (consultEl) {
+    consultEl.oninput = (e) => {
+      const val = Math.max(0, parseFloat(e.target.value) || 0);
+      ACTIVE_INVOICE_STATE.consultFee = val;
+      const consultItem = ACTIVE_INVOICE_STATE.items.find(it => {
+        const d = (it.desc || "").toLowerCase();
+        return d.includes("consult") || d.includes("evaluation") || d.includes("case taking") || d.includes("examination");
+      });
+      if (consultItem) {
+        consultItem.rate = val;
+        consultItem.total = (consultItem.qty || 1) * val;
+        renderInvoiceItemsTable();
+      }
+      recalculateTotals();
+      updateLiveDocumentPreview();
+    };
+  }
   numberSync("invFormOtherCharges", "otherCharges");
   numberSync("invFormDiscount", "discount");
   numberSync("invFormAmountPaid", "amountPaid");
@@ -1468,14 +1497,39 @@ document.getElementById("invAddRowBtn").onclick = () => {
 };
 
 function recalculateTotals() {
-  const medicinesTotal = ACTIVE_INVOICE_STATE.items.reduce((acc, it) => acc + (it.total || 0), 0);
-  ACTIVE_INVOICE_STATE.medicinesTotal = medicinesTotal;
+  const isConsultItem = (item) => {
+    const desc = (item.desc || "").toLowerCase();
+    return desc.includes("consult") || desc.includes("evaluation") || desc.includes("case taking") || desc.includes("examination");
+  };
 
-  const subtotal = ACTIVE_INVOICE_STATE.consultFee + medicinesTotal + ACTIVE_INVOICE_STATE.otherCharges;
-  const grandTotal = Math.max(0, subtotal - ACTIVE_INVOICE_STATE.discount);
+  let itemsConsultTotal = 0;
+  let itemsMedicinesTotal = 0;
+
+  ACTIVE_INVOICE_STATE.items.forEach(it => {
+    if (isConsultItem(it)) {
+      itemsConsultTotal += (it.total || 0);
+    } else {
+      itemsMedicinesTotal += (it.total || 0);
+    }
+  });
+
+  // If consultation items exist in table, synchronize consultFee
+  if (itemsConsultTotal > 0) {
+    ACTIVE_INVOICE_STATE.consultFee = itemsConsultTotal;
+    const consultInput = document.getElementById("invFormConsultFee");
+    if (consultInput && document.activeElement !== consultInput) {
+      consultInput.value = itemsConsultTotal;
+    }
+  }
+
+  ACTIVE_INVOICE_STATE.medicinesTotal = itemsMedicinesTotal;
+
+  // Single-counting calculation: subtotal = consultFee + medicinesTotal + otherCharges
+  const subtotal = ACTIVE_INVOICE_STATE.consultFee + ACTIVE_INVOICE_STATE.medicinesTotal + (ACTIVE_INVOICE_STATE.otherCharges || 0);
+  const grandTotal = Math.max(0, subtotal - (ACTIVE_INVOICE_STATE.discount || 0));
   ACTIVE_INVOICE_STATE.grandTotal = grandTotal;
 
-  const remaining = Math.max(0, grandTotal - ACTIVE_INVOICE_STATE.amountPaid);
+  const remaining = Math.max(0, grandTotal - (ACTIVE_INVOICE_STATE.amountPaid || 0));
   ACTIVE_INVOICE_STATE.remainingBalance = remaining;
 
   // Auto-sync status
@@ -1486,7 +1540,8 @@ function recalculateTotals() {
   } else if (grandTotal > 0 && ACTIVE_INVOICE_STATE.amountPaid === 0) {
     ACTIVE_INVOICE_STATE.paymentStatus = "Unpaid";
   }
-  document.getElementById("invFormPaymentStatus").value = ACTIVE_INVOICE_STATE.paymentStatus;
+  const statusEl = document.getElementById("invFormPaymentStatus");
+  if (statusEl) statusEl.value = ACTIVE_INVOICE_STATE.paymentStatus;
 }
 
 // --------------------------------------------------------------------------
@@ -1698,11 +1753,12 @@ document.getElementById("previewDownloadPdfBtn").onclick = () => {
   showToast(`Generating official PDF for ${invoiceId}...`, "info");
 
   const opt = {
-    margin: [6, 6, 6, 6],
+    margin: [8, 8, 8, 8],
     filename: `Shri_Siddhivinayak_Clinic_${invoiceId}_${patientNameClean}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
   };
 
   if (window.html2pdf) {

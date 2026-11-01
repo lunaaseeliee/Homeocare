@@ -2107,30 +2107,43 @@ p {
 }
 
 /* ==========================================================================
-   OFFICIAL A4 INVOICE SHEET (CLEAN WHITE BACKGROUND, BLACK TEXT, PEACH ACCENTS)
-   Matches the approved Shri Siddhivinayak Clinic medical invoice reference
+   OFFICIAL A4 INVOICE SHEET — MINIMALIST PROFESSIONAL MEDICAL DESIGN
+   Clinic: Shri Siddhivinayak Clinic | Dr. Suraj D. Panigrahi, B.H.M.S. (Mum.)
+   Approved Color Palette:
+     - Primary text: #171717 (near black)
+     - Secondary text: #525252 (dark gray)
+     - Section accent: #C6AD96 (muted warm taupe)
+     - Highlight background: #E9DED3 (soft beige)
+     - Table header background: #E8DCD0
+     - Divider lines: #C9B6A3
+     - Main page background: #FFFFFF
    ========================================================================== */
+
+[data-theme="light"] .printable-sheet-wrapper {
+  background: #e5e7eb;
+}
+
 .official-invoice-sheet {
   width: 100%;
-  max-width: 794px;
-  /* Standard A4 width at 96 DPI */
-  min-height: 1020px;
-  background: #ffffff !important;
-  color: #1a1a1a !important;
+  max-width: 794px; /* Standard A4 width at 96 DPI */
+  min-height: 1050px;
+  background: #FFFFFF !important;
+  color: #171717 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 38px 46px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  padding: 38px 44px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   position: relative;
+  border: 1px solid #C9B6A3;
 }
 
-/* Letterhead Header */
+/* 1. Clinic Letterhead Top Header */
 .sheet-letterhead {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 22px;
   margin-bottom: 12px;
 }
 
@@ -2139,8 +2152,8 @@ p {
 }
 
 .medical-emblem {
-  width: 82px;
-  height: 82px;
+  width: 76px;
+  height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2157,75 +2170,83 @@ p {
 
 .clinic-title {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1.62rem;
+  font-size: 1.55rem;
   font-weight: 800;
-  color: #b83a00 !important;
-  margin: 0 0 2px 0;
-  letter-spacing: -0.01em;
+  color: #171717 !important;
+  margin: 0 0 3px 0;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 
 .doctor-title {
-  font-size: 1.08rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #111827 !important;
-  margin-bottom: 1px;
+  color: #171717 !important;
+  margin-bottom: 2px;
 }
 
 .doctor-sub {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #374151 !important;
+  color: #525252 !important;
   margin-bottom: 2px;
 }
 
 .doctor-desc {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #4b5563 !important;
+  color: #525252 !important;
+  margin-bottom: 2px;
 }
 
 .doctor-reg {
   font-size: 0.76rem;
-  color: #4b5563 !important;
-  margin: 2px 0;
+  color: #525252 !important;
+  margin-bottom: 2px;
+}
+
+.doctor-reg strong {
+  color: #171717 !important;
+  font-weight: 700;
 }
 
 .clinic-address {
-  font-size: 0.72rem;
-  color: #4b5563 !important;
-  line-height: 1.4;
-  margin-top: 2px;
+  font-size: 0.74rem;
+  color: #525252 !important;
+  line-height: 1.45;
+  margin-top: 3px;
 }
 
-/* Divider Bar */
+/* 2. Divider Bar */
 .sheet-divider-bar {
-  height: 3px;
-  background: #176B46;
-  margin: 10px 0 16px 0;
-  border-radius: 2px;
+  height: 1.5px;
+  background: #C9B6A3;
+  margin: 12px 0 16px 0;
+  border-radius: 1px;
 }
 
-/* Receipt Meta Row */
+/* 3. Receipt Title & Meta Bar */
 .sheet-receipt-meta-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #C9B6A3;
 }
 
 .receipt-type-banner {
-  background: #fff5ed;
-  border-left: 4px solid #f97334;
+  background: #E9DED3;
+  border-left: 3.5px solid #C6AD96;
   padding: 6px 14px;
+  border-radius: 2px;
 }
 
 .rx-heading {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #c2460b !important;
+  letter-spacing: 0.07em;
+  color: #171717 !important;
   text-transform: uppercase;
 }
 
@@ -2234,23 +2255,24 @@ p {
   align-items: center;
   gap: 18px;
   font-size: 0.82rem;
-  color: #374151 !important;
+  color: #525252 !important;
 }
 
 .meta-row span {
-  color: #6b7280;
+  color: #525252;
 }
 
 .meta-row strong {
-  color: #111827 !important;
+  color: #171717 !important;
+  font-weight: 700;
 }
 
 .approval-tag {
   font-size: 0.68rem;
   font-weight: 800;
   padding: 2px 8px;
-  border-radius: 4px;
-  letter-spacing: 0.06em;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -2267,19 +2289,19 @@ p {
 }
 
 .approval-tag.draft {
-  background: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
+  background: #E9DED3;
+  color: #525252;
+  border: 1px solid #C9B6A3;
 }
 
-/* Patient Info Box */
+/* 4. Patient Information Box */
 .sheet-patient-box {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  background: #fafaf9;
-  border: 1px solid #e7e5e4;
-  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid #C9B6A3;
+  border-radius: 4px;
   padding: 12px 18px;
   margin-bottom: 14px;
   font-size: 0.82rem;
@@ -2298,20 +2320,22 @@ p {
 }
 
 .info-line .lbl {
-  color: #6b7280;
+  color: #525252;
   font-weight: 600;
-  min-width: 88px;
+  min-width: 90px;
 }
 
 .info-line .val {
-  color: #111827 !important;
+  color: #171717 !important;
+  font-weight: 600;
 }
 
-/* Clinical Box */
+/* 5. Clinical Summary Box */
 .sheet-clinical-box {
-  background: #fffaf5;
-  border: 1px solid #fed7aa;
-  border-radius: 6px;
+  background: #FAF8F5;
+  border: 1px solid #C9B6A3;
+  border-left: 3.5px solid #C6AD96;
+  border-radius: 4px;
   padding: 10px 16px;
   margin-bottom: 14px;
   font-size: 0.8rem;
@@ -2327,16 +2351,17 @@ p {
 }
 
 .cl-lbl {
-  color: #9a3412;
+  color: #525252;
   font-weight: 700;
-  min-width: 145px;
+  min-width: 150px;
 }
 
 .cl-val {
-  color: #1f2937 !important;
+  color: #171717 !important;
+  font-weight: 500;
 }
 
-/* Items Table */
+/* 6. Itemized Medicines & Services Table */
 .sheet-items-table {
   width: 100%;
   border-collapse: collapse;
@@ -2345,32 +2370,34 @@ p {
 }
 
 .sheet-items-table th {
-  background: #f3f4f6;
-  color: #1f2937 !important;
+  background: #E8DCD0 !important;
+  color: #171717 !important;
   font-weight: 700;
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
+  padding: 9px 10px;
+  border: 1px solid #C9B6A3;
 }
 
 .sheet-items-table td {
   padding: 8px 10px;
-  border: 1px solid #e5e7eb;
-  color: #1f2937 !important;
+  border: 1px solid #C9B6A3;
+  color: #171717 !important;
   vertical-align: middle;
+  background: #FFFFFF;
 }
 
 .sheet-items-table tr:nth-child(even) td {
-  background: #fafaf9;
+  background: #FAF8F5;
 }
 
 .sheet-items-table td strong {
-  color: #111827 !important;
+  color: #171717 !important;
+  font-weight: 600;
 }
 
-/* Bottom Grid: Instructions & Financials Breakdown */
+/* 7. Bottom Grid: Instructions, Payment Specs & Financials */
 .sheet-bottom-grid {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -2387,9 +2414,9 @@ p {
 }
 
 .payment-specs-box {
-  background: #fafaf9;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid #C9B6A3;
+  border-radius: 4px;
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
@@ -2403,128 +2430,121 @@ p {
 }
 
 .spec-row span {
-  color: #6b7280;
+  color: #525252;
 }
 
 .spec-row strong {
-  color: #111827 !important;
+  color: #171717 !important;
+  font-weight: 700;
 }
 
 .status-badge {
   font-size: 0.72rem;
   font-weight: 800;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
 }
 
 .status-badge.paid {
   background: #dcfce7;
   color: #15803d;
+  border: 1px solid #86efac;
 }
 
 .status-badge.partially {
   background: #fef3c7;
   color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 .status-badge.unpaid {
   background: #fee2e2;
   color: #b91c1c;
+  border: 1px solid #fca5a5;
 }
 
 .sheet-doctor-instructions {
-  background: #fff5ed;
-  border-left: 3px solid #f97334;
-  padding: 8px 12px;
+  background: #E9DED3;
+  border-left: 3.5px solid #C6AD96;
+  border-radius: 2px;
+  padding: 9px 12px;
   font-size: 0.75rem;
   line-height: 1.45;
 }
 
 .inst-lbl {
   font-weight: 700;
-  color: #c2460b;
+  color: #171717;
   margin-bottom: 2px;
 }
 
 .inst-val {
-  color: #374151 !important;
+  color: #525252 !important;
 }
 
 .sheet-legal-note {
   font-size: 0.68rem;
-  color: #9ca3af;
+  color: #525252;
   line-height: 1.4;
   margin-top: auto;
 }
 
-/* Financials Summary Table */
+/* 8. Financials Summary Table */
+.sheet-bottom-right {
+  display: flex;
+  flex-direction: column;
+}
+
 .financial-summary-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.82rem;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .financial-summary-table td {
-  padding: 5px 8px;
-  color: #4b5563 !important;
-  border-bottom: 1px dashed #e5e7eb;
+  padding: 6px 8px;
+  color: #525252 !important;
+  border-bottom: 1px dashed #C9B6A3;
 }
 
 .financial-summary-table td.amt {
   text-align: right;
-  color: #111827 !important;
+  color: #171717 !important;
   font-weight: 600;
 }
 
 .grand-total-row td {
-  border-top: 2px solid #f97334;
-  border-bottom: 2px solid #f97334;
-  background: #fff5ed;
-  padding: 8px;
-  color: #c2460b !important;
-  font-size: 0.95rem;
+  border-top: 1.5px solid #C6AD96 !important;
+  border-bottom: 1.5px solid #C6AD96 !important;
+  background: #E9DED3 !important;
+  padding: 8px !important;
+  color: #171717 !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
 }
 
 .grand-total-row td.amt {
-  color: #c2460b !important;
-  font-size: 1.05rem;
+  color: #171717 !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
 }
 
 .balance-row td {
-  color: #111827 !important;
+  background: #FAF8F5;
+  border-bottom: 1px solid #C9B6A3;
+  color: #171717 !important;
   font-weight: 700;
-  border-bottom: none;
 }
 
-/* Doctor Signature & Clinic Stamp Block */
+/* 9. Doctor Signature Section (Dedicated blank signature area) */
 .sheet-signature-section {
   display: flex;
+  justify-content: flex-end;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 14px;
-  padding-top: 12px;
-}
-
-.clinic-stamp-box {
-  width: 90px;
-  height: 90px;
-  border: 1.5px dashed #9ca3af;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  background: #fafaf9;
-}
-
-.stamp-placeholder-text {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #9ca3af;
-  letter-spacing: 0.05em;
-  transform: rotate(-15deg);
+  margin-top: 8px;
+  padding-top: 6px;
 }
 
 .doctor-signature-cluster {
@@ -2532,31 +2552,39 @@ p {
   flex-direction: column;
   align-items: flex-end;
   text-align: right;
-  min-width: 180px;
+  min-width: 190px;
+}
+
+.doctor-signature-blank-space {
+  height: 68px;
+  width: 100%;
 }
 
 .signature-line-mark {
-  width: 160px;
+  width: 180px;
   height: 1px;
-  background: #4b5563;
+  background: #C9B6A3;
   margin-bottom: 6px;
 }
 
 .doctor-sign-name {
   font-size: 0.88rem;
   font-weight: 700;
-  color: #111827 !important;
+  color: #171717 !important;
+  line-height: 1.25;
 }
 
 .doctor-sign-qual {
   font-size: 0.74rem;
   font-weight: 600;
-  color: #374151 !important;
+  color: #525252 !important;
+  line-height: 1.25;
 }
 
 .doctor-sign-role {
-  font-size: 0.7rem;
-  color: #6b7280;
+  font-size: 0.72rem;
+  color: #525252 !important;
+  line-height: 1.25;
 }
 
 .approval-audit-line {
@@ -2566,8 +2594,24 @@ p {
   margin-top: 4px;
 }
 
-/* Print Specific Rules */
+/* ==========================================================================
+   PRINT SPECIFIC RULES & A4 GEOMETRY
+   ========================================================================== */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  html, body {
+    background: #FFFFFF !important;
+    color: #171717 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -2583,9 +2627,22 @@ p {
     top: 0;
     width: 100% !important;
     max-width: 100% !important;
+    min-height: auto !important;
     box-shadow: none !important;
-    padding: 24px !important;
+    border: none !important;
+    padding: 0 !important;
     margin: 0 !important;
+  }
+
+  .sheet-letterhead,
+  .sheet-receipt-meta-row,
+  .sheet-patient-box,
+  .sheet-clinical-box,
+  .sheet-items-table tr,
+  .sheet-bottom-grid,
+  .doctor-signature-cluster {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .ambient-glow,
@@ -2594,7 +2651,8 @@ p {
   .preview-toolbar,
   .welcome-header,
   .invoice-form-pane,
-  .auth-entrance-wrapper {
+  .auth-entrance-wrapper,
+  #toastContainer {
     display: none !important;
   }
 }
