@@ -2504,13 +2504,24 @@ async function logoutUser() {
   if (authEntrance) authEntrance.style.display = "flex";
   if (appShell) appShell.style.display = "none";
 
-  // Reset auth forms & generate fresh CAPTCHA
-  const loginForm = document.getElementById("loginForm");
-  const registerForm = document.getElementById("registerForm");
-  if (loginForm) loginForm.reset();
-  if (registerForm) registerForm.reset();
-  setAuthTab("login");
-  generateNewCaptcha();
+  // Reset OTP auth forms
+  const otpRequestForm = document.getElementById("otpRequestForm");
+  const otpVerifyForm = document.getElementById("otpVerifyForm");
+  const otpEmailInput = document.getElementById("otpEmailInput");
+  const alertBox = document.getElementById("authAlertBox");
+
+  if (otpRequestForm) otpRequestForm.style.display = "block";
+  if (otpVerifyForm) otpVerifyForm.style.display = "none";
+  if (otpEmailInput) otpEmailInput.value = "homeocareadmin@gmail.com";
+  if (alertBox) {
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+  }
+  document.querySelectorAll(".otp-digit-box").forEach(box => {
+    box.value = "";
+    box.classList.remove("has-val");
+  });
+
   showToast("Logged out securely. Supabase session terminated.", "info");
 }
 
@@ -2912,191 +2923,247 @@ function refreshIcons() {
 }
 
 function setupAuthForms() {
-  const tabLoginBtn = document.getElementById("tabLoginBtn");
-  const tabRegisterBtn = document.getElementById("tabRegisterBtn");
-  const loginForm = document.getElementById("loginForm");
-  const registerForm = document.getElementById("registerForm");
-  const captchaRefreshBtn = document.getElementById("captchaRefreshBtn");
   const logoutSidebarBtn = document.getElementById("logoutSidebarBtn");
-
-  if (tabLoginBtn) tabLoginBtn.onclick = () => setAuthTab("login");
-  if (tabRegisterBtn) tabRegisterBtn.onclick = () => setAuthTab("register");
-  if (captchaRefreshBtn) captchaRefreshBtn.onclick = () => generateNewCaptcha();
   if (logoutSidebarBtn) logoutSidebarBtn.onclick = () => logoutUser();
 
-  setupPasswordToggle("loginPassword", "loginPasswordToggle", "loginEyeIcon");
-  setupPasswordToggle("regPassword", "regPasswordToggle", "regEyeIcon");
-  setupPasswordToggle("regConfirmPassword", "regConfirmPasswordToggle", "regConfirmEyeIcon");
+  const otpRequestForm = document.getElementById("otpRequestForm");
+  const otpVerifyForm = document.getElementById("otpVerifyForm");
+  const otpEmailInput = document.getElementById("otpEmailInput");
+  const sendOtpSubmitBtn = document.getElementById("sendOtpSubmitBtn");
+  const verifyOtpSubmitBtn = document.getElementById("verifyOtpSubmitBtn");
+  const resendOtpBtn = document.getElementById("resendOtpBtn");
+  const resendTimerText = document.getElementById("resendTimerText");
+  const backToEmailBtn = document.getElementById("backToEmailBtn");
+  const otpTargetEmailDisplay = document.getElementById("otpTargetEmailDisplay");
+  const alertBox = document.getElementById("authAlertBox");
+  const digitBoxes = Array.from(document.querySelectorAll(".otp-digit-box"));
 
-  const regPassInput = document.getElementById("regPassword");
-  if (regPassInput) {
-    regPassInput.oninput = (e) => evaluatePasswordStrength(e.target.value);
+  const AUTHORIZED_EMAIL = "homeocareadmin@gmail.com";
+  let resendInterval = null;
+  let secondsRemaining = 0;
+
+  function showOtpAlert(msg, type = "error") {
+    if (!alertBox) return;
+    alertBox.style.display = "block";
+    alertBox.className = `auth-alert-message alert-${type}`;
+    alertBox.textContent = msg;
   }
 
-  const regConfirmInput = document.getElementById("regConfirmPassword");
-  const confirmMsg = document.getElementById("confirmValidationMsg");
-  if (regConfirmInput && confirmMsg) {
-    const checkMatch = () => {
-      const p1 = regPassInput ? regPassInput.value : "";
-      const p2 = regConfirmInput.value;
-      if (p2 && p1 !== p2) {
-        confirmMsg.textContent = "Passwords do not match";
-        confirmMsg.style.color = "var(--red-accent)";
-      } else if (p2 && p1 === p2) {
-        confirmMsg.textContent = "Passwords match ✓";
-        confirmMsg.style.color = "var(--emerald-cure)";
+  function hideOtpAlert() {
+    if (!alertBox) return;
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+  }
+
+  function startResendCooldown(durationSec = 60) {
+    if (resendInterval) clearInterval(resendInterval);
+    secondsRemaining = durationSec;
+    if (resendOtpBtn) resendOtpBtn.disabled = true;
+    if (resendTimerText) resendTimerText.textContent = `Resend code in ${secondsRemaining}s`;
+
+    resendInterval = setInterval(() => {
+      secondsRemaining--;
+      if (secondsRemaining <= 0) {
+        clearInterval(resendInterval);
+        resendInterval = null;
+        if (resendOtpBtn) resendOtpBtn.disabled = false;
+        if (resendTimerText) resendTimerText.textContent = "Resend code";
       } else {
-        confirmMsg.textContent = "";
+        if (resendTimerText) resendTimerText.textContent = `Resend code in ${secondsRemaining}s`;
       }
-    };
-    regConfirmInput.oninput = checkMatch;
-    if (regPassInput) regPassInput.addEventListener("input", checkMatch);
+    }, 1000);
   }
 
-  // Handle Real Supabase Login Submit (Username + Password)
-  if (loginForm) {
-    loginForm.onsubmit = async (e) => {
+  // Setup 6-digit box auto-advance, backspace, and paste handlers
+  digitBoxes.forEach((box, index) => {
+    box.addEventListener("input", (e) => {
+      const val = e.target.value.replace(/\D/g, "");
+      e.target.value = val ? val[val.length - 1] : "";
+      if (e.target.value) {
+        box.classList.add("has-val");
+        if (index < digitBoxes.length - 1) {
+          digitBoxes[index + 1].focus();
+        }
+      } else {
+        box.classList.remove("has-val");
+      }
+
+      // Check if all 6 boxes are filled
+      const fullCode = digitBoxes.map(b => b.value.trim()).join("");
+      if (fullCode.length === 6 && otpVerifyForm) {
+        otpVerifyForm.requestSubmit();
+      }
+    });
+
+    box.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace") {
+        if (!box.value && index > 0) {
+          digitBoxes[index - 1].focus();
+          digitBoxes[index - 1].value = "";
+          digitBoxes[index - 1].classList.remove("has-val");
+        } else {
+          box.value = "";
+          box.classList.remove("has-val");
+        }
+      } else if (e.key === "ArrowLeft" && index > 0) {
+        digitBoxes[index - 1].focus();
+      } else if (e.key === "ArrowRight" && index < digitBoxes.length - 1) {
+        digitBoxes[index + 1].focus();
+      }
+    });
+
+    box.addEventListener("paste", (e) => {
       e.preventDefault();
-      const alertBox = document.getElementById("authAlertBox");
-      if (alertBox) {
-        alertBox.style.display = "none";
-        alertBox.textContent = "";
-      }
-      const identifier = document.getElementById("loginUsername").value.trim();
-      const password = document.getElementById("loginPassword").value;
-      const submitBtn = document.getElementById("loginSubmitBtn");
+      const pasteData = (e.clipboardData || window.clipboardData)
+        .getData("text")
+        .replace(/\D/g, "")
+        .slice(0, 6);
 
-      if (!identifier || !password) {
-        showAuthAlert("Please enter both username and password.", "error");
-        return;
-      }
+      if (!pasteData) return;
+      pasteData.split("").forEach((char, i) => {
+        if (digitBoxes[i]) {
+          digitBoxes[i].value = char;
+          digitBoxes[i].classList.add("has-val");
+        }
+      });
 
-      if (window.HomeoCareAPI && !window.HomeoCareAPI.isConfigured()) {
-        await window.HomeoCareAPI.verifyConnection().catch(() => {});
-      }
-      if (!window.HomeoCareAPI || !window.HomeoCareAPI.isConfigured()) {
-        showAuthAlert("Supabase is not configured. Please check SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in .env.");
-        return;
-      }
+      const nextFocus = Math.min(pasteData.length, digitBoxes.length - 1);
+      digitBoxes[nextFocus].focus();
 
-      if (submitBtn) submitBtn.disabled = true;
-      try {
-        const authenticatedUser = await window.HomeoCareAPI.auth.login(identifier, password);
-        setAuthenticatedUser(authenticatedUser);
-        showToast(`Welcome back, ${authenticatedUser.name}!`, "success");
-      } catch (err) {
-        const msg =
-          err?.message === "Invalid login credentials"
-            ? "Invalid username or password. Please verify your credentials."
-            : err?.message || "Authentication failed. Please verify your credentials.";
-        showAuthAlert(msg, "error");
-        showToast("Login failed.", "error");
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
+      if (pasteData.length === 6 && otpVerifyForm) {
+        otpVerifyForm.requestSubmit();
       }
-    };
-  }
+    });
+  });
 
-  // Handle Real Supabase Registration Submit (Username + Password + Confirm Password + CAPTCHA)
-  if (registerForm) {
-    registerForm.onsubmit = async (e) => {
+  // Step 1: Send OTP
+  if (otpRequestForm) {
+    otpRequestForm.onsubmit = async (e) => {
       e.preventDefault();
-      const alertBox = document.getElementById("authAlertBox");
-      if (alertBox) {
-        alertBox.style.display = "none";
-        alertBox.textContent = "";
-      }
-      const username = document.getElementById("regUsername").value.trim();
-      const password = document.getElementById("regPassword").value;
-      const confirmPassword = document.getElementById("regConfirmPassword").value;
-      const captchaEntered = document.getElementById("captchaInput").value.trim().toUpperCase();
-      const submitBtn = document.getElementById("registerSubmitBtn");
+      hideOtpAlert();
 
-      if (!username || !/^[a-zA-Z0-9_.-]{3,32}$/.test(username)) {
-        showAuthAlert("Username must be 3 to 32 characters (letters, numbers, dots, hyphens, or underscores).", "error");
-        return;
-      }
-
-      if (password.length < 8) {
-        showAuthAlert("Password must be at least 8 characters long.", "error");
-        return;
-      }
-
-      if (isCommonPassword(password)) {
-        showAuthAlert(
-          "This password is too common or easily compromised. Please choose a more secure password.",
+      const email = otpEmailInput ? otpEmailInput.value.trim().toLowerCase() : "";
+      if (email !== AUTHORIZED_EMAIL) {
+        showOtpAlert(
+          `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_EMAIL}) is permitted to log in.`,
           "error"
         );
         return;
       }
 
-      if (password !== confirmPassword) {
-        showAuthAlert("Passwords do not match. Please re-enter.", "error");
-        return;
+      if (sendOtpSubmitBtn) {
+        sendOtpSubmitBtn.disabled = true;
+        sendOtpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Sending code...</span>';
+        if (window.lucide) lucide.createIcons();
       }
 
-      if (!captchaEntered || captchaEntered.length !== 6) {
-        showAuthAlert("Please enter the complete 6-character Security Verification code.", "error");
-        return;
-      }
-
-      if (window.HomeoCareAPI && !window.HomeoCareAPI.isConfigured()) {
-        await window.HomeoCareAPI.verifyConnection().catch(() => {});
-      }
-      if (!window.HomeoCareAPI || !window.HomeoCareAPI.isConfigured()) {
-        showAuthAlert("Supabase is not configured. Please check SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in .env.");
-        return;
-      }
-
-      const activeChallengeId = CURRENT_CAPTCHA.challengeId;
-
-      if (submitBtn) submitBtn.disabled = true;
       try {
-        const result = await window.HomeoCareAPI.auth.register({
-          username,
-          password,
-          confirmPassword,
-          challengeId: activeChallengeId,
-          captchaInput: captchaEntered
+        await window.HomeoCareAPI.auth.sendOtp(email);
+
+        // Switch to Step 2
+        otpRequestForm.style.display = "none";
+        if (otpVerifyForm) otpVerifyForm.style.display = "block";
+        if (otpTargetEmailDisplay) otpTargetEmailDisplay.textContent = email;
+
+        digitBoxes.forEach(b => {
+          b.value = "";
+          b.classList.remove("has-val");
         });
+        if (digitBoxes[0]) digitBoxes[0].focus();
 
-        // Reset registration fields
-        registerForm.reset();
-        const msgEl = document.getElementById("confirmValidationMsg");
-        if (msgEl) msgEl.textContent = "";
-        const strFill = document.getElementById("strengthBarFill");
-        if (strFill) strFill.style.width = "0%";
-        const strText = document.getElementById("strengthText");
-        if (strText) strText.textContent = "Minimum 8 characters";
-
-        // Generate fresh challenge for next time
-        await generateNewCaptcha();
-
-        // Switch smoothly to Login tab and populate username
-        setAuthTab("login");
-        const loginUsernameInput = document.getElementById("loginUsername");
-        if (loginUsernameInput) loginUsernameInput.value = username;
-        const loginPasswordInput = document.getElementById("loginPassword");
-        if (loginPasswordInput) loginPasswordInput.focus();
-
-        const alertMsg = result.message || "Registration successful! You may now sign in.";
-        showAuthAlert(alertMsg, "success");
-        showToast("Registration successful! Sign in to enter your workspace.", "success");
+        startResendCooldown(60);
+        showToast(`Verification code sent to ${email}.`, "info");
       } catch (err) {
-        // Always generate a fresh CAPTCHA on failure
-        await generateNewCaptcha();
-        const captchaInp = document.getElementById("captchaInput");
-        if (captchaInp) captchaInp.value = "";
-        showAuthAlert(err?.message || "Registration rejected. Please verify your details and try again.", "error");
-        showToast("Registration failed.", "error");
+        showOtpAlert(err?.message || "Failed to dispatch verification code. Please check Supabase Auth settings.", "error");
+        showToast("Could not send code.", "error");
       } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        if (sendOtpSubmitBtn) {
+          sendOtpSubmitBtn.disabled = false;
+          sendOtpSubmitBtn.innerHTML = '<i data-lucide="send"></i><span>Send Verification Code</span>';
+          if (window.lucide) lucide.createIcons();
+        }
       }
+    };
+  }
+
+  // Step 2: Verify OTP & Establish Session
+  if (otpVerifyForm) {
+    otpVerifyForm.onsubmit = async (e) => {
+      e.preventDefault();
+      hideOtpAlert();
+
+      const code = digitBoxes.map(b => b.value.trim()).join("");
+      if (code.length !== 6) {
+        showOtpAlert("Please enter the complete 6-digit verification code.", "error");
+        return;
+      }
+
+      if (verifyOtpSubmitBtn) {
+        verifyOtpSubmitBtn.disabled = true;
+        verifyOtpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Verifying...</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const authenticatedUser = await window.HomeoCareAPI.auth.verifyOtp(AUTHORIZED_EMAIL, code);
+
+        if (resendInterval) clearInterval(resendInterval);
+
+        setAuthenticatedUser(authenticatedUser);
+        applyAuthenticatedSession(authenticatedUser);
+        updateDashboardMetrics();
+        renderPatientWorkspace();
+        navigateTo("dashboard");
+
+        showToast(`Welcome back, ${authenticatedUser.name}!`, "success");
+      } catch (err) {
+        showOtpAlert(
+          err?.message || "Verification code is invalid or has expired. Please check your inbox or request a new code.",
+          "error"
+        );
+        digitBoxes.forEach(b => {
+          b.value = "";
+          b.classList.remove("has-val");
+        });
+        if (digitBoxes[0]) digitBoxes[0].focus();
+        showToast("Verification failed.", "error");
+      } finally {
+        if (verifyOtpSubmitBtn) {
+          verifyOtpSubmitBtn.disabled = false;
+          verifyOtpSubmitBtn.innerHTML = '<i data-lucide="check-circle"></i><span>Verify & Login</span>';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    };
+  }
+
+  // Resend OTP
+  if (resendOtpBtn) {
+    resendOtpBtn.onclick = async () => {
+      hideOtpAlert();
+      resendOtpBtn.disabled = true;
+      try {
+        await window.HomeoCareAPI.auth.sendOtp(AUTHORIZED_EMAIL);
+        startResendCooldown(60);
+        showToast("New verification code sent to your inbox.", "info");
+      } catch (err) {
+        showOtpAlert(err?.message || "Could not resend code. Please try again.", "error");
+      }
+    };
+  }
+
+  // Change Email / Back
+  if (backToEmailBtn) {
+    backToEmailBtn.onclick = () => {
+      if (resendInterval) clearInterval(resendInterval);
+      hideOtpAlert();
+      if (otpVerifyForm) otpVerifyForm.style.display = "none";
+      if (otpRequestForm) otpRequestForm.style.display = "block";
+      if (otpEmailInput) otpEmailInput.focus();
     };
   }
 }
 
-// Initialize on DOM load and restore verified Supabase session on refresh
 window.addEventListener("DOMContentLoaded", async () => {
   initTheme();
   setupAuthForms();

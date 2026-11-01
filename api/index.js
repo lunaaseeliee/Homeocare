@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CAPTCHA_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const AUTHORIZED_ADMIN_EMAIL = 'homeocareadmin@gmail.com';
 const CAPTCHA_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 const COMMONLY_USED_PASSWORDS = new Set([
@@ -279,8 +280,26 @@ function isForbiddenSecretKey(key) {
 }
 
 function getSafePublicConfig() {
-  const url = (process.env.SUPABASE_URL || '').trim();
-  const key = (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+  let url = (process.env.SUPABASE_URL || '').trim();
+  let key = (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+  if (!url || !key) {
+    try {
+      const envPath = path.join(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        for (const line of content.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eq = trimmed.indexOf('=');
+          if (eq === -1) continue;
+          const k = trimmed.slice(0, eq).trim();
+          const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+          if (k === 'SUPABASE_URL' && !url) url = v;
+          if ((k === 'SUPABASE_PUBLISHABLE_KEY' || k === 'SUPABASE_ANON_KEY') && !key) key = v;
+        }
+      }
+    } catch (_) {}
+  }
   if (isForbiddenSecretKey(key)) {
     return { configured: false, url: '', publishableKey: '', error: 'FORBIDDEN_SECRET_KEY' };
   }
@@ -427,13 +446,220 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // 1c. Single-Email OTP Authentication Endpoints (Authorized: homeocareadmin@gmail.com)
+  if (pathname === '/api/auth/send-otp' && req.method === 'POST') {
+    const limit = checkRateLimit('send-otp', clientIp, 10, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      return sendJson(
+        res,
+        429,
+        {
+          ok: false,
+          error: `Too many verification code requests. Please wait ${Math.ceil(limit.retryAfterSec / 60)} minutes before retrying.`
+        },
+        { 'Retry-After': String(limit.retryAfterSec) }
+      );
+    }
+
+    try {
+      const body = await parseBody(req);
+      const email = String(body.email || '').trim().toLowerCase();
+
+      if (email !== AUTHORIZED_ADMIN_EMAIL) {
+        return sendJson(res, 403, {
+          ok: false,
+          error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted to request access.`
+        });
+      }
+
+      const config = getSafePublicConfig();
+      if (!config.configured) {
+        return sendJson(res, 500, { ok: false, error: 'Supabase configuration is missing on server.' });
+      }
+
+      const otpRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/otp`, {
+        method: 'POST',
+        headers: {
+          apikey: config.publishableKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: AUTHORIZED_ADMIN_EMAIL,
+          create_user: false
+        })
+      });
+
+      if (otpRes.status === 429) {
+        const data = await otpRes.json().catch(() => ({}));
+        return sendJson(res, 429, {
+          ok: false,
+          error: data.msg || 'For security purposes, you can only request a code once per minute. Please check your inbox or wait before retrying.'
+        });
+      }
+
+      if (!otpRes.ok) {
+        const errData = await otpRes.json().catch(() => ({}));
+        return sendJson(res, otpRes.status, {
+          ok: false,
+          error: errData.msg || errData.message || 'Failed to dispatch verification code.'
+        });
+      }
+
+      return sendJson(res, 200, {
+        ok: true,
+        email: AUTHORIZED_ADMIN_EMAIL,
+        message: `A 6-digit verification code has been dispatched to ${AUTHORIZED_ADMIN_EMAIL}.`
+      });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err.message });
+    }
+  }
+
+  if (pathname === '/api/auth/verify-otp' && req.method === 'POST') {
+    const limit = checkRateLimit('verify-otp', clientIp, 20, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      return sendJson(
+        res,
+        429,
+        {
+          ok: false,
+          error: `Too many verification attempts. Please wait ${Math.ceil(limit.retryAfterSec / 60)} minutes before retrying.`
+        },
+        { 'Retry-After': String(limit.retryAfterSec) }
+      );
+    }
+
+    try {
+      const body = await parseBody(req);
+      const email = String(body.email || '').trim().toLowerCase();
+      const token = String(body.token || body.code || '').trim();
+
+      if (email !== AUTHORIZED_ADMIN_EMAIL) {
+        return sendJson(res, 403, {
+          ok: false,
+          error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.`
+        });
+      }
+
+      if (!token || token.length !== 6) {
+        return sendJson(res, 400, { ok: false, error: 'Please enter a valid 6-digit verification code.' });
+      }
+
+      const config = getSafePublicConfig();
+      if (!config.configured) {
+        return sendJson(res, 500, { ok: false, error: 'Supabase configuration is missing on server.' });
+      }
+
+      const verifyRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/verify`, {
+        method: 'POST',
+        headers: {
+          apikey: config.publishableKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: AUTHORIZED_ADMIN_EMAIL,
+          token: token,
+          type: 'email'
+        })
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok) {
+        let errMsg = verifyData.msg || verifyData.message || 'Invalid verification code.';
+        if (verifyData.error_code === 'otp_expired' || errMsg.toLowerCase().includes('expired')) {
+          errMsg = 'The verification code has expired or is invalid. Please request a new code.';
+        }
+        return sendJson(res, 400, { ok: false, error: errMsg });
+      }
+
+      const sessionUser = {
+        id: verifyData.user?.id || 'admin-doc',
+        email: AUTHORIZED_ADMIN_EMAIL,
+        username: 'dr.suraj',
+        dbRole: 'doctor',
+        isDoctor: true,
+        isAdmin: true,
+        role: 'Dr. Suraj D. Panigrahi',
+        name: 'Dr. Suraj D. Panigrahi',
+        qualification: 'B.H.M.S. (Mum.)',
+        licenseNumber: 'REG-BHMS-MUM-2026',
+        loginTime: new Date().toISOString()
+      };
+
+      return sendJson(res, 200, {
+        ok: true,
+        session: verifyData,
+        user: sessionUser,
+        message: 'Verification successful. Welcome to HomeoCare!'
+      });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err.message });
+    }
+  }
+
+  if (pathname === '/api/auth/verify-session' && req.method === 'POST') {
+    try {
+      const body = await parseBody(req);
+      const accessToken = String(body.accessToken || '').trim();
+      if (!accessToken) {
+        return sendJson(res, 401, { ok: false, error: 'Missing access token.' });
+      }
+      const config = getSafePublicConfig();
+      const userRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          apikey: config.publishableKey,
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      if (!userRes.ok) {
+        return sendJson(res, 401, { ok: false, error: 'Invalid or expired session token.' });
+      }
+      const userData = await userRes.json();
+      if (userData.email?.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL) {
+        return sendJson(res, 403, { ok: false, error: 'Unauthorized: Session user is not the clinic administrator.' });
+      }
+      const sessionUser = {
+        id: userData.id,
+        email: AUTHORIZED_ADMIN_EMAIL,
+        username: 'dr.suraj',
+        dbRole: 'doctor',
+        isDoctor: true,
+        isAdmin: true,
+        role: 'Dr. Suraj D. Panigrahi',
+        name: 'Dr. Suraj D. Panigrahi',
+        qualification: 'B.H.M.S. (Mum.)',
+        licenseNumber: 'REG-BHMS-MUM-2026',
+        loginTime: new Date().toISOString()
+      };
+      return sendJson(res, 200, { ok: true, user: sessionUser });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err.message });
+    }
+  }
+
   // 1c. Server-side Cryptographic CAPTCHA Challenge Endpoint
   if (pathname === '/api/auth/captcha' && req.method === 'GET') {
     const challenge = createServerCaptcha(clientIp);
     return sendJson(res, 200, challenge);
   }
 
-  // 1d. Rate-Limited Server-Side Registration Endpoint (Username + Password + CAPTCHA)
+  // 1d. Rate-Limited Server-Side Registration Endpoint (Disabled in Single-Email OTP Mode)
+  if (pathname === '/api/auth/register' && req.method === 'POST') {
+    return sendJson(res, 403, {
+      ok: false,
+      error: 'Public registration is disabled. Please log in using the authorized email (homeocareadmin@gmail.com) via OTP.'
+    });
+  }
+
+  // 1e. Rate-Limited Server-Side Registration & CAPTCHA Verification Endpoint (Disabled)
+  if (pathname === '/api/auth/verify-registration' && req.method === 'POST') {
+    return sendJson(res, 403, {
+      ok: false,
+      error: 'Public registration is disabled. Please log in using the authorized email (homeocareadmin@gmail.com) via OTP.'
+    });
+  }
   if (pathname === '/api/auth/register' && req.method === 'POST') {
     const limit = checkRateLimit('register', clientIp, 15, 15 * 60 * 1000);
     if (!limit.allowed) {

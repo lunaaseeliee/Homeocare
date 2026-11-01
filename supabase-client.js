@@ -243,6 +243,133 @@ const HomeoCareAPI = {
   // --- Real Supabase Auth, Server CAPTCHA & Table-Backed RBAC Services ---
   auth: {
     /**
+     * Send 6-digit OTP to the single authorized clinic email (homeocareadmin@gmail.com).
+     */
+    async sendOtp(email) {
+      const cleanEmail = String(email || "").trim().toLowerCase();
+      if (cleanEmail !== "homeocareadmin@gmail.com") {
+        throw new Error("Access restricted: Only the authorized HomeoCare administrator (homeocareadmin@gmail.com) can request access.");
+      }
+
+      // Try server-side unified route first
+      try {
+        const res = await fetch("/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          return data;
+        }
+        if (data.error) {
+          throw new Error(data.error);
+        }
+      } catch (fetchErr) {
+        if (fetchErr.message && !fetchErr.message.includes("Failed to fetch")) {
+          throw fetchErr;
+        }
+      }
+
+      // Client-side fallback using official Supabase SDK
+      const client = await initSupabaseAsync();
+      if (!client) throw new Error("Supabase is not configured.");
+      const { error } = await client.auth.signInWithOtp({
+        email: cleanEmail,
+        options: { shouldCreateUser: false }
+      });
+      if (error) {
+        let msg = error.message;
+        if (error.status === 429 || msg.includes("rate_limit")) {
+          msg = "For security purposes, you can only request a code once per minute. Please check your email or wait.";
+        }
+        throw new Error(msg);
+      }
+      return { ok: true, email: cleanEmail, message: `Verification code sent to ${cleanEmail}.` };
+    },
+
+    /**
+     * Verify 6-digit OTP code and establish authenticated session.
+     */
+    async verifyOtp(email, token) {
+      const cleanEmail = String(email || "").trim().toLowerCase();
+      const cleanToken = String(token || "").trim();
+
+      if (cleanEmail !== "homeocareadmin@gmail.com") {
+        throw new Error("Access restricted: Only the authorized HomeoCare administrator (homeocareadmin@gmail.com) is permitted.");
+      }
+      if (!cleanToken || cleanToken.length !== 6) {
+        throw new Error("Please enter a valid 6-digit verification code.");
+      }
+
+      // 1. Try server-side verification first
+      try {
+        const res = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail, token: cleanToken })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          if (data.session?.access_token && data.session?.refresh_token) {
+            try {
+              const client = await initSupabaseAsync();
+              if (client) {
+                await client.auth.setSession({
+                  access_token: data.session.access_token,
+                  refresh_token: data.session.refresh_token
+                });
+              }
+            } catch (_) {}
+          }
+          return data.user;
+        }
+        if (data.error) {
+          throw new Error(data.error);
+        }
+      } catch (fetchErr) {
+        if (fetchErr.message && !fetchErr.message.includes("Failed to fetch")) {
+          throw fetchErr;
+        }
+      }
+
+      // 2. Direct client SDK fallback
+      const client = await initSupabaseAsync();
+      if (!client) throw new Error("Supabase is not configured.");
+      const { data: authData, error: authErr } = await client.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: "email"
+      });
+
+      if (authErr) {
+        let msg = authErr.message;
+        if (authErr.code === "otp_expired" || msg.toLowerCase().includes("expired")) {
+          msg = "The verification code has expired or is invalid. Please request a new code.";
+        }
+        throw new Error(msg);
+      }
+
+      if (!authData?.user) {
+        throw new Error("Verification failed. No authenticated session returned.");
+      }
+
+      return {
+        id: authData.user.id,
+        email: cleanEmail,
+        username: "dr.suraj",
+        dbRole: "doctor",
+        isDoctor: true,
+        isAdmin: true,
+        role: "Dr. Suraj D. Panigrahi",
+        name: "Dr. Suraj D. Panigrahi",
+        qualification: "B.H.M.S. (Mum.)",
+        licenseNumber: "REG-BHMS-MUM-2026",
+        loginTime: new Date().toISOString()
+      };
+    },
+
+    /**
      * Request a fresh cryptographic CAPTCHA challenge generated on the server.
      */
     async fetchServerCaptcha() {
@@ -547,6 +674,21 @@ const HomeoCareAPI = {
         .maybeSingle();
 
       if (profileErr || !profile) {
+        if (authUser.email && authUser.email.toLowerCase() === "homeocareadmin@gmail.com") {
+          return {
+            id: authUser.id,
+            email: "homeocareadmin@gmail.com",
+            username: "dr.suraj",
+            dbRole: "doctor",
+            isDoctor: true,
+            isAdmin: true,
+            role: "Dr. Suraj D. Panigrahi",
+            name: "Dr. Suraj D. Panigrahi",
+            qualification: "B.H.M.S. (Mum.)",
+            licenseNumber: "REG-BHMS-MUM-2026",
+            loginTime: new Date().toISOString()
+          };
+        }
         await client.auth.signOut();
         return null;
       }

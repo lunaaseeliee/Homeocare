@@ -22,6 +22,9 @@ function isCommonPassword(password) {
   return COMMONLY_USED_PASSWORDS.has(clean);
 }
 
+// Single authorized clinic administrator email for OTP login
+const AUTHORIZED_ADMIN_EMAIL = 'homeocareadmin@gmail.com';
+
 // Server-side in-memory stores for single-use CAPTCHAs and IP rate limiting
 const SERVER_CAPTCHAS = new Map(); // challengeId -> { text, expiresAt, used, ip }
 const RATE_LIMITS = new Map();     // `${bucket}:${ip}` -> { count, resetAt }
@@ -433,6 +436,272 @@ const server = http.createServer(async (req, res) => {
           })
         );
       });
+    return;
+  }
+
+  // 1c. Single-Email OTP Authentication Endpoints (Authorized: homeocareadmin@gmail.com)
+  if (cleanUrl === '/api/auth/send-otp' && req.method === 'POST') {
+    const limit = checkRateLimit('send-otp', clientIp, 10, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      res.writeHead(429, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Retry-After': String(limit.retryAfterSec)
+      });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: `Too many verification code requests. Please wait ${Math.ceil(limit.retryAfterSec / 60)} minutes before retrying.`
+        })
+      );
+      return;
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      const email = String(body.email || '').trim().toLowerCase();
+
+      if (email !== AUTHORIZED_ADMIN_EMAIL) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            ok: false,
+            error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted to request access.`
+          })
+        );
+        return;
+      }
+
+      const config = getSafePublicSupabaseConfig();
+      if (!config.configured) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Supabase configuration is missing on server.' }));
+        return;
+      }
+
+      const otpRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/otp`, {
+        method: 'POST',
+        headers: {
+          apikey: config.publishableKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: AUTHORIZED_ADMIN_EMAIL,
+          create_user: false
+        })
+      });
+
+      if (otpRes.status === 429) {
+        const data = await otpRes.json().catch(() => ({}));
+        res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            ok: false,
+            error: data.msg || 'For security purposes, you can only request a code once per minute. Please check your inbox or wait before retrying.'
+          })
+        );
+        return;
+      }
+
+      if (!otpRes.ok) {
+        const errData = await otpRes.json().catch(() => ({}));
+        res.writeHead(otpRes.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            ok: false,
+            error: errData.msg || errData.message || 'Failed to dispatch verification code.'
+          })
+        );
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          email: AUTHORIZED_ADMIN_EMAIL,
+          message: `A 6-digit verification code has been dispatched to ${AUTHORIZED_ADMIN_EMAIL}.`
+        })
+      );
+      return;
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+      return;
+    }
+  }
+
+  if (cleanUrl === '/api/auth/verify-otp' && req.method === 'POST') {
+    const limit = checkRateLimit('verify-otp', clientIp, 20, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      res.writeHead(429, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Retry-After': String(limit.retryAfterSec)
+      });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: `Too many verification attempts. Please wait ${Math.ceil(limit.retryAfterSec / 60)} minutes before retrying.`
+        })
+      );
+      return;
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      const email = String(body.email || '').trim().toLowerCase();
+      const token = String(body.token || body.code || '').trim();
+
+      if (email !== AUTHORIZED_ADMIN_EMAIL) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            ok: false,
+            error: `Access restricted: Only the authorized HomeoCare administrator (${AUTHORIZED_ADMIN_EMAIL}) is permitted.`
+          })
+        );
+        return;
+      }
+
+      if (!token || token.length !== 6) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Please enter a valid 6-digit verification code.' }));
+        return;
+      }
+
+      const config = getSafePublicSupabaseConfig();
+      if (!config.configured) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Supabase configuration is missing on server.' }));
+        return;
+      }
+
+      const verifyRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/verify`, {
+        method: 'POST',
+        headers: {
+          apikey: config.publishableKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: AUTHORIZED_ADMIN_EMAIL,
+          token: token,
+          type: 'email'
+        })
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok) {
+        let errMsg = verifyData.msg || verifyData.message || 'Invalid verification code.';
+        if (verifyData.error_code === 'otp_expired' || errMsg.toLowerCase().includes('expired')) {
+          errMsg = 'The verification code has expired or is invalid. Please request a new code.';
+        }
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: errMsg }));
+        return;
+      }
+
+      const sessionUser = {
+        id: verifyData.user?.id || 'admin-doc',
+        email: AUTHORIZED_ADMIN_EMAIL,
+        username: 'dr.suraj',
+        dbRole: 'doctor',
+        isDoctor: true,
+        isAdmin: true,
+        role: 'Dr. Suraj D. Panigrahi',
+        name: 'Dr. Suraj D. Panigrahi',
+        qualification: 'B.H.M.S. (Mum.)',
+        licenseNumber: 'REG-BHMS-MUM-2026',
+        loginTime: new Date().toISOString()
+      };
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          session: verifyData,
+          user: sessionUser,
+          message: 'Verification successful. Welcome to HomeoCare!'
+        })
+      );
+      return;
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+      return;
+    }
+  }
+
+  if (cleanUrl === '/api/auth/verify-session' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const accessToken = String(body.accessToken || '').trim();
+      if (!accessToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Missing access token.' }));
+        return;
+      }
+      const config = getSafePublicSupabaseConfig();
+      const userRes = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          apikey: config.publishableKey,
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      if (!userRes.ok) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid or expired session token.' }));
+        return;
+      }
+      const userData = await userRes.json();
+      if (userData.email?.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Unauthorized: Session user is not the clinic administrator.' }));
+        return;
+      }
+      const sessionUser = {
+        id: userData.id,
+        email: AUTHORIZED_ADMIN_EMAIL,
+        username: 'dr.suraj',
+        dbRole: 'doctor',
+        isDoctor: true,
+        isAdmin: true,
+        role: 'Dr. Suraj D. Panigrahi',
+        name: 'Dr. Suraj D. Panigrahi',
+        qualification: 'B.H.M.S. (Mum.)',
+        licenseNumber: 'REG-BHMS-MUM-2026',
+        loginTime: new Date().toISOString()
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, user: sessionUser }));
+      return;
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+      return;
+    }
+  }
+
+  // 1d. Rate-Limited Server-Side Registration Endpoint (Disabled in Single-Email OTP Mode)
+  if (cleanUrl === '/api/auth/register' && req.method === 'POST') {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: 'Public registration is disabled. Please log in using the authorized email (homeocareadmin@gmail.com) via OTP.'
+      })
+    );
+    return;
+  }
+
+  if (cleanUrl === '/api/auth/verify-registration' && req.method === 'POST') {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: 'Public registration is disabled. Please log in using the authorized email (homeocareadmin@gmail.com) via OTP.'
+      })
+    );
     return;
   }
 

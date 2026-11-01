@@ -118,130 +118,94 @@
         </div>
       </div>
 
-      <!-- RIGHT SECTION — AUTHENTICATION CARD -->
+      <!-- RIGHT SECTION — SINGLE-EMAIL OTP AUTHENTICATION CARD -->
       <div class="auth-card-panel">
-        <div class="glass-card auth-main-card">
+        <div class="glass-card auth-main-card" id="authMainCard">
           <div class="auth-card-header">
             <div class="auth-card-emblem">
-              <i data-lucide="shield-plus"></i>
+              <i data-lucide="shield-check"></i>
             </div>
-            <h2 class="auth-card-title">Welcome to HomeoCare</h2>
-            <p class="auth-card-subtitle">Sign in to your practitioner workspace</p>
+            <h2 class="auth-card-title">HomeoCare Clinical Login</h2>
+            <p class="auth-card-subtitle">Single-Email OTP Authentication • Shri Siddhivinayak Clinic</p>
           </div>
 
-          <!-- Auth Tabs: Login vs Register -->
-          <div class="auth-tab-switch" id="authTabSwitch" style="display: flex;">
-            <button type="button" class="auth-tab-btn active" id="tabLoginBtn">
-              <i data-lucide="log-in"></i>
-              <span>Login</span>
-            </button>
-            <button type="button" class="auth-tab-btn" id="tabRegisterBtn">
-              <i data-lucide="user-plus"></i>
-              <span>Register</span>
-            </button>
+          <div class="otp-auth-badge">
+            <i data-lucide="shield"></i>
+            <span>Authorized Administrator Access</span>
           </div>
 
           <!-- Generic Alert Container -->
           <div class="auth-alert-message" id="authAlertBox" style="display: none;"></div>
 
-          <!-- LOGIN FORM -->
-          <form class="auth-form" id="loginForm">
+          <!-- STEP 1: REQUEST OTP FORM -->
+          <form class="auth-form" id="otpRequestForm">
             <div class="form-group">
-              <label for="loginUsername">Username</label>
+              <label for="otpEmailInput">Authorized Clinic Email</label>
               <div class="auth-input-wrapper">
-                <i data-lucide="user" class="input-icon"></i>
-                <input type="text" id="loginUsername" class="auth-input" placeholder="Enter your username" required autocomplete="username">
+                <i data-lucide="mail" class="input-icon"></i>
+                <input
+                  type="email"
+                  id="otpEmailInput"
+                  class="auth-input"
+                  value="homeocareadmin@gmail.com"
+                  placeholder="homeocareadmin@gmail.com"
+                  required
+                  autocomplete="email"
+                >
               </div>
+              <span class="auth-field-hint">
+                <i data-lucide="info" style="width: 13px; height: 13px; vertical-align: middle;"></i>
+                Only the approved clinic administrator email (<strong>homeocareadmin@gmail.com</strong>) is authorized.
+              </span>
             </div>
 
-            <div class="form-group">
-              <label for="loginPassword">Password</label>
-              <div class="auth-input-wrapper">
-                <i data-lucide="lock" class="input-icon"></i>
-                <input type="password" id="loginPassword" class="auth-input" placeholder="Enter your password" required autocomplete="current-password">
-                <button type="button" class="password-toggle-btn" id="loginPasswordToggle" aria-label="Toggle password visibility">
-                  <i data-lucide="eye" id="loginEyeIcon"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="auth-action-row">
-              <button type="submit" class="interactive-btn glow-cta-btn primary-glow full-width-btn" id="loginSubmitBtn">
-                <i data-lucide="log-in"></i>
-                <span>Login</span>
+            <div class="auth-action-row" style="margin-top: 20px;">
+              <button type="submit" class="interactive-btn primary-btn-solid full-width-btn" id="sendOtpSubmitBtn">
+                <i data-lucide="send"></i>
+                <span>Send Verification Code</span>
               </button>
             </div>
           </form>
 
-          <!-- REGISTRATION FORM -->
-          <form class="auth-form" id="registerForm" style="display: none;">
-            <div class="form-group">
-              <label for="regUsername">Username</label>
-              <div class="auth-input-wrapper">
-                <i data-lucide="user" class="input-icon"></i>
-                <input type="text" id="regUsername" class="auth-input" placeholder="Choose a username" required autocomplete="username">
+          <!-- STEP 2: VERIFY 6-DIGIT OTP FORM (Initially Hidden) -->
+          <form class="auth-form" id="otpVerifyForm" style="display: none;">
+            <div class="otp-sent-banner">
+              <i data-lucide="mail-check" class="otp-banner-icon"></i>
+              <div class="otp-banner-text">
+                <strong>Verification Code Sent</strong>
+                <p>A 6-digit code was sent to <span id="otpTargetEmailDisplay">homeocareadmin@gmail.com</span>.</p>
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="regPassword">Password</label>
-              <div class="auth-input-wrapper">
-                <i data-lucide="lock" class="input-icon"></i>
-                <input type="password" id="regPassword" class="auth-input" placeholder="Minimum 8 characters" required autocomplete="new-password">
-                <button type="button" class="password-toggle-btn" id="regPasswordToggle" aria-label="Toggle password visibility">
-                  <i data-lucide="eye" id="regEyeIcon"></i>
-                </button>
-              </div>
-              <!-- Password Strength Bar -->
-              <div class="password-strength-container">
-                <div class="strength-bar-track">
-                  <div class="strength-bar-fill" id="strengthBarFill"></div>
-                </div>
-                <div class="strength-text" id="strengthText">Minimum 8 characters</div>
+            <div class="form-group" style="margin-top: 14px;">
+              <label style="display: block; text-align: center; margin-bottom: 12px; font-weight: 600;">
+                Enter 6-Digit Verification Code
+              </label>
+              <div class="otp-inputs-row" id="otpInputsContainer">
+                <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="0" autocomplete="off" autofocus>
+                <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="1" autocomplete="off">
+                <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="2" autocomplete="off">
+                <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="3" autocomplete="off">
+                <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="4" autocomplete="off">
+                <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-idx="5" autocomplete="off">
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="regConfirmPassword">Confirm Password</label>
-              <div class="auth-input-wrapper">
-                <i data-lucide="check-check" class="input-icon"></i>
-                <input type="password" id="regConfirmPassword" class="auth-input" placeholder="Re-enter password" required autocomplete="new-password">
-                <button type="button" class="password-toggle-btn" id="regConfirmPasswordToggle" aria-label="Toggle password visibility">
-                  <i data-lucide="eye" id="regConfirmEyeIcon"></i>
-                </button>
-              </div>
-              <span class="inline-validation-msg" id="confirmValidationMsg"></span>
+            <div class="auth-action-row" style="margin-top: 18px;">
+              <button type="submit" class="interactive-btn primary-btn-solid full-width-btn" id="verifyOtpSubmitBtn">
+                <i data-lucide="check-circle"></i>
+                <span>Verify & Login</span>
+              </button>
             </div>
 
-            <!-- Human Verification CAPTCHA System (Frosted-Glass Box) -->
-            <div class="captcha-verification-box">
-              <div class="captcha-header">
-                <div class="captcha-title">
-                  <i data-lucide="shield-check"></i>
-                  <span>Security Verification</span>
-                </div>
-                <span class="captcha-badge">Required</span>
-              </div>
-
-              <div class="captcha-display-row">
-                <div class="captcha-code-frame" id="captchaCodeFrame" title="Case-insensitive verification challenge">
-                  <canvas id="captchaCanvas" width="160" height="44"></canvas>
-                </div>
-                <button type="button" class="captcha-refresh-btn" id="captchaRefreshBtn" title="Regenerate CAPTCHA challenge" aria-label="Refresh challenge">
-                  <i data-lucide="refresh-cw"></i>
-                </button>
-              </div>
-
-              <div class="form-group" style="margin-top: 10px;">
-                <label for="captchaInput" style="font-size: 0.78rem;">Enter the 6-character code</label>
-                <input type="text" id="captchaInput" class="auth-input" placeholder="Enter 6 characters" maxlength="6" required autocomplete="off" style="text-transform: uppercase;">
-              </div>
-            </div>
-
-            <div class="auth-action-row">
-              <button type="submit" class="interactive-btn glow-cta-btn primary-glow full-width-btn" id="registerSubmitBtn">
-                <i data-lucide="user-plus"></i>
-                <span>Register</span>
+            <div class="otp-aux-actions">
+              <button type="button" class="otp-link-btn" id="resendOtpBtn" disabled>
+                <i data-lucide="rotate-cw"></i>
+                <span id="resendTimerText">Resend code in 60s</span>
+              </button>
+              <button type="button" class="otp-link-btn" id="backToEmailBtn">
+                <i data-lucide="arrow-left"></i>
+                <span>Change Email</span>
               </button>
             </div>
           </form>
