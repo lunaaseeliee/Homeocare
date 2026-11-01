@@ -4030,15 +4030,18 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
   const state = getSmartFieldState(patient, sectionKey, fieldKey);
   const domKey = `${sectionKey}_${fieldKey}`;
   const selectedSet = new Set(state.chips.map(c => c.toLowerCase()));
-  const hasEntriesOrNote = (state.chips && state.chips.length > 0) || (state.notes && state.notes.trim().length > 0) || Boolean(state.showNote);
+  const hasChips = state.chips && state.chips.length > 0;
+  const hasSavedNote = Boolean(state.notes && state.notes.trim());
 
+  // Selected conditions rendered as compact muted grey text items with delicate remove control
   const chipsHtml = state.chips.map((chipText, idx) => `
-    <span class="hc-chip" data-chip-value="${escAttr(chipText)}">
-      <span>${escAttr(chipText)}</span>
+    <span class="hc-selected-item" data-chip-value="${escAttr(chipText)}">
+      <span class="hc-selected-text">${escAttr(chipText)}</span>
       <button
         type="button"
-        class="hc-chip-remove"
+        class="hc-selected-remove"
         aria-label="Remove ${escAttr(chipText)}"
+        title="Remove ${escAttr(chipText)}"
         onclick="removeSmartChip(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', ${idx})"
       >&times;</button>
     </span>
@@ -4059,33 +4062,42 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
     `;
   }).join("");
 
-  const noteInputHtml = (hasEntriesOrNote && fieldDef.notePlaceholder)
-    ? `
-      <div class="hc-smart-note-wrap">
-        ${fieldDef.noteMultiline
-          ? `<textarea
-              id="smartNote_${domKey}"
-              class="hc-smart-note-textarea"
-              rows="2"
-              placeholder="${escAttr(fieldDef.notePlaceholder)}"
-              oninput="handleSmartNoteInput('${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', this.value)"
-            >${escAttr(state.notes)}</textarea>`
-          : `<input
-              type="text"
-              id="smartNote_${domKey}"
-              class="hc-smart-note-input"
-              placeholder="${escAttr(fieldDef.notePlaceholder)}"
-              value="${escAttr(state.notes)}"
-              oninput="handleSmartNoteInput('${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', this.value)"
-            >`
-        }
-      </div>
-    `
-    : "";
+  // Saved note displayed cleanly as subtle observation text (no permanently visible empty box)
+  const savedNoteHtml = (hasSavedNote && !state.isEditingNote) ? `
+    <div class="hc-saved-note-text" id="smartNoteSaved_${domKey}">
+      <span class="hc-note-body">${escAttr(state.notes)}</span>
+      <button
+        type="button"
+        class="hc-note-edit-trigger"
+        title="Edit observation note"
+        onclick="openSmartNoteInput(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+      >✎ Edit</button>
+    </div>
+  ` : "";
+
+  // Editing input box appears only when user actively clicks to add/edit a note
+  const editingNoteHtml = state.isEditingNote ? `
+    <div class="hc-smart-note-wrap active" id="smartNoteWrap_${domKey}">
+      <input
+        type="text"
+        id="smartNote_${domKey}"
+        class="hc-smart-note-input"
+        placeholder="${escAttr(fieldDef.notePlaceholder || 'Observation note...')}"
+        value="${escAttr(state.notes || '')}"
+        oninput="handleSmartNoteInput('${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', this.value)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();closeSmartNoteInput(event,'${escAttr(patient.id)}','${escAttr(sectionKey)}','${escAttr(fieldKey)}');}"
+      >
+      <button
+        type="button"
+        class="hc-custom-entry-save"
+        onclick="closeSmartNoteInput(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+      >Done</button>
+    </div>
+  ` : "";
 
   return `
-    <div class="hc-smart-field ${hasEntriesOrNote ? 'has-content' : 'is-empty'}" id="smartField_${domKey}" data-section="${escAttr(sectionKey)}" data-field="${escAttr(fieldKey)}">
-      <!-- Compact Field Row: Title + Description on Left, + Add Button on Right -->
+    <div class="hc-smart-field ${hasChips || hasSavedNote ? 'has-content' : 'is-empty'}" id="smartField_${domKey}" data-section="${escAttr(sectionKey)}" data-field="${escAttr(fieldKey)}">
+      <!-- Field Header: Field Name on Left, + Add Button on Right -->
       <div class="hc-smart-field-head">
         <label class="hc-smart-title" for="smartAddBtn_${domKey}">${escAttr(fieldDef.label)}</label>
 
@@ -4117,26 +4129,24 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
             >
               <span>+ Custom Entry...</span>
             </button>
-            ${!hasEntriesOrNote ? `
-              <button
-                type="button"
-                class="hc-popover-option hc-popover-option-custom"
-                role="menuitem"
-                onclick="openSmartNoteInput(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
-              >
-                <span>+ Add Note...</span>
-              </button>
-            ` : ""}
+            <button
+              type="button"
+              class="hc-popover-option hc-popover-option-custom"
+              role="menuitem"
+              onclick="openSmartNoteInput(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+            >
+              <span>${hasSavedNote ? '✎ Edit Observation...' : '+ Add Observation...'}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Selected Chips Display (Neatly beneath field header when present) -->
-      ${state.chips && state.chips.length > 0 ? `
-        <div class="hc-chips-row" id="smartChipsRow_${domKey}">
+      <!-- Selected conditions: small grey text directly underneath field name -->
+      ${hasChips ? `
+        <div class="hc-selected-conditions-list" id="smartChipsRow_${domKey}">
           ${chipsHtml}
         </div>
-      ` : `<div class="hc-chips-row" id="smartChipsRow_${domKey}" style="display: none;"></div>`}
+      ` : `<div class="hc-selected-conditions-list" id="smartChipsRow_${domKey}" style="display: none;"></div>`}
 
       <!-- Custom Entry Row -->
       <div class="hc-custom-entry-row" id="smartCustomRow_${domKey}">
@@ -4159,7 +4169,8 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
         >Cancel</button>
       </div>
 
-      ${noteInputHtml}
+      ${savedNoteHtml}
+      ${editingNoteHtml}
     </div>
   `;
 }
@@ -4259,9 +4270,7 @@ window.removeSmartChip = function(event, patientId, sectionKey, fieldKey, chipIn
   if (chipIndex >= 0 && chipIndex < state.chips.length) {
     state.chips.splice(chipIndex, 1);
   }
-  if (state.chips.length === 0 && (!state.notes || !state.notes.trim())) {
-    state.showNote = false;
-  }
+  
 
   syncSmartSectionSummaries(patient, sectionKey);
   refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
@@ -4294,7 +4303,7 @@ window.openSmartNoteInput = function(event, patientId, sectionKey, fieldKey) {
   const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
   if (!patient) return;
   const state = getSmartFieldState(patient, sectionKey, fieldKey);
-  state.showNote = true;
+  state.isEditingNote = true;
   closeAllSmartPopovers();
   refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
   const domKey = `${sectionKey}_${fieldKey}`;
@@ -4302,6 +4311,25 @@ window.openSmartNoteInput = function(event, patientId, sectionKey, fieldKey) {
   if (noteEl) {
     setTimeout(() => noteEl.focus(), 25);
   }
+};
+
+window.closeSmartNoteInput = function(event, patientId, sectionKey, fieldKey) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const noteEl = document.getElementById(`smartNote_${domKey}`);
+  if (noteEl) {
+    state.notes = noteEl.value.trim();
+  }
+  state.isEditingNote = false;
+  syncSmartSectionSummaries(patient, sectionKey);
+  refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
+  triggerSmartAutosave(patientId, sectionKey);
 };
 
 window.closeSmartCustomEntry = function(event, sectionKey, fieldKey) {
@@ -4674,7 +4702,7 @@ function renderPatientCaseDossier(patient) {
                 ${renderSmartAddField(p, "past", "pastIllnesses")}
                 ${renderSmartAddField(p, "past", "recurrentInfections")}
               </div>
-              <div style="margin-top: 18px;">
+              <div style="margin-top: 10px;">
                 ${renderSmartAddField(p, "past", "hospitalizationsSurgeries")}
               </div>
             </div>
@@ -4766,7 +4794,7 @@ function renderPatientCaseDossier(patient) {
                 ${renderSmartAddField(p, "personal", "perspiration")}
                 ${renderSmartAddField(p, "personal", "habits")}
               </div>
-              <div style="margin-top: 18px;">
+              <div style="margin-top: 10px;">
                 ${renderSmartAddField(p, "personal", "hobbies")}
               </div>
             </div>
@@ -4797,7 +4825,7 @@ function renderPatientCaseDossier(patient) {
                 ${renderSmartAddField(p, "personal", "sleep")}
                 ${renderSmartAddField(p, "personal", "dreams")}
               </div>
-              <div style="margin-top: 18px;">
+              <div style="margin-top: 10px;">
                 ${renderSmartAddField(p, "personal", "menstrualHistory")}
               </div>
 
@@ -4844,7 +4872,7 @@ function renderPatientCaseDossier(patient) {
                 ${renderSmartAddField(p, "mind", "socialPartyEnv")}
                 ${renderSmartAddField(p, "mind", "friendsComfort")}
               </div>
-              <div style="margin-top: 18px;">
+              <div style="margin-top: 10px;">
                 ${renderSmartAddField(p, "mind", "introExtrovert")}
               </div>
             </div>
@@ -4864,7 +4892,7 @@ function renderPatientCaseDossier(patient) {
                 ${renderSmartAddField(p, "mind", "anxiety")}
                 ${renderSmartAddField(p, "mind", "stressResponses")}
               </div>
-              <div style="margin-top: 18px;">
+              <div style="margin-top: 10px;">
                 ${renderSmartAddField(p, "mind", "additionalObservations")}
               </div>
 
