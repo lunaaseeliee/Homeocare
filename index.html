@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261102_v4">
+  <link rel="stylesheet" href="style.css?v=20261102_v5">
   <!-- Lucide Icons (Local bundle with CDN fallback) -->
   <script src="lucide.min.js"></script>
   <script>
@@ -1545,8 +1545,7 @@
         <div class="modal-title-group">
           <i data-lucide="calendar-clock" class="modal-title-icon"></i>
           <div>
-            <h3 id="progressModalTitle">Record Consultation / Follow-Up Progress</h3>
-            <p>Appends chronologically to the patient's Case Record & Progress Timeline</p>
+            <h3 id="progressModalTitle">Record Consultation</h3>
           </div>
         </div>
         <button class="modal-close-btn" id="progressModalCloseBtn" aria-label="Close modal">
@@ -1576,13 +1575,13 @@
 
           <div class="form-group">
             <label for="progObservations">Follow-up Observations & Symptom Changes *</label>
-            <textarea id="progObservations" class="glass-input" rows="3" placeholder="Record changes in chief complaint, general modalities, sleep, appetite, and vital response..." required></textarea>
+            <textarea id="progObservations" class="glass-input" rows="3" placeholder="Observations and symptom changes..." required></textarea>
           </div>
 
           <div class="form-row-2">
             <div class="form-group">
               <label for="progMedicine">Medicines & Potency Prescribed *</label>
-              <input type="text" id="progMedicine" class="glass-input" placeholder="e.g. Sulphur 200C (Single Dose) + Sac Lac" required>
+              <input type="text" id="progMedicine" class="glass-input" placeholder="Prescribed medicine and potency" required>
             </div>
             <div class="form-group">
               <label for="progOutcomeStatus">Clinical Progress Status</label>
@@ -1598,7 +1597,7 @@
 
           <div class="form-group">
             <label for="progNextInstructions">Treatment Plan / Next Follow-up Advice</label>
-            <input type="text" id="progNextInstructions" class="glass-input" placeholder="e.g. Review after 14 days; avoid raw onion, coffee, and camphor.">
+            <input type="text" id="progNextInstructions" class="glass-input" placeholder="Advice and instructions (optional)">
           </div>
 
           <div class="modal-actions" style="margin-top: 18px;">
@@ -1621,8 +1620,7 @@
           <i data-lucide="clipboard-pen-line" class="modal-title-icon"></i>
           <div>
             <h3>Add Characteristic Rubric</h3>
-            <p>Record symptoms and modality grading for active case</p>
-          </div>
+                      </div>
         </div>
         <button class="modal-close-btn" id="symptomModalCloseBtn" aria-label="Close modal">
           <i data-lucide="x"></i>
@@ -1633,7 +1631,7 @@
         <form id="symptomForm">
           <div class="form-group">
             <label for="rubricInput">Symptom Expression / Rubric *</label>
-            <input type="text" id="rubricInput" class="glass-input" placeholder="e.g. Occipital throb extending to forehead" required>
+            <input type="text" id="rubricInput" class="glass-input" placeholder="Symptom or rubric" required>
           </div>
           <div class="form-row-2">
             <div class="form-group">
@@ -1646,12 +1644,12 @@
             </div>
             <div class="form-group">
               <label for="modalitiesInput">Modalities (&lt; Agg / &gt; Amel)</label>
-              <input type="text" id="modalitiesInput" class="glass-input" placeholder="e.g. < twilight, > cool drafts">
+              <input type="text" id="modalitiesInput" class="glass-input" placeholder="Modalities (< Agg / > Amel)">
             </div>
           </div>
           <div class="form-group">
             <label for="candidateRemedyInput">Target Remedies (Optional)</label>
-            <input type="text" id="candidateRemedyInput" class="glass-input" placeholder="e.g. Phosphorus, Belladonna, Spigelia">
+            <input type="text" id="candidateRemedyInput" class="glass-input" placeholder="Target remedies (optional)">
           </div>
           <div class="modal-actions">
             <button type="button" class="interactive-btn secondary-btn" id="symptomModalCancelBtn">Cancel</button>
@@ -1673,8 +1671,7 @@
           <i data-lucide="calendar-plus" class="modal-title-icon"></i>
           <div>
             <h3>Schedule Clinic Visit</h3>
-            <p>Book consultation for Dr. Suraj D. Panigrahi</p>
-          </div>
+                      </div>
         </div>
         <button class="modal-close-btn" id="aptModalCloseBtn" aria-label="Close modal">
           <i data-lucide="x"></i>
@@ -1826,9 +1823,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Supabase Client Layer -->
-  <script src="supabase-client.js?v=20261102_v4"></script>
+  <script src="supabase-client.js?v=20261102_v5"></script>
   <!-- Application Logic -->
-  <script src="app.js?v=20261102_v4"></script>
+  <script src="app.js?v=20261102_v5"></script>
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {

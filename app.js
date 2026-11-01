@@ -3313,7 +3313,6 @@ const CLINICAL_FIELD_CATALOG = {
     // Section A — Past Medical History
     pastIllnesses: {
       label: "Past Illnesses",
-      helper: "Select notable childhood or adult medical conditions.",
       options: [
         "Typhoid",
         "Jaundice",
@@ -3326,12 +3325,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Skin Eruptions",
         "No reported conditions"
       ],
-      notePlaceholder: "Optional notes (e.g. year of onset, severity, or legacy history notes)...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["medicalHistory"]
     },
     recurrentInfections: {
-      label: "Previous Illnesses & Recurrent Infections",
-      helper: "Select recurring infections or repeat acute complaints.",
+      label: "Recurring Infections",
       options: [
         "Recurrent Tonsillitis",
         "Recurrent Cold / Coryza",
@@ -3344,12 +3342,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Gastric Infections",
         "No reported conditions"
       ],
-      notePlaceholder: "Optional notes on frequency or seasonal recurrence...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["previousIllnesses"]
     },
     hospitalizationsSurgeries: {
       label: "Hospitalizations & Surgeries",
-      helper: "Record prior surgical procedures or inpatient hospital stays.",
       options: [
         "Appendectomy",
         "Tonsillectomy",
@@ -3361,13 +3358,12 @@ const CLINICAL_FIELD_CATALOG = {
         "Hospitalized for Acute Fever",
         "No prior hospitalizations"
       ],
-      notePlaceholder: "Optional surgical details, hospital dates, or recovery notes..."
+      notePlaceholder: "Notes (optional)"
     },
 
     // Section B — Treatment History
     previousTreatments: {
-      label: "Previous Treatments & Medications",
-      helper: "Select prior treatment systems or ongoing medication categories.",
+      label: "Treatments & Medications",
       options: [
         "Allopathic",
         "Ayurvedic",
@@ -3381,12 +3377,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Thyroid Supplement",
         "No prior medications"
       ],
-      notePlaceholder: "Optional free-text: specific medication names, dosages, or dates...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["previousTreatments"]
     },
     associatedComplaints: {
       label: "Associated Complaints",
-      helper: "Select secondary symptoms accompanying the chief complaint.",
       options: [
         "Acidity / Heartburn",
         "Gas / Bloating",
@@ -3400,12 +3395,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Backache",
         "None reported"
       ],
-      notePlaceholder: "Optional free-text details on associated complaints...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["associatedComplaints"]
     },
     previousConsultations: {
-      label: "Previous Consultation Information",
-      helper: "Record prior physician or specialist consultations.",
+      label: "Previous Consultations",
       options: [
         "General Physician Consulted",
         "Specialist / MD Consulted",
@@ -3416,12 +3410,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Prior Homeopathic Consultation",
         "First Consultation for Complaint"
       ],
-      notePlaceholder: "Optional consultation notes, physician remarks, or dates...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["previousConsultations"]
     },
     diagnosticReports: {
       label: "Diagnostic Reports",
-      helper: "Select laboratory or imaging investigations reviewed.",
       options: [
         "CBC / Blood Routine",
         "Blood Sugar (Fasting / PP / HbA1c)",
@@ -3434,13 +3427,12 @@ const CLINICAL_FIELD_CATALOG = {
         "MRI / CT Scan",
         "No reports brought"
       ],
-      notePlaceholder: "Optional report findings, values, or dates..."
+      notePlaceholder: "Notes (optional)"
     },
 
     // Section C — Family Medical History
     familyFather: {
-      label: "Father's Health History",
-      helper: "Select hereditary or chronic conditions in father.",
+      label: "Father",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3455,12 +3447,11 @@ const CLINICAL_FIELD_CATALOG = {
         "No reported conditions",
         "Information not available"
       ],
-      notePlaceholder: "Optional note on father's health history...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["familyFather"]
     },
     familyMother: {
-      label: "Mother's Health History",
-      helper: "Select hereditary or chronic conditions in mother.",
+      label: "Mother",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3475,12 +3466,11 @@ const CLINICAL_FIELD_CATALOG = {
         "No reported conditions",
         "Information not available"
       ],
-      notePlaceholder: "Optional note on mother's health history...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["familyMother"]
     },
     familyBrother: {
-      label: "Brother(s) Health History",
-      helper: "Select health conditions reported in brother(s).",
+      label: "Brothers",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3496,12 +3486,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Information not available",
         "Not applicable (No brothers)"
       ],
-      notePlaceholder: "Optional note on brother(s) health history...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["familyBrother"]
     },
     familySister: {
-      label: "Sister(s) Health History",
-      helper: "Select health conditions reported in sister(s).",
+      label: "Sisters",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3517,15 +3506,14 @@ const CLINICAL_FIELD_CATALOG = {
         "Information not available",
         "Not applicable (No sisters)"
       ],
-      notePlaceholder: "Optional note on sister(s) health history...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["familySister"]
     }
   },
 
   personal: {
     appetite: {
-      label: "1. Appetite",
-      helper: "Select meal regularity, hunger intensity, and satiety pattern.",
+      label: "Appetite",
       options: [
         "Good / Regular",
         "Diminished / Low",
@@ -3534,12 +3522,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Hunger Causes Headache",
         "Variable Appetite"
       ],
-      notePlaceholder: "Optional appetite observation...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["appetite"]
     },
     craving: {
-      label: "2. Cravings (Desires)",
-      helper: "Select specific food or taste desires.",
+      label: "Cravings",
       options: [
         "Sweets",
         "Salty Food",
@@ -3552,12 +3539,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Eggs",
         "No specific craving"
       ],
-      notePlaceholder: "Optional craving details...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["craving"]
     },
     aversion: {
-      label: "3. Aversion",
-      helper: "Select foods or tastes the patient dislikes or avoids.",
+      label: "Aversions",
       options: [
         "Milk",
         "Fats / Oily Food",
@@ -3569,12 +3555,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Garlic / Onion",
         "No specific aversion"
       ],
-      notePlaceholder: "Optional aversion details...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["aversion"]
     },
     thirst: {
-      label: "4. Thirst",
-      helper: "Select water intake quantity, frequency, and temperature preference.",
+      label: "Thirst",
       options: [
         "Normal (2–3L/day)",
         "Thirstless",
@@ -3584,12 +3569,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Desires Cold Water",
         "Desires Warm Water"
       ],
-      notePlaceholder: "Optional thirst notes...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["thirst"]
     },
     urine: {
-      label: "5. Urine",
-      helper: "Select urinary frequency, flow, or associated sensations.",
+      label: "Urine",
       options: [
         "Normal / Clear",
         "Frequent Urination",
@@ -3599,12 +3583,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Offensive Odor",
         "Urgency"
       ],
-      notePlaceholder: "Optional urine notes...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["urine"]
     },
     bowel: {
-      label: "6. Bowel",
-      helper: "Select stool regularity, consistency, and evacuation pattern.",
+      label: "Bowel",
       options: [
         "Regular / Satisfactory",
         "Constipation (Hard Stool)",
@@ -3614,12 +3597,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Morning Urgency",
         "Straining Required"
       ],
-      notePlaceholder: "Optional bowel notes...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["bowel"]
     },
     perspiration: {
-      label: "7. Perspiration (Sweat)",
-      helper: "Select sweat distribution, quantity, odor, or staining.",
+      label: "Perspiration",
       options: [
         "Moderate / Normal",
         "Profuse Perspiration",
@@ -3630,12 +3612,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Stains Linen Yellow",
         "Sweat on Slight Exertion"
       ],
-      notePlaceholder: "Optional perspiration notes...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["perspiration"]
     },
     habits: {
-      label: "8. Habits & Addictions",
-      helper: "Select daily beverage habits, lifestyle routines, or addictions.",
+      label: "Habits & Addictions",
       options: [
         "Tea (1–2 cups/day)",
         "Tea (Frequent)",
@@ -3646,12 +3627,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Irregular Meal Timings",
         "No addictions"
       ],
-      notePlaceholder: "Optional habit details...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["habits"]
     },
     hobbies: {
-      label: "9. Hobbies & Recreations",
-      helper: "Select leisure activities and personal interests.",
+      label: "Hobbies",
       options: [
         "Reading",
         "Music",
@@ -3662,24 +3642,22 @@ const CLINICAL_FIELD_CATALOG = {
         "Painting / Art",
         "Travelling"
       ],
-      notePlaceholder: "Optional hobby notes...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["hobbies"]
     },
     thermalBath: {
-      label: "10a. Thermal — Bath Preference",
-      helper: "Select preferred water temperature for bathing.",
+      label: "Bath Preference",
       options: [
         "Warm Water All Year",
         "Lukewarm / Tepid Water",
         "Cold Water Bath",
         "Warm in Winter, Cool in Summer"
       ],
-      notePlaceholder: "Optional bath temperature note...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["thermalBath"]
     },
     thermalCovering: {
-      label: "10b. Thermal — Covering, Fan & AC",
-      helper: "Select blanket, fan, and air-conditioning tolerance.",
+      label: "Covering & Air Conditioning",
       options: [
         "Needs Blanket Even in Summer",
         "Prefers Light Covering",
@@ -3687,24 +3665,22 @@ const CLINICAL_FIELD_CATALOG = {
         "Intolerant to Cold Draft / AC",
         "Prefers Fast Fan / Cool Room"
       ],
-      notePlaceholder: "Optional covering or draft note...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["thermalCovering"]
     },
     thermalFood: {
-      label: "10c. Thermal — Food & Drink Temperature",
-      helper: "Select thermal reaction to warm or cold food and drinks.",
+      label: "Food & Drink Temperature",
       options: [
         "Desires Warm / Hot Food",
         "Desires Cold Food & Drinks",
         "Aggravated by Cold Drinks / Ice",
         "Comfortable with Room Temperature"
       ],
-      notePlaceholder: "Optional food temperature note...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["thermalFood"]
     },
     thermalSeason: {
-      label: "10d. Thermal — Season & Overall Reaction",
-      helper: "Select overall constitutional thermal sensitivity.",
+      label: "Season & Weather Reaction",
       options: [
         "Chilly Patient (Worse in Winter)",
         "Hot Patient (Worse in Summer)",
@@ -3712,12 +3688,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Worse in Monsoon / Damp Weather",
         "Worse During Weather Change"
       ],
-      notePlaceholder: "Optional seasonal modality note...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["thermalSeason"]
     },
     sleep: {
-      label: "11. Sleep Pattern & Posture",
-      helper: "Select sleep quality, waking hours, and preferred sleeping posture.",
+      label: "Sleep Pattern & Posture",
       options: [
         "Sound & Refreshing",
         "Disturbed / Light Sleep",
@@ -3729,12 +3704,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Sleeps on Abdomen",
         "Sleeps on Back"
       ],
-      notePlaceholder: "Optional sleep details...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["sleep"]
     },
     dreams: {
-      label: "12. Dreams",
-      helper: "Select recurring dream themes or sleep imagery.",
+      label: "Dreams",
       options: [
         "Unremembered",
         "Anxious / Frightful Dreams",
@@ -3744,12 +3718,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Dreams of Deceased Relatives",
         "Pleasant Dreams"
       ],
-      notePlaceholder: "Optional dream narrative...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["dreams"]
     },
     menstrualHistory: {
-      label: "13. Menstrual / Gynaecological History",
-      helper: "Select cycle regularity, flow characteristics, and associated modalities.",
+      label: "Menstrual & Gynaecological History",
       options: [
         "Not Applicable",
         "Regular Cycle (28–30 Days)",
@@ -3761,7 +3734,7 @@ const CLINICAL_FIELD_CATALOG = {
         "Leucorrhoea Present",
         "Menopause Reached"
       ],
-      notePlaceholder: "Optional cycle details, LMP, or before/during/after menses modalities...",
+      notePlaceholder: "Notes (optional)",
       noteMultiline: true,
       legacyKeys: ["menstrualHistory"]
     }
@@ -3769,8 +3742,7 @@ const CLINICAL_FIELD_CATALOG = {
 
   mind: {
     workplaceEnv: {
-      label: "1. Workplace Environment",
-      helper: "Select occupational atmosphere, workload, and workplace relationships.",
+      label: "Workplace Environment",
       options: [
         "Calm & Supportive",
         "High Work Pressure / Deadlines",
@@ -3781,13 +3753,12 @@ const CLINICAL_FIELD_CATALOG = {
         "Student / Academic Pressure",
         "Retired"
       ],
-      notePlaceholder: "Optional narrative on occupational environment or stresses...",
+      notePlaceholder: "Notes (optional)",
       noteMultiline: true,
       legacyKeys: ["workplaceEnv"]
     },
     familyEnv: {
-      label: "2. Family Environment",
-      helper: "Select home atmosphere, family bonding, and domestic support.",
+      label: "Family Environment",
       options: [
         "Supportive & Harmonious",
         "Close Family Bonding",
@@ -3796,13 +3767,12 @@ const CLINICAL_FIELD_CATALOG = {
         "Financial Worry in Family",
         "Lives Independently"
       ],
-      notePlaceholder: "Optional narrative on family circumstances or home environment...",
+      notePlaceholder: "Notes (optional)",
       noteMultiline: true,
       legacyKeys: ["familyEnv"]
     },
     socialPartyEnv: {
-      label: "3. Social & Party Environment",
-      helper: "Select comfort level in social gatherings and crowds.",
+      label: "Social Gatherings",
       options: [
         "Enjoys Social Gatherings",
         "Selective Socializing",
@@ -3810,12 +3780,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Feels Drained in Large Groups",
         "Polite but Reserved"
       ],
-      notePlaceholder: "Optional social environment observation...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["socialPartyEnv"]
     },
     friendsComfort: {
-      label: "4. Friends & Social Comfort",
-      helper: "Select friendship circle preference and emotional sharing style.",
+      label: "Friends & Social Comfort",
       options: [
         "Few Close Trusted Friends",
         "Large Social Circle",
@@ -3823,24 +3792,22 @@ const CLINICAL_FIELD_CATALOG = {
         "Keeps Problems to Self",
         "Prefers Solitude When Upset"
       ],
-      notePlaceholder: "Optional note on social comfort...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["friendsComfort"]
     },
     introExtrovert: {
-      label: "5. Introvert / Extrovert Tendencies",
-      helper: "Select baseline temperament and social expression.",
+      label: "Temperament (Introvert / Extrovert)",
       options: [
         "Introverted & Observant",
         "Balanced (Ambivert)",
         "Extroverted & Expressive",
         "Reserved with Strangers, Open with Family"
       ],
-      notePlaceholder: "Optional temperament note...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["introExtrovert"]
     },
     emotionsFeelings: {
-      label: "6. Emotions & Feelings",
-      helper: "Select core emotional sensitivity, weeping tendency, and consolation response.",
+      label: "Emotions & Sensitivity",
       options: [
         "Sensitive & Empathetic",
         "Easily Moved to Tears",
@@ -3850,13 +3817,12 @@ const CLINICAL_FIELD_CATALOG = {
         "Affectionate & Caring",
         "Mood Fluctuations"
       ],
-      notePlaceholder: "Optional detailed emotional observations...",
+      notePlaceholder: "Notes (optional)",
       noteMultiline: true,
       legacyKeys: ["emotionsFeelings"]
     },
     thoughts: {
-      label: "7. Thoughts",
-      helper: "Select prevailing thought patterns and mental activity.",
+      label: "Thought Patterns",
       options: [
         "Calm & Focused",
         "Overthinking / Racing Thoughts",
@@ -3865,13 +3831,12 @@ const CLINICAL_FIELD_CATALOG = {
         "Thoughts Persist at Night",
         "Fastidious / Perfectionist"
       ],
-      notePlaceholder: "Optional narrative on thoughts or mental patterns...",
+      notePlaceholder: "Notes (optional)",
       noteMultiline: true,
       legacyKeys: ["thoughts"]
     },
     fearsCauses: {
-      label: "8. Fears & Their Causes",
-      helper: "Select specific fears, phobias, or triggers.",
+      label: "Fears & Causes",
       options: [
         "Fear of Disease / Health",
         "Fear of Being Alone",
@@ -3882,12 +3847,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Fear of Thunderstorms / Animals",
         "No specific fears reported"
       ],
-      notePlaceholder: "Optional details on fears and their causes...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["fearsCauses"]
     },
     angerCauses: {
-      label: "9. Anger & Its Causes",
-      helper: "Select anger triggers and how the patient expresses or suppresses anger.",
+      label: "Anger & Triggers",
       options: [
         "Rarely Angry / Calm",
         "Anger from Contradiction",
@@ -3896,12 +3860,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Quick Temper, Quickly Cools Down",
         "Irritable When Fatigued"
       ],
-      notePlaceholder: "Optional details on anger reactions...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["angerCauses"]
     },
     anxiety: {
-      label: "10. Anxiety",
-      helper: "Select anxiety patterns and physical or situational triggers.",
+      label: "Anxiety",
       options: [
         "Minimal / Calm",
         "Health Anxiety",
@@ -3910,12 +3873,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Anxiety About Trifles",
         "Palpitations / Restlessness with Anxiety"
       ],
-      notePlaceholder: "Optional anxiety observations...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["anxiety"]
     },
     stressResponses: {
-      label: "11. Stress & Emotional Responses",
-      helper: "Select behavioral or somatic responses to mental stress.",
+      label: "Stress Responses",
       options: [
         "Becomes Quiet & Withdrawn",
         "Seeks Reassurance / Company",
@@ -3924,12 +3886,11 @@ const CLINICAL_FIELD_CATALOG = {
         "Weeping Relieves Stress",
         "Irritable Under Stress"
       ],
-      notePlaceholder: "Optional stress response details...",
+      notePlaceholder: "Notes (optional)",
       legacyKeys: ["stressResponses"]
     },
     additionalObservations: {
-      label: "12. Additional Mental or Emotional Observations",
-      helper: "Select characteristic constitutional keynotes or add narrative notes.",
+      label: "Additional Mental Keynotes",
       options: [
         "Fastidious (Wants Order & Cleanliness)",
         "Strong Willpower",
@@ -3939,7 +3900,7 @@ const CLINICAL_FIELD_CATALOG = {
         "Religious / Philosophical Disposition",
         "Mild, Gentle, Yielding Disposition"
       ],
-      notePlaceholder: "Optional clinical narrative for characteristic mental or emotional keynotes...",
+      notePlaceholder: "Notes (optional)",
       noteMultiline: true,
       legacyKeys: ["additionalObservations"]
     }
@@ -4077,6 +4038,7 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
   const state = getSmartFieldState(patient, sectionKey, fieldKey);
   const domKey = `${sectionKey}_${fieldKey}`;
   const selectedSet = new Set(state.chips.map(c => c.toLowerCase()));
+  const hasEntriesOrNote = (state.chips && state.chips.length > 0) || (state.notes && state.notes.trim().length > 0) || Boolean(state.showNote);
 
   const chipsHtml = state.chips.map((chipText, idx) => `
     <span class="hc-chip" data-chip-value="${escAttr(chipText)}">
@@ -4106,7 +4068,7 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
     `;
   }).join("");
 
-  const noteInputHtml = fieldDef.notePlaceholder
+  const noteInputHtml = (hasEntriesOrNote && fieldDef.notePlaceholder)
     ? `
       <div class="hc-smart-note-wrap">
         ${fieldDef.noteMultiline
@@ -4131,12 +4093,9 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
     : "";
 
   return `
-    <div class="hc-smart-field" id="smartField_${domKey}" data-section="${escAttr(sectionKey)}" data-field="${escAttr(fieldKey)}">
+    <div class="hc-smart-field ${hasEntriesOrNote ? 'has-content' : 'is-empty'}" id="smartField_${domKey}" data-section="${escAttr(sectionKey)}" data-field="${escAttr(fieldKey)}">
       <div class="hc-smart-field-head">
-        <div>
-          <label class="hc-smart-label" for="smartAddBtn_${domKey}">${escAttr(fieldDef.label)}</label>
-          <p class="hc-smart-helper">${escAttr(fieldDef.helper)}</p>
-        </div>
+        <label class="hc-smart-label" for="smartAddBtn_${domKey}">${escAttr(fieldDef.label)}</label>
       </div>
 
       <div class="hc-chips-row" id="smartChipsRow_${domKey}">
@@ -4167,8 +4126,18 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
               role="menuitem"
               onclick="openSmartCustomEntry(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
             >
-              <span>+ Other / Custom Entry...</span>
+              <span>+ Custom Entry...</span>
             </button>
+            ${!hasEntriesOrNote ? `
+              <button
+                type="button"
+                class="hc-popover-option hc-popover-option-custom"
+                role="menuitem"
+                onclick="openSmartNoteInput(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+              >
+                <span>+ Add Note...</span>
+              </button>
+            ` : ""}
           </div>
         </div>
       </div>
@@ -4178,7 +4147,7 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
           type="text"
           id="smartCustomInput_${domKey}"
           class="hc-custom-entry-input"
-          placeholder="Type custom condition or observation..."
+          placeholder="Add condition"
           onkeydown="handleSmartCustomKeydown(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
         >
         <button
@@ -4273,6 +4242,7 @@ window.selectSmartChipOption = function(event, patientId, sectionKey, fieldKey, 
   if (!exists) {
     state.chips.push(cleanOpt);
   }
+  state.showNote = true;
 
   syncSmartSectionSummaries(patient, sectionKey);
   closeAllSmartPopovers();
@@ -4291,6 +4261,9 @@ window.removeSmartChip = function(event, patientId, sectionKey, fieldKey, chipIn
   const state = getSmartFieldState(patient, sectionKey, fieldKey);
   if (chipIndex >= 0 && chipIndex < state.chips.length) {
     state.chips.splice(chipIndex, 1);
+  }
+  if (state.chips.length === 0 && (!state.notes || !state.notes.trim())) {
+    state.showNote = false;
   }
 
   syncSmartSectionSummaries(patient, sectionKey);
@@ -4313,6 +4286,24 @@ window.openSmartCustomEntry = function(event, patientId, sectionKey, fieldKey) {
   if (customInput) {
     customInput.value = "";
     setTimeout(() => customInput.focus(), 20);
+  }
+};
+
+window.openSmartNoteInput = function(event, patientId, sectionKey, fieldKey) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  state.showNote = true;
+  closeAllSmartPopovers();
+  refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const noteEl = document.getElementById(`smartNote_${domKey}`);
+  if (noteEl) {
+    setTimeout(() => noteEl.focus(), 25);
   }
 };
 
@@ -4349,6 +4340,7 @@ window.submitSmartCustomEntry = function(event, patientId, sectionKey, fieldKey)
   if (!exists) {
     state.chips.push(customVal);
   }
+  state.showNote = true;
 
   syncSmartSectionSummaries(patient, sectionKey);
   refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
@@ -4498,12 +4490,12 @@ function renderPatientCaseDossier(patient) {
       <div class="hc-step-progress-bar" aria-label="Clinical Case Taking Steps">
         <button type="button" class="hc-step-progress-item ${activeTab === 'overview' ? 'active' : 'completed'}" onclick="switchPatientProfileTab('overview')">
           <span class="hc-step-num-circle">1</span>
-          <span>Step 1: Basic Registration</span>
+          <span>Step 1: Registration</span>
         </button>
         <div class="hc-step-divider-line"></div>
         <button type="button" class="hc-step-progress-item ${activeTab === 'past' ? 'active' : (hasPast ? 'completed' : '')}" onclick="switchPatientProfileTab('past')">
           <span class="hc-step-num-circle">2</span>
-          <span>Step 2: Past &amp; Family History</span>
+          <span>Step 2: Medical History</span>
         </button>
         <div class="hc-step-divider-line"></div>
         <button type="button" class="hc-step-progress-item ${activeTab === 'personal' ? 'active' : (hasPers ? 'completed' : '')}" onclick="switchPatientProfileTab('personal')">
@@ -4513,12 +4505,12 @@ function renderPatientCaseDossier(patient) {
         <div class="hc-step-divider-line"></div>
         <button type="button" class="hc-step-progress-item ${activeTab === 'mind' ? 'active' : (hasMind ? 'completed' : '')}" onclick="switchPatientProfileTab('mind')">
           <span class="hc-step-num-circle">4</span>
-          <span>Step 4: Mind &amp; Emotional</span>
+          <span>Step 4: Mind History</span>
         </button>
         <div class="hc-step-divider-line"></div>
         <button type="button" class="hc-step-progress-item ${(activeTab === 'consultations' || activeTab === 'timeline') ? 'active' : 'completed'}" onclick="switchPatientProfileTab('timeline')">
           <span class="hc-step-num-circle">5</span>
-          <span>Step 5: Progress Timeline</span>
+          <span>Step 5: Timeline</span>
         </button>
       </div>
 
@@ -4530,7 +4522,7 @@ function renderPatientCaseDossier(patient) {
         </button>
         <button type="button" class="hc-profile-tab-btn ${activeTab === 'past' ? 'active' : ''}" onclick="switchPatientProfileTab('past')">
           <i data-lucide="history"></i>
-          <span>Past History</span>
+          <span>Medical History</span>
         </button>
         <button type="button" class="hc-profile-tab-btn ${activeTab === 'personal' ? 'active' : ''}" onclick="switchPatientProfileTab('personal')">
           <i data-lucide="user-check"></i>
@@ -4542,11 +4534,11 @@ function renderPatientCaseDossier(patient) {
         </button>
         <button type="button" class="hc-profile-tab-btn ${activeTab === 'consultations' ? 'active' : ''}" onclick="switchPatientProfileTab('consultations')">
           <i data-lucide="stethoscope"></i>
-          <span>Consultation History (${p.consultations.length})</span>
+          <span>Consultations (${p.consultations.length})</span>
         </button>
         <button type="button" class="hc-profile-tab-btn ${activeTab === 'timeline' ? 'active' : ''}" onclick="switchPatientProfileTab('timeline')">
           <i data-lucide="git-commit-horizontal"></i>
-          <span>Progress Timeline</span>
+          <span>Timeline</span>
         </button>
       </div>
 
@@ -4556,7 +4548,7 @@ function renderPatientCaseDossier(patient) {
           <div class="case-section-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <i data-lucide="clipboard-check"></i>
-              <h3>Basic Registration &amp; Chief Complaint (Step 1)</h3>
+              <h3>Registration &amp; Chief Complaint</h3>
             </div>
             <span class="hc-autosave-indicator saved" id="overviewSaveBadge">Saved</span>
           </div>
@@ -4598,14 +4590,14 @@ function renderPatientCaseDossier(patient) {
               <textarea id="ovChiefComplaint" class="clean-textarea" rows="2" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>${escAttr(p.chiefComplaint)}</textarea>
             </div>
             <div class="hc-section-save-bar">
-              <span style="font-size: 12.5px; color: #78847D;">System Patient ID: <strong>${escAttr(p.id)}</strong></span>
+              <span style="font-size: 12.5px; color: #78847D;">Patient ID: <strong>${escAttr(p.id)}</strong></span>
               <div style="display: flex; gap: 10px;">
                 <button type="submit" class="primary-btn-solid">
                   <i data-lucide="save"></i>
-                  <span>Save Basic Details</span>
+                  <span>Save Registration</span>
                 </button>
                 <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('past')">
-                  <span>Next: Past History →</span>
+                  <span>Next: Medical History →</span>
                 </button>
               </div>
             </div>
@@ -4617,7 +4609,7 @@ function renderPatientCaseDossier(patient) {
           <div class="case-record-section-card">
             <div class="case-section-header">
               <i data-lucide="history"></i>
-              <h3>Past &amp; Family History</h3>
+              <h3>Medical History</h3>
             </div>
             <p style="font-size: 13px; color: #78847D; margin-bottom: 12px; line-height: 1.5;">
               ${hasPast
@@ -4625,14 +4617,14 @@ function renderPatientCaseDossier(patient) {
                 : "No past or family medical history recorded yet."}
             </p>
             <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('past')">
-              <span>${hasPast ? "Open Past History" : "+ Add Past History"}</span>
+              <span>${hasPast ? "Open Medical History" : "+ Add Medical History"}</span>
             </button>
           </div>
 
           <div class="case-record-section-card">
             <div class="case-section-header">
               <i data-lucide="user-check"></i>
-              <h3>Personal History (13 Modalities)</h3>
+              <h3>Personal History</h3>
             </div>
             <p style="font-size: 13px; color: #78847D; margin-bottom: 12px; line-height: 1.5;">
               ${hasPers
@@ -4647,7 +4639,7 @@ function renderPatientCaseDossier(patient) {
           <div class="case-record-section-card">
             <div class="case-section-header">
               <i data-lucide="brain"></i>
-              <h3>Mind &amp; Emotional History</h3>
+              <h3>Mind History</h3>
             </div>
             <p style="font-size: 13px; color: #78847D; margin-bottom: 12px; line-height: 1.5;">
               ${hasMind
@@ -4661,26 +4653,24 @@ function renderPatientCaseDossier(patient) {
         </div>
       </div>
 
-      <!-- TAB 2: PAST HISTORY (Step 2 — Redesigned Sections A, B, C with Smart + Add Controls) -->
+      <!-- TAB 2: PAST / MEDICAL HISTORY -->
       <div class="hc-tab-pane ${activeTab === 'past' ? 'active' : ''}" id="hcTab-past">
         <div class="case-record-section-card" style="background: transparent; border: none; padding: 0; box-shadow: none;">
           <div class="hc-clinical-section-block" style="margin-bottom: 16px; padding: 16px 22px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <div>
-                <h3 class="hc-section-heading">Step 2 — Past Medical, Treatment &amp; Family History</h3>
-                <p class="hc-subsection-subtitle" style="margin-bottom: 0; margin-top: 3px;">Use <strong>+ Add</strong> to select clinical conditions or add custom entries.</p>
+                <h3 class="hc-section-heading">Step 2 — Medical History</h3>
               </div>
               <span class="hc-autosave-indicator saved" id="pastSaveBadge">Saved</span>
             </div>
           </div>
 
           <form onsubmit="savePastHistorySection(event, '${escAttr(p.id)}')">
-            <!-- SECTION A — PAST MEDICAL HISTORY -->
+            <!-- SECTION A — PAST CONDITIONS -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section A — Past Medical History</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Record childhood or adult illnesses, recurring infections, and prior hospitalizations.</p>
+                  <h4 class="hc-subsection-heading">Past Conditions</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4696,8 +4686,7 @@ function renderPatientCaseDossier(patient) {
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section B — Treatment History</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Document previous treatments, associated complaints, consultations, and lab investigations.</p>
+                  <h4 class="hc-subsection-heading">Treatment History</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4708,12 +4697,11 @@ function renderPatientCaseDossier(patient) {
               </div>
             </div>
 
-            <!-- SECTION C — FAMILY MEDICAL HISTORY -->
+            <!-- SECTION C — FAMILY HISTORY -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section C — Family Medical History</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Record each family member's health history separately. Select "No reported conditions" or "Information not available" when applicable.</p>
+                  <h4 class="hc-subsection-heading">Family History</h4>
                 </div>
               </div>
               <div class="hc-family-grid-2">
@@ -4724,11 +4712,11 @@ function renderPatientCaseDossier(patient) {
               </div>
 
               <div class="hc-section-save-bar">
-                <span style="font-size: 12.5px; color: #78847D;">All selected conditions and notes are automatically saved to ${escAttr(p.name)}'s record.</span>
+                <div></div>
                 <div style="display: flex; gap: 10px;">
                   <button type="submit" class="primary-btn-solid">
                     <i data-lucide="save"></i>
-                    <span>Save Past History</span>
+                    <span>Save Medical History</span>
                   </button>
                   <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('personal')">
                     <span>Next: Personal History →</span>
@@ -4740,26 +4728,24 @@ function renderPatientCaseDossier(patient) {
         </div>
       </div>
 
-      <!-- TAB 3: PERSONAL HISTORY (Step 3 — 13 Modalities with Smart + Add Controls) -->
+      <!-- TAB 3: PERSONAL HISTORY -->
       <div class="hc-tab-pane ${activeTab === 'personal' ? 'active' : ''}" id="hcTab-personal">
         <div class="case-record-section-card" style="background: transparent; border: none; padding: 0; box-shadow: none;">
           <div class="hc-clinical-section-block" style="margin-bottom: 16px; padding: 16px 22px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <div>
-                <h3 class="hc-section-heading">Step 3 — Personal History (Physical Generals &amp; Modalities)</h3>
-                <p class="hc-subsection-subtitle" style="margin-bottom: 0; margin-top: 3px;">Select physical generals, thermal reactions, and personal modalities using <strong>+ Add</strong>.</p>
+                <h3 class="hc-section-heading">Step 3 — Personal History</h3>
               </div>
               <span class="hc-autosave-indicator saved" id="personalSaveBadge">Saved</span>
             </div>
           </div>
 
           <form onsubmit="savePersonalHistorySection(event, '${escAttr(p.id)}')">
-            <!-- Group 1: Appetite, Cravings, Aversions & Thirst -->
+            <!-- Diet & Thirst -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section A — Appetite, Cravings, Aversion &amp; Thirst (Items 1–4)</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Dietary generals, hunger patterns, food desires/aversions, and water intake.</p>
+                  <h4 class="hc-subsection-heading">Diet &amp; Thirst</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4770,12 +4756,11 @@ function renderPatientCaseDossier(patient) {
               </div>
             </div>
 
-            <!-- Group 2: Elimination, Perspiration, Habits & Hobbies -->
+            <!-- Elimination & Habits -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section B — Elimination, Perspiration, Habits &amp; Hobbies (Items 5–9)</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Urine, bowel regularity, sweat characteristics, daily habits, and recreations.</p>
+                  <h4 class="hc-subsection-heading">Elimination &amp; Habits</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4789,12 +4774,11 @@ function renderPatientCaseDossier(patient) {
               </div>
             </div>
 
-            <!-- Group 3: Thermals (Bath, Covering, Food, Season) -->
+            <!-- Thermal Modalities -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section C — Thermals: Bath, Covering, Food &amp; Season (Item 10)</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Constitutional thermal preferences across bath water, covering, food temperature, and weather.</p>
+                  <h4 class="hc-subsection-heading">Thermal Modalities</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4805,12 +4789,11 @@ function renderPatientCaseDossier(patient) {
               </div>
             </div>
 
-            <!-- Group 4: Sleep, Dreams & Menstrual History -->
+            <!-- Sleep & Gynaecological History -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section D — Sleep, Dreams &amp; Menstrual History (Items 11–13)</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Sleep posture, dream patterns, and menstrual/gynaecological history when applicable.</p>
+                  <h4 class="hc-subsection-heading">Sleep &amp; Gynaecological History</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4822,7 +4805,7 @@ function renderPatientCaseDossier(patient) {
               </div>
 
               <div class="hc-section-save-bar">
-                <span style="font-size: 12.5px; color: #78847D;">All 13 Personal History parameters are automatically saved for ${escAttr(p.name)}.</span>
+                <div></div>
                 <div style="display: flex; gap: 10px;">
                   <button type="submit" class="primary-btn-solid">
                     <i data-lucide="save"></i>
@@ -4838,26 +4821,24 @@ function renderPatientCaseDossier(patient) {
         </div>
       </div>
 
-      <!-- TAB 4: MIND HISTORY (Step 4 — 12 Clinical Fields with Smart + Add Controls & Narrative Notes) -->
+      <!-- TAB 4: MIND HISTORY -->
       <div class="hc-tab-pane ${activeTab === 'mind' ? 'active' : ''}" id="hcTab-mind">
         <div class="case-record-section-card" style="background: transparent; border: none; padding: 0; box-shadow: none;">
           <div class="hc-clinical-section-block" style="margin-bottom: 16px; padding: 16px 22px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <div>
-                <h3 class="hc-section-heading">Step 4 — Mind &amp; Emotional History (12 Clinical Rubrics)</h3>
-                <p class="hc-subsection-subtitle" style="margin-bottom: 0; margin-top: 3px;">Combine quick <strong>+ Add</strong> disposition chips with optional narrative notes for deeper emotional observations.</p>
+                <h3 class="hc-section-heading">Step 4 — Mind History</h3>
               </div>
               <span class="hc-autosave-indicator saved" id="mindSaveBadge">Saved</span>
             </div>
           </div>
 
           <form onsubmit="saveMindHistorySection(event, '${escAttr(p.id)}')">
-            <!-- Mind Section A: Environment & Social Disposition -->
+            <!-- Environment & Social Comfort -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section A — Workplace, Family &amp; Social Environment (Items 1–5)</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Occupational atmosphere, domestic harmony, social comfort, and temperament.</p>
+                  <h4 class="hc-subsection-heading">Environment &amp; Social Comfort</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4871,12 +4852,11 @@ function renderPatientCaseDossier(patient) {
               </div>
             </div>
 
-            <!-- Mind Section B: Emotional State, Thoughts, Fears, Anger & Stress -->
+            <!-- Emotional State & Disposition -->
             <div class="hc-clinical-section-block">
               <div class="hc-clinical-section-header">
                 <div>
-                  <h4 class="hc-subsection-heading">Section B — Emotions, Thoughts, Fears, Anger &amp; Anxiety (Items 6–12)</h4>
-                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Core emotional sensitivity, prevailing thoughts, specific fears, anger reactions, and stress responses.</p>
+                  <h4 class="hc-subsection-heading">Emotional State &amp; Disposition</h4>
                 </div>
               </div>
               <div class="hc-smart-grid-2">
@@ -4892,14 +4872,14 @@ function renderPatientCaseDossier(patient) {
               </div>
 
               <div class="hc-section-save-bar">
-                <span style="font-size: 12.5px; color: #78847D;">All 12 Mind &amp; Emotional rubrics are saved to ${escAttr(p.name)}'s case record.</span>
+                <div></div>
                 <div style="display: flex; gap: 10px;">
                   <button type="submit" class="primary-btn-solid">
                     <i data-lucide="save"></i>
                     <span>Save Mind History</span>
                   </button>
                   <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('consultations')">
-                    <span>Next: Consultation History →</span>
+                    <span>Next: Consultations →</span>
                   </button>
                 </div>
               </div>
@@ -4914,11 +4894,11 @@ function renderPatientCaseDossier(patient) {
           <div class="case-section-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <i data-lucide="stethoscope"></i>
-              <h3>Consultation History &amp; Prescribed Treatments</h3>
+              <h3>Consultations &amp; Treatments</h3>
             </div>
             <button type="button" class="primary-btn-solid" onclick="openProgressModal('${escAttr(p.id)}')">
               <i data-lucide="plus"></i>
-              <span>Add Consultation / Follow-Up</span>
+              <span>+ Add Consultation</span>
             </button>
           </div>
 
@@ -4958,11 +4938,11 @@ function renderPatientCaseDossier(patient) {
           <div class="case-section-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <i data-lucide="git-commit-horizontal"></i>
-              <h3>Chronological Case Progress Timeline</h3>
+              <h3>Progress Timeline</h3>
             </div>
             <button type="button" class="primary-btn-solid" onclick="openProgressModal('${escAttr(p.id)}')">
               <i data-lucide="plus-circle"></i>
-              <span>Record Follow-Up Progress</span>
+              <span>Record Follow-Up</span>
             </button>
           </div>
 
@@ -5135,7 +5115,7 @@ window.saveOverviewSection = function(e, patientId) {
     renderPatientWorkspace();
     renderPatientRegistry();
     updateSaveBadgeState(["overviewSaveBadge"], "saved", "Saved");
-    showToast(`Saved Basic Registration details for ${p.name}.`, "success");
+    showToast(`Saved Registration details for ${p.name}.`, "success");
   }
 };
 
@@ -5145,7 +5125,7 @@ window.savePastHistorySection = function(e, patientId) {
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
     updateSaveBadgeState(["pastSaveBadge"], "saved", "Saved");
-    showToast(`Saved Past, Treatment & Family History for ${p.name}.`, "success");
+    showToast(`Saved Medical History for ${p.name}.`, "success");
   }
 };
 
@@ -5155,7 +5135,7 @@ window.savePersonalHistorySection = function(e, patientId) {
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
     updateSaveBadgeState(["personalSaveBadge"], "saved", "Saved");
-    showToast(`Saved Personal History (13 modalities) for ${p.name}.`, "success");
+    showToast(`Saved Personal History for ${p.name}.`, "success");
   }
 };
 
@@ -5165,7 +5145,7 @@ window.saveMindHistorySection = function(e, patientId) {
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
     updateSaveBadgeState(["mindSaveBadge"], "saved", "Saved");
-    showToast(`Saved Mind & Emotional History for ${p.name}.`, "success");
+    showToast(`Saved Mind History for ${p.name}.`, "success");
   }
 };
 
