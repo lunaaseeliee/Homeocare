@@ -169,124 +169,72 @@ function initTheme() {
 }
 
 function applyTheme(theme) {
-  htmlRoot.setAttribute("data-theme", theme || "light");
-  localStorage.setItem("homeocare_theme", theme || "light");
+  const normalizedTheme = (theme === "dark") ? "dark" : "light";
+  htmlRoot.setAttribute("data-theme", normalizedTheme);
+  try {
+    localStorage.setItem("homeocare_theme", normalizedTheme);
+  } catch (e) {}
 
-  const label = (theme === "dark") ? "Dark Glass" : "Peach Light";
+  const label = (normalizedTheme === "dark") ? "Dark Glass" : "Light Peach";
   if (themeTextLabel) themeTextLabel.textContent = label;
   const authLabel = document.getElementById("authThemeTextLabel");
   if (authLabel) authLabel.textContent = label;
 
-  // Redraw CAPTCHA canvas with proper theme contrast if auth visible
-  if (typeof drawCaptchaChallenge === "function") {
-    drawCaptchaChallenge();
+  const titleText = normalizedTheme === "dark" ? "Switch to Light Peach" : "Switch to Dark Glass";
+  if (themeToggleBtn) {
+    themeToggleBtn.setAttribute("title", titleText);
+    themeToggleBtn.setAttribute("aria-label", `Current theme: ${label}. Click to switch theme.`);
+  }
+  const authBtn = document.getElementById("authThemeToggleBtn");
+  if (authBtn) {
+    authBtn.setAttribute("title", titleText);
+    authBtn.setAttribute("aria-label", `Current theme: ${label}. Click to switch theme.`);
   }
 
-  if (window.lucide) {
-    lucide.createIcons();
+  // Redraw CAPTCHA challenge canvas if present
+  if (typeof drawCaptchaChallenge === "function") {
+    drawCaptchaChallenge();
   }
 }
 
 let isThemeTransitioning = false;
 
-async function toggleTheme(event) {
-  // Prevent overlapping animations when clicking repeatedly
+function toggleTheme(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   if (isThemeTransitioning) return;
 
-  const current = htmlRoot.getAttribute("data-theme") || "dark";
+  const current = htmlRoot.getAttribute("data-theme") || "light";
   const target = current === "dark" ? "light" : "dark";
 
-  // Respect user motion preferences
+  // Check reduced-motion preference
   const prefersReducedMotion =
     window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // 1. Detect exact click / tap coordinates (or fall back to button center for keyboard triggers)
-  let x = window.innerWidth / 2;
-  let y = window.innerHeight / 2;
-
-  const triggerBtn =
-    event?.currentTarget ||
-    (event?.target && event.target.closest && event.target.closest(".theme-toggle-btn")) ||
-    themeToggleBtn ||
-    document.getElementById("authThemeToggleBtn");
-
-  if (event && typeof event.clientX === "number" && (event.clientX !== 0 || event.clientY !== 0)) {
-    x = event.clientX;
-    y = event.clientY;
-  } else if (triggerBtn) {
-    const rect = triggerBtn.getBoundingClientRect();
-    x = rect.left + rect.width / 2;
-    y = rect.top + rect.height / 2;
-  }
-
-  // 2. Calculate circle radius required to cover the farthest viewport corner
-  const endRadius = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y)
-  );
-
-  // 3. Graceful fallback for unsupported browsers or prefers-reduced-motion
-  if (!document.startViewTransition || prefersReducedMotion) {
+  if (prefersReducedMotion) {
     applyTheme(target);
-    showToast(`Switched to ${target === "dark" ? "Dark Glass" : "Peach Light"} Theme`, "info");
+    showToast(`Switched to ${target === "dark" ? "Dark Glass" : "Light Peach"} Theme`, "info");
     return;
   }
 
   isThemeTransitioning = true;
   htmlRoot.classList.add("theme-transitioning");
 
-  // Supply origin and radius coordinates to CSS variables
-  document.documentElement.style.setProperty("--vt-origin-x", `${x}px`);
-  document.documentElement.style.setProperty("--vt-origin-y", `${y}px`);
-  document.documentElement.style.setProperty("--vt-radius", `${endRadius}px`);
+  applyTheme(target);
 
-  try {
-    const transition = document.startViewTransition(() => {
-      applyTheme(target);
-    });
-
-    await transition.ready;
-
-    // Animate ::view-transition-new(root) expanding outward from the click origin
-    let anim = null;
-    try {
-      anim = document.documentElement.animate(
-        {
-          clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${endRadius}px at ${x}px ${y}px)`
-          ]
-        },
-        {
-          duration: 750,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-          pseudoElement: "::view-transition-new(root)"
-        }
-      );
-    } catch (_) {
-      // Fallback to CSS keyframes animation if pseudoElement in Element.animate is not supported
-      htmlRoot.classList.add("theme-transitioning-css");
-    }
-
-    if (anim) {
-      await anim.finished;
-    } else {
-      await transition.finished;
-    }
-  } catch (err) {
-    applyTheme(target);
-  } finally {
-    htmlRoot.classList.remove("theme-transitioning", "theme-transitioning-css");
-    document.documentElement.style.removeProperty("--vt-origin-x");
-    document.documentElement.style.removeProperty("--vt-origin-y");
-    document.documentElement.style.removeProperty("--vt-radius");
+  setTimeout(() => {
+    htmlRoot.classList.remove("theme-transitioning");
     isThemeTransitioning = false;
-  }
+  }, 300);
 
-  showToast(`Switched to ${target === "dark" ? "Dark Glass" : "Peach Light"} Theme`, "info");
+  showToast(`Switched to ${target === "dark" ? "Dark Glass" : "Light Peach"} Theme`, "info");
 }
 
-themeToggleBtn.addEventListener("click", toggleTheme);
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener("click", toggleTheme);
+}
 const authThemeToggleBtn = document.getElementById("authThemeToggleBtn");
 if (authThemeToggleBtn) {
   authThemeToggleBtn.addEventListener("click", toggleTheme);

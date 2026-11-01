@@ -13,38 +13,38 @@
 :root,
 [data-theme="light"] {
   /* Exact Spec Color Tokens - Soft Peach Light Theme */
-  --primary-green: #176B46;
+  --primary-green: #176B4A;
   --dark-green: #0E5837;
   --white: #FFFFFF;
-  --page-bg: #FFF5EF; /* Main application background: Soft Peach */
+  --page-bg: #FFF5EF; /* Main application background: #FFF5EF */
   --soft-green: #DDEFE3;
-  --text-primary: #1B2621;
-  --text-secondary: #64756C;
+  --text-primary: #1D3026; /* Primary text: #1D3026 */
+  --text-secondary: #59675E; /* Secondary text: #59675E */
   --border-color: #EADCD3;
 
   /* Universal UI Tokens */
   --bg-base: #FFF5EF;
   --bg-gradient: #FFF5EF;
-  --sidebar-bg: #FFF9F5; /* Secondary surface: Very Light Peach */
-  --topbar-bg: #FFF9F5;  /* Secondary surface: Very Light Peach */
+  --sidebar-bg: #FFF9F5;
+  --topbar-bg: #FFF9F5;
 
-  /* Secondary Surfaces & Card Tokens */
-  --card-bg: #FFF9F5;          /* Secondary surface: Very Light Peach */
-  --card-bg-elevated: #FFFFFF; /* Elevated / Inputs: Pure White for clear contrast */
+  /* Card Surfaces: #FFFCFA */
+  --card-bg: #FFFCFA;
+  --card-bg-elevated: #FFFFFF;
   --card-border: #EADCD3;
-  --card-border-hover: #176B46;
+  --card-border-hover: #176B4A;
   --card-inner-bevel: none;
   --card-shadow: 0 1px 3px rgba(180, 130, 110, 0.05), 0 1px 2px rgba(180, 130, 110, 0.03);
 
-  /* Typography Colors - Existing Dark Colors Preserved */
-  --text-muted: #64756C;
-  --text-dim: #8FA097;
+  /* Typography Colors */
+  --text-muted: #59675E;
+  --text-dim: #7A8980;
 
-  /* Compatibility mappings: replace peach with green & soft green */
+  /* Compatibility mappings */
   --peach-50: #FFF9F5;
   --peach-100: #FFF5EF;
   --peach-200: #F3E5DC;
-  --peach-300: #176B46;
+  --peach-300: #176B4A;
   --peach-400: #125738;
   --peach-500: #0E5837;
   --peach-glow: transparent;
@@ -52,11 +52,11 @@
   --peach-accent-bg: #DDEFE3;
   --peach-pill-bg: #DDEFE3;
 
-  /* Meaningful Status Colors - KEEP UNCHANGED */
+  /* Meaningful Status Colors */
   --red-accent: #DC2626;
   --red-accent-glow: transparent;
   --red-accent-subtle: #FEE2E2;
-  --emerald-cure: #176B46;
+  --emerald-cure: #176B4A;
   --emerald-subtle: #DDEFE3;
   --amber-warn: #D97706;
   --cyan-disp: #0284C7;
@@ -80,17 +80,17 @@
 
 /* ---------- Preserved Dark Glass Theme ---------- */
 [data-theme="dark"] {
-  --primary-green: #176B46;
+  --primary-green: #176B4A;
   --dark-green: #0E5837;
   --white: #FFFFFF;
-  --page-bg: #161820;
+  --page-bg: #151820; /* Dark charcoal #151820 */
   --soft-green: #DDEFE3;
   --border-color: rgba(255, 255, 255, 0.09);
 
-  --bg-base: #161820;
-  --bg-gradient: radial-gradient(circle at 18% 12%, #2a1420 0%, #161820 48%, #0d0e14 100%);
-  --sidebar-bg: rgba(22, 24, 32, 0.75);
-  --topbar-bg: rgba(22, 24, 32, 0.70);
+  --bg-base: #151820;
+  --bg-gradient: radial-gradient(circle at 18% 12%, #2a1420 0%, #151820 48%, #0d0e14 100%);
+  --sidebar-bg: rgba(21, 24, 32, 0.78);
+  --topbar-bg: rgba(21, 24, 32, 0.75);
   
   --card-bg: rgba(30, 32, 42, 0.58);
   --card-bg-elevated: rgba(38, 41, 54, 0.72);
@@ -99,10 +99,10 @@
   --card-inner-bevel: inset 0 1px 1px rgba(255, 255, 255, 0.14);
   --card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.6), 0 4px 14px rgba(0, 0, 0, 0.35);
 
-  --text-primary: #FFF4EF;
-  --text-secondary: #D9C3C8;
-  --text-muted: #A8959A;
-  --text-dim: #7A696E;
+  --text-primary: #F5F0EC; /* Primary text: #F5F0EC */
+  --text-secondary: #BDB7B5; /* Secondary text: #BDB7B5 */
+  --text-muted: #9E9694;
+  --text-dim: #7A7270;
 
   --peach-50: #FFF4EF;
   --peach-100: #FFE5D9;
@@ -766,47 +766,111 @@ p {
   }
 }
 
-/* Theme Toggle Button */
+/* ==========================================================================
+   COMPACT MODERN THEME SWITCHER BUTTON
+   - Sun icon for Light Peach
+   - Moon icon for Dark Glass
+   - Smooth 250-300ms transition
+   - Clear active theme indicator
+   ========================================================================== */
 .theme-toggle-btn {
-  background: var(--card-bg-elevated);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-pill);
-  padding: 6px 14px 6px 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-primary);
-  font-size: 0.84rem;
-  font-weight: 600;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 36px !important;
+  padding: 0 12px 0 6px !important;
+  border-radius: 999px !important;
+  background: var(--card-bg-elevated) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s ease,
+              background-color 0.28s ease,
+              border-color 0.28s ease,
+              color 0.28s ease !important;
+  white-space: nowrap !important;
+}
+
+.theme-toggle-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06) !important;
+  border-color: var(--primary-green) !important;
+}
+
+.theme-toggle-btn:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--primary-green) !important;
+  outline-offset: 2px !important;
 }
 
 .theme-toggle-knob {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--peach-accent-bg);
-  border: 1px solid rgba(255, 179, 142, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--peach-300);
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.28s ease !important;
 }
 
-[data-theme="dark"] .icon-light {
-  display: none;
+.theme-toggle-knob svg,
+.theme-toggle-knob i {
+  width: 14px !important;
+  height: 14px !important;
+  stroke-width: 2px !important;
+  flex-shrink: 0 !important;
 }
 
-[data-theme="dark"] .icon-dark {
-  display: block;
+/* Light Theme Icon State */
+[data-theme="light"] .icon-moon {
+  display: none !important;
 }
 
-[data-theme="light"] .icon-dark {
-  display: none;
+[data-theme="light"] .icon-sun {
+  display: block !important;
+  color: #D97706 !important;
 }
 
-[data-theme="light"] .icon-light {
-  display: block;
-  color: var(--peach-400);
+[data-theme="light"] .theme-toggle-knob {
+  background: #FFF0E6 !important;
+  border: 1px solid #F3DAC8 !important;
+}
+
+/* Dark Theme Icon State */
+[data-theme="dark"] .icon-sun {
+  display: none !important;
+}
+
+[data-theme="dark"] .icon-moon {
+  display: block !important;
+  color: #FFD0BA !important;
+}
+
+[data-theme="dark"] .theme-toggle-knob {
+  background: rgba(255, 208, 186, 0.16) !important;
+  border: 1px solid rgba(255, 208, 186, 0.25) !important;
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+  background: rgba(38, 41, 54, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .theme-toggle-btn:hover {
+  background: rgba(45, 48, 64, 0.9) !important;
+  border-color: var(--primary-green) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
 }
 
 .notification-badge {
@@ -3354,26 +3418,31 @@ svg.lucide {
 }
 
 /* ==========================================================================
-   CINEMATIC CIRCULAR VIEW TRANSITION (THEME REVEAL)
+   SMOOTH COLOR-CHANGING THEME TRANSITION SYSTEM (280-300ms)
+   - Smoothly transitions background colors, surfaces, text, borders & shadows
+   - Respects prefers-reduced-motion preferences
+   - Completely excludes printable official invoice
    ========================================================================== */
-
-/* Define view-transition name for the root document */
-@supports (view-transition-name: root) {
-  :root {
-    view-transition-name: root;
-  }
+html.theme-transitioning,
+html.theme-transitioning *:not(.official-invoice-sheet):not(.official-invoice-sheet *),
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              background 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              stroke 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition-delay: 0s !important;
 }
 
-/* Disable default browser crossfade animations */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none !important;
-  mix-blend-mode: normal !important;
-  display: block;
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: none !important;
+  }
 }
 
 /* Old theme snapshot stays stationary underneath with full fidelity */
@@ -6182,4 +6251,185 @@ body,
   background: rgba(22, 24, 32, 0.7) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   color: #FFFFFF !important;
+}
+
+
+/* ==========================================================================
+   COMPLETE DARK GLASS THEME COMPREHENSIVE COVERAGE
+   ========================================================================== */
+[data-theme="dark"] body {
+  background: #151820 !important;
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .dashboard-viewport {
+  background: #151820 !important;
+}
+
+[data-theme="dark"] .sidebar {
+  background: rgba(21, 24, 32, 0.88) !important;
+  border-right-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .topbar {
+  background: rgba(21, 24, 32, 0.85) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .nav-item {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .nav-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .nav-item.active {
+  background: rgba(23, 107, 74, 0.22) !important;
+  color: #4ADE80 !important;
+  border-left: 3px solid #4ADE80 !important;
+}
+
+[data-theme="dark"] .nav-item.active i,
+[data-theme="dark"] .nav-item.active svg {
+  color: #4ADE80 !important;
+  stroke: #4ADE80 !important;
+}
+
+[data-theme="dark"] .practitioner-card {
+  background: rgba(30, 32, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .clinic-status-chip {
+  background: rgba(30, 32, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .header-doctor-profile {
+  background: rgba(30, 32, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .header-doctor-name {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .header-doctor-role {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .glass-card {
+  background: rgba(30, 32, 42, 0.58) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+[data-theme="dark"] .metric-card {
+  background: rgba(30, 32, 42, 0.62) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+[data-theme="dark"] .metric-card.accent-green-card {
+  background: rgba(23, 107, 74, 0.22) !important;
+  border-color: rgba(23, 107, 74, 0.45) !important;
+}
+
+[data-theme="dark"] .metric-label {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .metric-value {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .welcome-heading {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .welcome-desc {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .dashboard-date-badge {
+  background: rgba(23, 107, 74, 0.22) !important;
+  color: #4ADE80 !important;
+}
+
+[data-theme="dark"] .patient-profile-banner {
+  background: rgba(30, 32, 42, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .patient-name {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .p-sub-specs span {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .panel-section-title {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .panel-section-subtitle {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .note-input-zone textarea,
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: rgba(24, 26, 36, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #7A7270 !important;
+}
+
+[data-theme="dark"] .modal-card {
+  background: #1C1F2B !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .modal-header h3 {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .modal-header-sub {
+  color: #BDB7B5 !important;
+}
+
+[data-theme="dark"] .data-table th {
+  background: rgba(24, 26, 36, 0.9) !important;
+  color: #BDB7B5 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .data-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .data-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+[data-theme="dark"] .appointment-item {
+  background: rgba(30, 32, 42, 0.58) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .apt-patient {
+  color: #F5F0EC !important;
+}
+
+[data-theme="dark"] .apt-purpose {
+  color: #BDB7B5 !important;
 }

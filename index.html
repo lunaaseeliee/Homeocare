@@ -2,6 +2,18 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('homeocare_theme');
+        if (saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HomeoCare | Shri Siddhivinayak Clinic</title>
   <!-- HomeoCare 2.0 - Green & White Clinic Management System -->
@@ -14,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261102_v12">
+  <link rel="stylesheet" href="style.css?v=20261102_v13">
   <!-- Lucide Icons (Local bundle with CDN fallback) -->
   <script src="lucide.min.js"></script>
   <script>
@@ -51,10 +63,10 @@
       </button>
       <button class="theme-toggle-btn auth-theme-toggle" id="authThemeToggleBtn" aria-label="Toggle theme" title="Switch Theme">
         <div class="theme-toggle-knob">
-          <i data-lucide="moon" class="icon-dark"></i>
-          <i data-lucide="sun" class="icon-light"></i>
+          <i data-lucide="sun" class="icon-sun"></i>
+          <i data-lucide="moon" class="icon-moon"></i>
         </div>
-        <span class="theme-text" id="authThemeTextLabel">Dark Glass</span>
+        <span class="theme-text" id="authThemeTextLabel">Light Peach</span>
       </button>
     </div>
 
@@ -657,13 +669,13 @@
             </div>
           </div>
 
-          <!-- Hidden Theme Switch (Preserved for compatibility) -->
-          <button class="theme-toggle-btn" id="themeToggleBtn" style="display: none;" aria-label="Toggle theme">
+          <!-- Compact Modern Theme Switcher -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme" title="Switch Theme">
             <div class="theme-toggle-knob">
-              <i data-lucide="moon" class="icon-dark"></i>
-              <i data-lucide="sun" class="icon-light"></i>
+              <i data-lucide="sun" class="icon-sun"></i>
+              <i data-lucide="moon" class="icon-moon"></i>
             </div>
-            <span class="theme-text" id="themeTextLabel">Theme</span>
+            <span class="theme-text" id="themeTextLabel">Light Peach</span>
           </button>
         </div>
       </header>
@@ -1814,9 +1826,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Supabase Client Layer -->
-  <script src="supabase-client.js?v=20261102_v12"></script>
+  <script src="supabase-client.js?v=20261102_v13"></script>
   <!-- Application Logic -->
-  <script src="app.js?v=20261102_v12"></script>
+  <script src="app.js?v=20261102_v13"></script>
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
