@@ -5687,125 +5687,135 @@ body,
   }
 }
 
-/* Smart + Add Field Block */
+/* ==========================================================================
+   APPROVED COMPACT-ROW CLINICAL FORM DESIGN
+   - Main Field Name: #1D3026 (dark forest-charcoal), semi-bold
+   - Short Description: #59675E (darker muted gray-green), 3-4px gap below
+   - + Add Button: Right side of row, vertically centered, forest green
+   - Saved entries & chips neatly beneath labels
+   ========================================================================== */
+
+/* Headings text hierarchy */
+.case-section-header h3,
+.hc-section-heading,
+.hc-clinical-section-title,
+.step-pane-heading,
+.panel-title {
+  color: #20362C !important;
+  font-weight: 600 !important;
+  font-size: 17px !important;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.hc-subsection-heading {
+  color: #20362C !important;
+  font-weight: 600 !important;
+  font-size: 14.5px !important;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Compact Smart Field Row */
 .hc-smart-field {
   position: relative;
   background: #FAFBF9;
   border: 1px solid #E5EAE6;
   border-radius: 10px;
-  padding: 12px 14px;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  padding: 11px 14px;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .hc-smart-field.is-empty {
-  padding: 11px 13px;
+  padding: 10px 14px;
 }
 
 .hc-smart-field:focus-within,
 .hc-smart-field.popover-open {
   background: #FFFFFF;
   border-color: #B8D4C5;
+  box-shadow: 0 2px 8px rgba(23, 107, 70, 0.06);
 }
 
+/* Row Header: Text Group on Left, + Add Button on Right */
 .hc-smart-field-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 7px;
-}
-
-.hc-smart-label,
-.case-record-section-card label {
-  display: block;
-  color: #26352B !important;
-  font-weight: 500 !important;
-  font-size: 13.5px !important;
-  line-height: 1.35;
+  gap: 12px;
   margin-bottom: 0;
+  width: 100%;
 }
 
-.hc-smart-helper {
-  display: none !important;
-}
-
-/* Chips + Outlined Green "+ Add" Button Row */
-.hc-chips-row {
+.hc-smart-text-group {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  text-align: left;
 }
 
-.hc-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  background: #EEF6F1;
-  border: 1px solid #C5DFD0;
-  color: #17241B;
-  font-size: 12.5px;
-  font-weight: 400;
-  line-height: 1.35;
-}
-
-.hc-chip-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: #52665A;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
+.hc-smart-title {
+  display: block;
+  color: #1D3026 !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.hc-chip-remove:hover {
-  background: #D3E8DC;
-  color: #17241B;
+.hc-smart-desc {
+  display: block;
+  color: #59675E !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* + Add Button Anchor & Right Alignment */
+.hc-add-popover-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .hc-add-chip-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
+  justify-content: center;
+  height: 28px;
+  padding: 0 12px;
   border-radius: 999px;
   border: 1px solid #176B46;
   background: #FFFFFF;
   color: #176B46;
   font-size: 12.5px;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .hc-add-chip-btn:hover,
 .hc-add-chip-btn[aria-expanded="true"] {
   background: #176B46;
   color: #FFFFFF;
+  transform: translateY(-1px);
 }
 
-/* Compact Dropdown / Popover Menu */
-.hc-add-popover-anchor {
-  position: relative;
-  display: inline-flex;
-}
-
+/* Compact Dropdown Popover Menu */
 .hc-add-popover {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
+  right: 0;
+  left: auto;
   z-index: 400;
   width: 268px;
   max-height: 270px;
@@ -5813,7 +5823,7 @@ body,
   background: #FFF9F5;
   border: 1px solid #E5EAE6;
   border-radius: 10px;
-  box-shadow: 0 10px 28px rgba(23, 36, 27, 0.10);
+  box-shadow: 0 10px 28px rgba(23, 36, 27, 0.12);
   padding: 6px;
   display: none;
 }
@@ -5969,3 +5979,101 @@ body,
   color: #B42318;
 }
 
+
+/* Dark Glass Theme Clinical Form Adaptations */
+[data-theme="dark"] .case-section-header h3,
+[data-theme="dark"] .hc-section-heading,
+[data-theme="dark"] .hc-clinical-section-title,
+[data-theme="dark"] .step-pane-heading,
+[data-theme="dark"] .panel-title,
+[data-theme="dark"] .hc-subsection-heading {
+  color: #EAF2EC !important;
+}
+
+[data-theme="dark"] .hc-clinical-section-block {
+  background: rgba(30, 32, 42, 0.58) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+[data-theme="dark"] .hc-smart-field {
+  background: rgba(38, 41, 54, 0.65) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+[data-theme="dark"] .hc-smart-field:focus-within,
+[data-theme="dark"] .hc-smart-field.popover-open {
+  background: rgba(45, 48, 64, 0.85) !important;
+  border-color: rgba(23, 107, 70, 0.6) !important;
+}
+
+[data-theme="dark"] .hc-smart-title {
+  color: #E2ECE5 !important;
+}
+
+[data-theme="dark"] .hc-smart-desc {
+  color: #9BB0A3 !important;
+}
+
+[data-theme="dark"] .hc-add-chip-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--primary-green) !important;
+  color: #4ADE80 !important;
+}
+
+[data-theme="dark"] .hc-add-chip-btn:hover,
+[data-theme="dark"] .hc-add-chip-btn[aria-expanded="true"] {
+  background: var(--primary-green) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .hc-chips-row {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .hc-chip {
+  background: rgba(23, 107, 70, 0.2) !important;
+  border-color: rgba(23, 107, 70, 0.4) !important;
+  color: #E2ECE5 !important;
+}
+
+[data-theme="dark"] .hc-chip-remove {
+  color: #9BB0A3 !important;
+}
+
+[data-theme="dark"] .hc-chip-remove:hover {
+  background: rgba(23, 107, 70, 0.4) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .hc-add-popover {
+  background: #1E202A !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .hc-popover-title {
+  color: #9BB0A3 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .hc-popover-option {
+  color: #E2ECE5 !important;
+}
+
+[data-theme="dark"] .hc-popover-option:hover,
+[data-theme="dark"] .hc-popover-option:focus,
+[data-theme="dark"] .hc-popover-option.kb-focused {
+  background: rgba(23, 107, 70, 0.25) !important;
+  color: #4ADE80 !important;
+}
+
+[data-theme="dark"] .hc-custom-entry-row {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .hc-custom-entry-input,
+[data-theme="dark"] .hc-smart-note-input,
+[data-theme="dark"] .hc-smart-note-textarea {
+  background: rgba(22, 24, 32, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+}

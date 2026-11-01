@@ -3305,6 +3305,7 @@ const CLINICAL_FIELD_CATALOG = {
     // Section A — Past Medical History
     pastIllnesses: {
       label: "Past Illnesses",
+      description: "Previous medical conditions",
       options: [
         "Typhoid",
         "Jaundice",
@@ -3322,6 +3323,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     recurrentInfections: {
       label: "Recurring Infections",
+      description: "Repeated infection episodes",
       options: [
         "Recurrent Tonsillitis",
         "Recurrent Cold / Coryza",
@@ -3339,6 +3341,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     hospitalizationsSurgeries: {
       label: "Hospitalizations & Surgeries",
+      description: "Admissions and procedures",
       options: [
         "Appendectomy",
         "Tonsillectomy",
@@ -3356,6 +3359,7 @@ const CLINICAL_FIELD_CATALOG = {
     // Section B — Treatment History
     previousTreatments: {
       label: "Treatments & Medications",
+      description: "Previous treatments received",
       options: [
         "Allopathic",
         "Ayurvedic",
@@ -3374,6 +3378,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     associatedComplaints: {
       label: "Associated Complaints",
+      description: "Related health concerns",
       options: [
         "Acidity / Heartburn",
         "Gas / Bloating",
@@ -3392,6 +3397,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     previousConsultations: {
       label: "Previous Consultations",
+      description: "Earlier doctor visits",
       options: [
         "General Physician Consulted",
         "Specialist / MD Consulted",
@@ -3407,6 +3413,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     diagnosticReports: {
       label: "Diagnostic Reports",
+      description: "Tests and findings",
       options: [
         "CBC / Blood Routine",
         "Blood Sugar (Fasting / PP / HbA1c)",
@@ -3425,6 +3432,7 @@ const CLINICAL_FIELD_CATALOG = {
     // Section C — Family Medical History
     familyFather: {
       label: "Father",
+      description: "Paternal medical history",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3444,6 +3452,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     familyMother: {
       label: "Mother",
+      description: "Maternal medical history",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3463,6 +3472,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     familyBrother: {
       label: "Brothers",
+      description: "Sibling medical history",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3483,6 +3493,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     familySister: {
       label: "Sisters",
+      description: "Sibling medical history",
       options: [
         "Hypertension",
         "Diabetes",
@@ -3506,6 +3517,7 @@ const CLINICAL_FIELD_CATALOG = {
   personal: {
     appetite: {
       label: "Appetite",
+      description: "Daily food intake",
       options: [
         "Good / Regular",
         "Diminished / Low",
@@ -3519,6 +3531,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     craving: {
       label: "Cravings",
+      description: "Specific food desires",
       options: [
         "Sweets",
         "Salty Food",
@@ -3536,6 +3549,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     aversion: {
       label: "Aversions",
+      description: "Disliked food items",
       options: [
         "Milk",
         "Fats / Oily Food",
@@ -3552,6 +3566,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     thirst: {
       label: "Thirst",
+      description: "Water intake pattern",
       options: [
         "Normal (2–3L/day)",
         "Thirstless",
@@ -3566,6 +3581,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     urine: {
       label: "Urine",
+      description: "Urinary excretion pattern",
       options: [
         "Normal / Clear",
         "Frequent Urination",
@@ -3580,6 +3596,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     bowel: {
       label: "Bowel",
+      description: "Digestive evacuation habits",
       options: [
         "Regular / Satisfactory",
         "Constipation (Hard Stool)",
@@ -3594,6 +3611,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     perspiration: {
       label: "Perspiration",
+      description: "Sweating tendency distribution",
       options: [
         "Moderate / Normal",
         "Profuse Perspiration",
@@ -3609,6 +3627,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     habits: {
       label: "Habits & Addictions",
+      description: "Addictions and lifestyle",
       options: [
         "Tea (1–2 cups/day)",
         "Tea (Frequent)",
@@ -3624,6 +3643,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     hobbies: {
       label: "Hobbies",
+      description: "Leisure and interests",
       options: [
         "Reading",
         "Music",
@@ -3639,6 +3659,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     thermalBath: {
       label: "Bath Preference",
+      description: "Bathing water preference",
       options: [
         "Warm Water All Year",
         "Lukewarm / Tepid Water",
@@ -3650,6 +3671,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     thermalCovering: {
       label: "Covering & Air Conditioning",
+      description: "Blanket and air preference",
       options: [
         "Needs Blanket Even in Summer",
         "Prefers Light Covering",
@@ -3662,6 +3684,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     thermalFood: {
       label: "Food & Drink Temperature",
+      description: "Food temperature reaction",
       options: [
         "Desires Warm / Hot Food",
         "Desires Cold Food & Drinks",
@@ -3673,6 +3696,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     thermalSeason: {
       label: "Season & Weather Reaction",
+      description: "Climate weather sensitivity",
       options: [
         "Chilly Patient (Worse in Winter)",
         "Hot Patient (Worse in Summer)",
@@ -3685,6 +3709,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     sleep: {
       label: "Sleep Pattern & Posture",
+      description: "Sleep pattern posture",
       options: [
         "Sound & Refreshing",
         "Disturbed / Light Sleep",
@@ -3701,6 +3726,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     dreams: {
       label: "Dreams",
+      description: "Recurrent dream themes",
       options: [
         "Unremembered",
         "Anxious / Frightful Dreams",
@@ -3715,6 +3741,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     menstrualHistory: {
       label: "Menstrual & Gynaecological History",
+      description: "Gynaecological cycle pattern",
       options: [
         "Not Applicable",
         "Regular Cycle (28–30 Days)",
@@ -3735,6 +3762,7 @@ const CLINICAL_FIELD_CATALOG = {
   mind: {
     workplaceEnv: {
       label: "Workplace Environment",
+      description: "Occupational stress factors",
       options: [
         "Calm & Supportive",
         "High Work Pressure / Deadlines",
@@ -3751,6 +3779,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     familyEnv: {
       label: "Family Environment",
+      description: "Domestic household relations",
       options: [
         "Supportive & Harmonious",
         "Close Family Bonding",
@@ -3765,6 +3794,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     socialPartyEnv: {
       label: "Social Gatherings",
+      description: "Group interaction comfort",
       options: [
         "Enjoys Social Gatherings",
         "Selective Socializing",
@@ -3777,6 +3807,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     friendsComfort: {
       label: "Friends & Social Comfort",
+      description: "Interpersonal sharing depth",
       options: [
         "Few Close Trusted Friends",
         "Large Social Circle",
@@ -3789,6 +3820,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     introExtrovert: {
       label: "Temperament (Introvert / Extrovert)",
+      description: "Social personality orientation",
       options: [
         "Introverted & Observant",
         "Balanced (Ambivert)",
@@ -3800,6 +3832,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     emotionsFeelings: {
       label: "Emotions & Sensitivity",
+      description: "Emotional sensitivity traits",
       options: [
         "Sensitive & Empathetic",
         "Easily Moved to Tears",
@@ -3815,6 +3848,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     thoughts: {
       label: "Thought Patterns",
+      description: "Cognitive thought patterns",
       options: [
         "Calm & Focused",
         "Overthinking / Racing Thoughts",
@@ -3829,6 +3863,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     fearsCauses: {
       label: "Fears & Causes",
+      description: "Specific fears phobias",
       options: [
         "Fear of Disease / Health",
         "Fear of Being Alone",
@@ -3844,6 +3879,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     angerCauses: {
       label: "Anger & Triggers",
+      description: "Anger expression triggers",
       options: [
         "Rarely Angry / Calm",
         "Anger from Contradiction",
@@ -3857,6 +3893,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     anxiety: {
       label: "Anxiety",
+      description: "Anxiety worry patterns",
       options: [
         "Minimal / Calm",
         "Health Anxiety",
@@ -3870,6 +3907,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     stressResponses: {
       label: "Stress Responses",
+      description: "Stress coping reactions",
       options: [
         "Becomes Quiet & Withdrawn",
         "Seeks Reassurance / Company",
@@ -3883,6 +3921,7 @@ const CLINICAL_FIELD_CATALOG = {
     },
     additionalObservations: {
       label: "Additional Mental Keynotes",
+      description: "Key mental keynotes",
       options: [
         "Fastidious (Wants Order & Cleanliness)",
         "Strong Willpower",
@@ -4038,7 +4077,6 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
       <button
         type="button"
         class="hc-chip-remove"
-        title="Remove ${escAttr(chipText)}"
         aria-label="Remove ${escAttr(chipText)}"
         onclick="removeSmartChip(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', ${idx})"
       >&times;</button>
@@ -4086,12 +4124,13 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
 
   return `
     <div class="hc-smart-field ${hasEntriesOrNote ? 'has-content' : 'is-empty'}" id="smartField_${domKey}" data-section="${escAttr(sectionKey)}" data-field="${escAttr(fieldKey)}">
+      <!-- Compact Field Row: Title + Description on Left, + Add Button on Right -->
       <div class="hc-smart-field-head">
-        <label class="hc-smart-label" for="smartAddBtn_${domKey}">${escAttr(fieldDef.label)}</label>
-      </div>
+        <div class="hc-smart-text-group">
+          <label class="hc-smart-title" for="smartAddBtn_${domKey}">${escAttr(fieldDef.label)}</label>
+          ${fieldDef.description ? `<div class="hc-smart-desc">${escAttr(fieldDef.description)}</div>` : ''}
+        </div>
 
-      <div class="hc-chips-row" id="smartChipsRow_${domKey}">
-        ${chipsHtml}
         <div class="hc-add-popover-anchor">
           <button
             type="button"
@@ -4134,12 +4173,20 @@ function renderSmartAddField(patient, sectionKey, fieldKey) {
         </div>
       </div>
 
+      <!-- Selected Chips Display (Neatly beneath field header when present) -->
+      ${state.chips && state.chips.length > 0 ? `
+        <div class="hc-chips-row" id="smartChipsRow_${domKey}">
+          ${chipsHtml}
+        </div>
+      ` : `<div class="hc-chips-row" id="smartChipsRow_${domKey}" style="display: none;"></div>`}
+
+      <!-- Custom Entry Row -->
       <div class="hc-custom-entry-row" id="smartCustomRow_${domKey}">
         <input
           type="text"
           id="smartCustomInput_${domKey}"
           class="hc-custom-entry-input"
-          placeholder="Add condition"
+          placeholder="Add custom entry"
           onkeydown="handleSmartCustomKeydown(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
         >
         <button
