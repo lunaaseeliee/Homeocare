@@ -407,11 +407,60 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST') {
       try {
         const body = await parseBody(req);
-        if (body && typeof body === 'object' && body.state) {
-          fs.writeFileSync(stateFilePath, JSON.stringify(body.state, null, 2), 'utf8');
-          return sendJson(res, 200, { ok: true });
+        let existingState = {
+          patients: [],
+          appointments: [],
+          invoices: [],
+          medicines: [],
+          selectedPatientId: null,
+          updatedAt: new Date().toISOString()
+        };
+        try {
+          if (fs.existsSync(stateFilePath)) {
+            const parsed = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
+            if (parsed && typeof parsed === 'object') {
+              existingState = { ...existingState, ...parsed };
+            }
+          }
+        } catch (_) {}
+
+        // Support single-patient atomic upsert by patient.id (never overwrites other patients)
+        if (body && typeof body === 'object' && body.patient && body.patient.id) {
+          const pt = body.patient;
+          if (!Array.isArray(existingState.patients)) existingState.patients = [];
+          const idx = existingState.patients.findIndex(p => p && p.id === pt.id);
+          if (idx >= 0) {
+            existingState.patients[idx] = { ...existingState.patients[idx], ...pt };
+          } else {
+            existingState.patients.push(pt);
+          }
+          if (body.selectedPatientId) {
+            existingState.selectedPatientId = body.selectedPatientId;
+          }
+          existingState.updatedAt = new Date().toISOString();
+          fs.writeFileSync(stateFilePath, JSON.stringify(existingState, null, 2), 'utf8');
+          return sendJson(res, 200, { ok: true, patientId: pt.id, updatedAt: existingState.updatedAt });
         }
-        return sendJson(res, 400, { ok: false, error: 'Missing state object.' });
+
+        if (body && typeof body === 'object' && body.state) {
+          // If replaceAll is not explicitly true, merge patients by id to protect existing patient records
+          if (!body.replaceAll && Array.isArray(existingState.patients) && Array.isArray(body.state.patients)) {
+            const incomingMap = new Map(body.state.patients.filter(p => p && p.id).map(p => [p.id, p]));
+            const mergedPatients = existingState.patients
+              .filter(p => p && p.id)
+              .map(oldP => incomingMap.has(oldP.id) ? { ...oldP, ...incomingMap.get(oldP.id) } : oldP);
+            const existingIds = new Set(mergedPatients.map(p => p.id));
+            for (const newP of body.state.patients) {
+              if (newP && newP.id && !existingIds.has(newP.id)) {
+                mergedPatients.push(newP);
+              }
+            }
+            body.state.patients = mergedPatients;
+          }
+          fs.writeFileSync(stateFilePath, JSON.stringify(body.state, null, 2), 'utf8');
+          return sendJson(res, 200, { ok: true, updatedAt: body.state.updatedAt || new Date().toISOString() });
+        }
+        return sendJson(res, 400, { ok: false, error: 'Missing state or patient object.' });
       } catch (err) {
         return sendJson(res, 500, { ok: false, error: err.message });
       }

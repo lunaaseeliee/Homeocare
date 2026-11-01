@@ -747,13 +747,54 @@ const HomeoCareAPI = {
         .select(`
           *,
           medical_cases (
-            id, case_number, chief_complaint, status, started_at,
+            id, case_number, chief_complaint, status, started_at, constitutional_analysis,
             consultations (*)
           )
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      if (!Array.isArray(data)) return [];
+
+      // Normalize rows from Supabase into the HomeoCare patient record shape
+      return data.map((row) => {
+        let embedded = {};
+        if (typeof row.constitutional_type === "string" && row.constitutional_type.trim().startsWith("{")) {
+          try {
+            const parsed = JSON.parse(row.constitutional_type);
+            if (parsed && parsed._hc_v4) {
+              embedded = parsed;
+            }
+          } catch (_) {}
+        }
+        const firstCase = Array.isArray(row.medical_cases) && row.medical_cases[0] ? row.medical_cases[0] : null;
+        return {
+          id: row.clinic_patient_id || row.id,
+          dbUuid: row.id,
+          name: row.full_name,
+          phone: row.phone,
+          age: row.age,
+          gender: row.gender,
+          address: row.address || "",
+          email: row.email || embedded.email || "",
+          dob: embedded.dob || "",
+          chiefComplaint: row.chief_complaint || firstCase?.chief_complaint || embedded.chiefComplaint || "",
+          associatedComplaints: embedded.associatedComplaints || "",
+          pastHistoryData: row.past_history || embedded.pastHistoryData || {},
+          personalHistory: row.personal_history || embedded.personalHistory || {},
+          mindHistory: row.mind_history || embedded.mindHistory || {},
+          consultations: Array.isArray(row.consultations_log) && row.consultations_log.length > 0
+            ? row.consultations_log
+            : (Array.isArray(embedded.consultations) ? embedded.consultations : []),
+          entry_source: embedded.entry_source || "staff_assisted",
+          created_at: row.created_at,
+          registeredDate: embedded.registeredDate || new Date(row.created_at || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+          miasm: row.primary_miasm || "Constitutional Intake",
+          constitution: embedded.constitution || (typeof row.constitutional_type === "string" && !row.constitutional_type.startsWith("{") ? row.constitutional_type : "Classical Evaluation"),
+          prescription: embedded.prescription || "",
+          rubrics: Array.isArray(embedded.rubrics) ? embedded.rubrics : [],
+          history: Array.isArray(embedded.history) ? embedded.history : []
+        };
+      });
     },
 
     async create(patientData) {
@@ -762,6 +803,127 @@ const HomeoCareAPI = {
       const { data, error } = await client.from("patients").insert(patientData).select().single();
       if (error) throw error;
       return data;
+    },
+
+    /**
+     * Upsert a patient's full clinical record (Past, Treatment, Family, Personal, Mind & Consultations)
+     * keyed by the patient's unique clinic_patient_id, with automatic fallback if patch_03 JSONB
+     * columns are not yet applied, plus atomic server-state synchronization.
+     */
+    async upsertClinicalRecord(patientRecord) {
+      if (!patientRecord || !patientRecord.id) {
+        throw new Error("Valid patient record with ID is required.");
+      }
+
+      let persistedToServer = false;
+      let persistedToSupabase = false;
+      let supabaseRow = null;
+
+      // 1. Atomic single-patient upsert to /api/clinic-state
+      try {
+        const res = await fetch("/api/clinic-state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient: patientRecord,
+            selectedPatientId: patientRecord.id
+          })
+        });
+        if (res.ok) {
+          persistedToServer = true;
+        }
+      } catch (_) {}
+
+      // 2. Real Supabase Database Upsert (when authenticated Supabase session is present)
+      try {
+        const client = await initSupabaseAsync();
+        if (client) {
+          const { data: sessionData } = await client.auth.getSession();
+          if (sessionData?.session) {
+            const embeddedSnapshot = JSON.stringify({
+              _hc_v4: true,
+              constitution: patientRecord.constitution || "Classical Evaluation",
+              chiefComplaint: patientRecord.chiefComplaint || "",
+              associatedComplaints: patientRecord.associatedComplaints || "",
+              email: patientRecord.email || "",
+              dob: patientRecord.dob || "",
+              entry_source: patientRecord.entry_source || "staff_assisted",
+              registeredDate: patientRecord.registeredDate || "",
+              prescription: patientRecord.prescription || "",
+              pastHistoryData: patientRecord.pastHistoryData || {},
+              personalHistory: patientRecord.personalHistory || {},
+              mindHistory: patientRecord.mindHistory || {},
+              consultations: patientRecord.consultations || [],
+              rubrics: patientRecord.rubrics || [],
+              history: patientRecord.history || []
+            });
+
+            const validMiasms = ["Psora", "Sycosis", "Syphilis", "Tubercular", "Mixed", "Unassessed"];
+            const safeMiasm = validMiasms.includes(patientRecord.miasm) ? patientRecord.miasm : "Unassessed";
+            const safeGender = ["Male", "Female", "Other"].includes(patientRecord.gender) ? patientRecord.gender : "Other";
+            const safeAge = Math.min(130, Math.max(0, parseInt(patientRecord.age, 10) || 25));
+
+            // Attempt full JSONB upsert first (database/patch_03_clinical_history_jsonb.sql)
+            const fullRow = {
+              clinic_patient_id: patientRecord.id,
+              full_name: patientRecord.name || "Patient",
+              phone: patientRecord.phone || "—",
+              age: safeAge,
+              gender: safeGender,
+              address: patientRecord.address || "",
+              email: patientRecord.email || null,
+              chief_complaint: patientRecord.chiefComplaint || "",
+              primary_miasm: safeMiasm,
+              constitutional_type: embeddedSnapshot,
+              past_history: patientRecord.pastHistoryData || {},
+              personal_history: patientRecord.personalHistory || {},
+              mind_history: patientRecord.mindHistory || {},
+              consultations_log: patientRecord.consultations || [],
+              updated_at: new Date().toISOString()
+            };
+
+            const { data: upData, error: upErr } = await client
+              .from("patients")
+              .upsert(fullRow, { onConflict: "clinic_patient_id" })
+              .select()
+              .maybeSingle();
+
+            if (!upErr) {
+              persistedToSupabase = true;
+              supabaseRow = upData;
+            } else {
+              // Fallback to baseline schema.sql columns if patch_03 has not been executed yet
+              const baseRow = {
+                clinic_patient_id: patientRecord.id,
+                full_name: patientRecord.name || "Patient",
+                phone: patientRecord.phone || "—",
+                age: safeAge,
+                gender: safeGender,
+                address: patientRecord.address || "",
+                primary_miasm: safeMiasm,
+                constitutional_type: embeddedSnapshot,
+                updated_at: new Date().toISOString()
+              };
+              const { data: fbData, error: fbErr } = await client
+                .from("patients")
+                .upsert(baseRow, { onConflict: "clinic_patient_id" })
+                .select()
+                .maybeSingle();
+              if (!fbErr) {
+                persistedToSupabase = true;
+                supabaseRow = fbData;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      return {
+        ok: persistedToServer || persistedToSupabase,
+        persistedToServer,
+        persistedToSupabase,
+        supabaseRow
+      };
     }
   },
 

@@ -3113,23 +3113,51 @@ async function loadPersistedClinicState() {
     }
   } catch (_) {}
 
-  // 2. Check server /api/clinic-state if local is empty
-  if (!loadedState || (!loadedState.patients?.length && !loadedState.invoices?.length && !loadedState.appointments?.length)) {
-    try {
-      const res = await fetch("/api/clinic-state", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.ok && data.state) {
+  // 2. Also fetch server /api/clinic-state and merge patients by id
+  try {
+    const res = await fetch("/api/clinic-state", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.ok && data.state) {
+        if (!loadedState) {
           loadedState = data.state;
-          try {
-            localStorage.setItem(CLINIC_STORAGE_KEY, JSON.stringify(loadedState));
-          } catch (_) {}
+        } else if (Array.isArray(data.state.patients) && data.state.patients.length > 0) {
+          const localMap = new Map((loadedState.patients || []).filter(p => p && p.id).map(p => [p.id, p]));
+          for (const srvPt of data.state.patients) {
+            if (srvPt && srvPt.id) {
+              localMap.set(srvPt.id, { ...(localMap.get(srvPt.id) || {}), ...srvPt });
+            }
+          }
+          loadedState.patients = Array.from(localMap.values());
+        }
+        try {
+          localStorage.setItem(CLINIC_STORAGE_KEY, JSON.stringify(loadedState));
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+
+  // 3. Also merge any authenticated Supabase `public.patients` records if session permits
+  if (window.HomeoCareAPI?.patients?.listAll) {
+    try {
+      const sbPatients = await window.HomeoCareAPI.patients.listAll();
+      if (Array.isArray(sbPatients) && sbPatients.length > 0) {
+        if (!loadedState) {
+          loadedState = { patients: sbPatients, appointments: [], invoices: [], medicines: [] };
+        } else {
+          const map = new Map((loadedState.patients || []).filter(p => p && p.id).map(p => [p.id, p]));
+          for (const sbPt of sbPatients) {
+            if (sbPt && sbPt.id && !map.has(sbPt.id)) {
+              map.set(sbPt.id, sbPt);
+            }
+          }
+          loadedState.patients = Array.from(map.values());
         }
       }
     } catch (_) {}
   }
 
-  // 3. Apply loaded real records (filtering out any legacy "[Sample]" demo records if ever cached)
+  // 4. Apply loaded real records (filtering out any legacy "[Sample]" demo records if ever cached)
   if (loadedState) {
     CLINIC_STATE.patients = (loadedState.patients || []).filter(p => !(p.name && p.name.includes("[Sample]")));
     CLINIC_STATE.appointments = (loadedState.appointments || []).filter(a => !(a.patientName && a.patientName.includes("[Sample]")));
@@ -3249,8 +3277,10 @@ function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
   CLINIC_STATE.selectedPatientId = newPatientId;
   persistClinicState();
 
-  // Attempt Supabase table insert when session permits
-  if (window.HomeoCareAPI?.patients?.create) {
+  // Attempt Supabase & Server atomic upsert when session permits
+  if (window.HomeoCareAPI?.patients?.upsertClinicalRecord) {
+    window.HomeoCareAPI.patients.upsertClinicalRecord(record).catch(() => {});
+  } else if (window.HomeoCareAPI?.patients?.create) {
     window.HomeoCareAPI.patients.create({
       clinic_patient_id: newPatientId,
       full_name: record.name,
@@ -3275,27 +3305,1125 @@ function escAttr(val) {
     .replace(/>/g, "&gt;");
 }
 
+// ==========================================================================
+// APPROVED CLINICAL FORM UI — SMART "+ ADD" SELECTION-CHIP ENGINE
+// ==========================================================================
+const CLINICAL_FIELD_CATALOG = {
+  past: {
+    // Section A — Past Medical History
+    pastIllnesses: {
+      label: "Past Illnesses",
+      helper: "Select notable childhood or adult medical conditions.",
+      options: [
+        "Typhoid",
+        "Jaundice",
+        "Asthma",
+        "Diabetes",
+        "Hypertension",
+        "Tuberculosis",
+        "Migraine",
+        "Allergy",
+        "Skin Eruptions",
+        "No reported conditions"
+      ],
+      notePlaceholder: "Optional notes (e.g. year of onset, severity, or legacy history notes)...",
+      legacyKeys: ["medicalHistory"]
+    },
+    recurrentInfections: {
+      label: "Previous Illnesses & Recurrent Infections",
+      helper: "Select recurring infections or repeat acute complaints.",
+      options: [
+        "Recurrent Tonsillitis",
+        "Recurrent Cold / Coryza",
+        "Sinusitis",
+        "Urinary Tract Infection",
+        "Fungal / Ringworm Infection",
+        "Recurrent Fever",
+        "Bronchitis",
+        "Ear Infections",
+        "Gastric Infections",
+        "No reported conditions"
+      ],
+      notePlaceholder: "Optional notes on frequency or seasonal recurrence...",
+      legacyKeys: ["previousIllnesses"]
+    },
+    hospitalizationsSurgeries: {
+      label: "Hospitalizations & Surgeries",
+      helper: "Record prior surgical procedures or inpatient hospital stays.",
+      options: [
+        "Appendectomy",
+        "Tonsillectomy",
+        "Caesarean Section (C-Section)",
+        "Gallbladder Surgery",
+        "Hernia Repair",
+        "Fracture / Orthopedic Surgery",
+        "Kidney Stone Procedure",
+        "Hospitalized for Acute Fever",
+        "No prior hospitalizations"
+      ],
+      notePlaceholder: "Optional surgical details, hospital dates, or recovery notes..."
+    },
+
+    // Section B — Treatment History
+    previousTreatments: {
+      label: "Previous Treatments & Medications",
+      helper: "Select prior treatment systems or ongoing medication categories.",
+      options: [
+        "Allopathic",
+        "Ayurvedic",
+        "Homeopathic",
+        "Antibiotics",
+        "Painkillers",
+        "Antihypertensives",
+        "Antidiabetics",
+        "Steroids / Ointments",
+        "Antacids / PPIs",
+        "Thyroid Supplement",
+        "No prior medications"
+      ],
+      notePlaceholder: "Optional free-text: specific medication names, dosages, or dates...",
+      legacyKeys: ["previousTreatments"]
+    },
+    associatedComplaints: {
+      label: "Associated Complaints",
+      helper: "Select secondary symptoms accompanying the chief complaint.",
+      options: [
+        "Acidity / Heartburn",
+        "Gas / Bloating",
+        "Constipation",
+        "Headache",
+        "Joint Pain",
+        "Hair Fall",
+        "Weakness / Fatigue",
+        "Sleeplessness",
+        "Allergic Rhinitis",
+        "Backache",
+        "None reported"
+      ],
+      notePlaceholder: "Optional free-text details on associated complaints...",
+      legacyKeys: ["associatedComplaints"]
+    },
+    previousConsultations: {
+      label: "Previous Consultation Information",
+      helper: "Record prior physician or specialist consultations.",
+      options: [
+        "General Physician Consulted",
+        "Specialist / MD Consulted",
+        "Dermatologist Consulted",
+        "Orthopedic Consulted",
+        "ENT Specialist Consulted",
+        "Gynaecologist Consulted",
+        "Prior Homeopathic Consultation",
+        "First Consultation for Complaint"
+      ],
+      notePlaceholder: "Optional consultation notes, physician remarks, or dates...",
+      legacyKeys: ["previousConsultations"]
+    },
+    diagnosticReports: {
+      label: "Diagnostic Reports",
+      helper: "Select laboratory or imaging investigations reviewed.",
+      options: [
+        "CBC / Blood Routine",
+        "Blood Sugar (Fasting / PP / HbA1c)",
+        "Thyroid Profile (T3, T4, TSH)",
+        "Lipid Profile",
+        "Liver / Kidney Function Test",
+        "Urine Routine",
+        "X-Ray",
+        "Ultrasound (USG)",
+        "MRI / CT Scan",
+        "No reports brought"
+      ],
+      notePlaceholder: "Optional report findings, values, or dates..."
+    },
+
+    // Section C — Family Medical History
+    familyFather: {
+      label: "Father's Health History",
+      helper: "Select hereditary or chronic conditions in father.",
+      options: [
+        "Hypertension",
+        "Diabetes",
+        "Asthma",
+        "Thyroid Disorder",
+        "Heart Disease",
+        "Arthritis",
+        "Migraine",
+        "Allergy",
+        "Cancer",
+        "Healthy",
+        "No reported conditions",
+        "Information not available"
+      ],
+      notePlaceholder: "Optional note on father's health history...",
+      legacyKeys: ["familyFather"]
+    },
+    familyMother: {
+      label: "Mother's Health History",
+      helper: "Select hereditary or chronic conditions in mother.",
+      options: [
+        "Hypertension",
+        "Diabetes",
+        "Asthma",
+        "Thyroid Disorder",
+        "Heart Disease",
+        "Arthritis",
+        "Migraine",
+        "Allergy",
+        "Cancer",
+        "Healthy",
+        "No reported conditions",
+        "Information not available"
+      ],
+      notePlaceholder: "Optional note on mother's health history...",
+      legacyKeys: ["familyMother"]
+    },
+    familyBrother: {
+      label: "Brother(s) Health History",
+      helper: "Select health conditions reported in brother(s).",
+      options: [
+        "Hypertension",
+        "Diabetes",
+        "Asthma",
+        "Thyroid Disorder",
+        "Heart Disease",
+        "Arthritis",
+        "Migraine",
+        "Allergy",
+        "Cancer",
+        "Healthy",
+        "No reported conditions",
+        "Information not available",
+        "Not applicable (No brothers)"
+      ],
+      notePlaceholder: "Optional note on brother(s) health history...",
+      legacyKeys: ["familyBrother"]
+    },
+    familySister: {
+      label: "Sister(s) Health History",
+      helper: "Select health conditions reported in sister(s).",
+      options: [
+        "Hypertension",
+        "Diabetes",
+        "Asthma",
+        "Thyroid Disorder",
+        "Heart Disease",
+        "Arthritis",
+        "Migraine",
+        "Allergy",
+        "Cancer",
+        "Healthy",
+        "No reported conditions",
+        "Information not available",
+        "Not applicable (No sisters)"
+      ],
+      notePlaceholder: "Optional note on sister(s) health history...",
+      legacyKeys: ["familySister"]
+    }
+  },
+
+  personal: {
+    appetite: {
+      label: "1. Appetite",
+      helper: "Select meal regularity, hunger intensity, and satiety pattern.",
+      options: [
+        "Good / Regular",
+        "Diminished / Low",
+        "Increased / Ravenous",
+        "Easily Satiated",
+        "Hunger Causes Headache",
+        "Variable Appetite"
+      ],
+      notePlaceholder: "Optional appetite observation...",
+      legacyKeys: ["appetite"]
+    },
+    craving: {
+      label: "2. Cravings (Desires)",
+      helper: "Select specific food or taste desires.",
+      options: [
+        "Sweets",
+        "Salty Food",
+        "Spicy / Pungent",
+        "Sour / Pickles",
+        "Warm Food",
+        "Cold Drinks / Ice",
+        "Milk",
+        "Fried / Rich Food",
+        "Eggs",
+        "No specific craving"
+      ],
+      notePlaceholder: "Optional craving details...",
+      legacyKeys: ["craving"]
+    },
+    aversion: {
+      label: "3. Aversion",
+      helper: "Select foods or tastes the patient dislikes or avoids.",
+      options: [
+        "Milk",
+        "Fats / Oily Food",
+        "Sweets",
+        "Sour Food",
+        "Meat",
+        "Warm Food",
+        "Bitter",
+        "Garlic / Onion",
+        "No specific aversion"
+      ],
+      notePlaceholder: "Optional aversion details...",
+      legacyKeys: ["aversion"]
+    },
+    thirst: {
+      label: "4. Thirst",
+      helper: "Select water intake quantity, frequency, and temperature preference.",
+      options: [
+        "Normal (2–3L/day)",
+        "Thirstless",
+        "Large quantities at long intervals",
+        "Small quantities frequently",
+        "Increased Thirst",
+        "Desires Cold Water",
+        "Desires Warm Water"
+      ],
+      notePlaceholder: "Optional thirst notes...",
+      legacyKeys: ["thirst"]
+    },
+    urine: {
+      label: "5. Urine",
+      helper: "Select urinary frequency, flow, or associated sensations.",
+      options: [
+        "Normal / Clear",
+        "Frequent Urination",
+        "Frequent at Night (Nocturia)",
+        "Burning / Scalding",
+        "Scanty Flow",
+        "Offensive Odor",
+        "Urgency"
+      ],
+      notePlaceholder: "Optional urine notes...",
+      legacyKeys: ["urine"]
+    },
+    bowel: {
+      label: "6. Bowel",
+      helper: "Select stool regularity, consistency, and evacuation pattern.",
+      options: [
+        "Regular / Satisfactory",
+        "Constipation (Hard Stool)",
+        "Unfinished Sensation",
+        "Alternating Constipation & Loose",
+        "Frequent / Loose Stool",
+        "Morning Urgency",
+        "Straining Required"
+      ],
+      notePlaceholder: "Optional bowel notes...",
+      legacyKeys: ["bowel"]
+    },
+    perspiration: {
+      label: "7. Perspiration (Sweat)",
+      helper: "Select sweat distribution, quantity, odor, or staining.",
+      options: [
+        "Moderate / Normal",
+        "Profuse Perspiration",
+        "Scanty / Dry Skin",
+        "Palms & Soles",
+        "Forehead / Head / Neck",
+        "Offensive Odor",
+        "Stains Linen Yellow",
+        "Sweat on Slight Exertion"
+      ],
+      notePlaceholder: "Optional perspiration notes...",
+      legacyKeys: ["perspiration"]
+    },
+    habits: {
+      label: "8. Habits & Addictions",
+      helper: "Select daily beverage habits, lifestyle routines, or addictions.",
+      options: [
+        "Tea (1–2 cups/day)",
+        "Tea (Frequent)",
+        "Coffee",
+        "Tobacco / Smoking",
+        "Alcohol (Occasional)",
+        "Late Night Sleeping",
+        "Irregular Meal Timings",
+        "No addictions"
+      ],
+      notePlaceholder: "Optional habit details...",
+      legacyKeys: ["habits"]
+    },
+    hobbies: {
+      label: "9. Hobbies & Recreations",
+      helper: "Select leisure activities and personal interests.",
+      options: [
+        "Reading",
+        "Music",
+        "Walking / Exercise",
+        "Gardening",
+        "Cooking",
+        "Sports",
+        "Painting / Art",
+        "Travelling"
+      ],
+      notePlaceholder: "Optional hobby notes...",
+      legacyKeys: ["hobbies"]
+    },
+    thermalBath: {
+      label: "10a. Thermal — Bath Preference",
+      helper: "Select preferred water temperature for bathing.",
+      options: [
+        "Warm Water All Year",
+        "Lukewarm / Tepid Water",
+        "Cold Water Bath",
+        "Warm in Winter, Cool in Summer"
+      ],
+      notePlaceholder: "Optional bath temperature note...",
+      legacyKeys: ["thermalBath"]
+    },
+    thermalCovering: {
+      label: "10b. Thermal — Covering, Fan & AC",
+      helper: "Select blanket, fan, and air-conditioning tolerance.",
+      options: [
+        "Needs Blanket Even in Summer",
+        "Prefers Light Covering",
+        "Uncovers Feet at Night",
+        "Intolerant to Cold Draft / AC",
+        "Prefers Fast Fan / Cool Room"
+      ],
+      notePlaceholder: "Optional covering or draft note...",
+      legacyKeys: ["thermalCovering"]
+    },
+    thermalFood: {
+      label: "10c. Thermal — Food & Drink Temperature",
+      helper: "Select thermal reaction to warm or cold food and drinks.",
+      options: [
+        "Desires Warm / Hot Food",
+        "Desires Cold Food & Drinks",
+        "Aggravated by Cold Drinks / Ice",
+        "Comfortable with Room Temperature"
+      ],
+      notePlaceholder: "Optional food temperature note...",
+      legacyKeys: ["thermalFood"]
+    },
+    thermalSeason: {
+      label: "10d. Thermal — Season & Overall Reaction",
+      helper: "Select overall constitutional thermal sensitivity.",
+      options: [
+        "Chilly Patient (Worse in Winter)",
+        "Hot Patient (Worse in Summer)",
+        "Ambithermal (Sensitive to Both)",
+        "Worse in Monsoon / Damp Weather",
+        "Worse During Weather Change"
+      ],
+      notePlaceholder: "Optional seasonal modality note...",
+      legacyKeys: ["thermalSeason"]
+    },
+    sleep: {
+      label: "11. Sleep Pattern & Posture",
+      helper: "Select sleep quality, waking hours, and preferred sleeping posture.",
+      options: [
+        "Sound & Refreshing",
+        "Disturbed / Light Sleep",
+        "Unrefreshing Sleep",
+        "Difficulty Falling Asleep",
+        "Wakes Between 2–4 AM",
+        "Sleeps on Left Side",
+        "Sleeps on Right Side",
+        "Sleeps on Abdomen",
+        "Sleeps on Back"
+      ],
+      notePlaceholder: "Optional sleep details...",
+      legacyKeys: ["sleep"]
+    },
+    dreams: {
+      label: "12. Dreams",
+      helper: "Select recurring dream themes or sleep imagery.",
+      options: [
+        "Unremembered",
+        "Anxious / Frightful Dreams",
+        "Dreams of Daily Work / Business",
+        "Dreams of Falling",
+        "Dreams of Water / Snakes",
+        "Dreams of Deceased Relatives",
+        "Pleasant Dreams"
+      ],
+      notePlaceholder: "Optional dream narrative...",
+      legacyKeys: ["dreams"]
+    },
+    menstrualHistory: {
+      label: "13. Menstrual / Gynaecological History",
+      helper: "Select cycle regularity, flow characteristics, and associated modalities.",
+      options: [
+        "Not Applicable",
+        "Regular Cycle (28–30 Days)",
+        "Irregular / Delayed Menses",
+        "Early / Frequent Menses",
+        "Heavy Flow / Clots",
+        "Scanty Flow",
+        "Painful (Dysmenorrhoea)",
+        "Leucorrhoea Present",
+        "Menopause Reached"
+      ],
+      notePlaceholder: "Optional cycle details, LMP, or before/during/after menses modalities...",
+      noteMultiline: true,
+      legacyKeys: ["menstrualHistory"]
+    }
+  },
+
+  mind: {
+    workplaceEnv: {
+      label: "1. Workplace Environment",
+      helper: "Select occupational atmosphere, workload, and workplace relationships.",
+      options: [
+        "Calm & Supportive",
+        "High Work Pressure / Deadlines",
+        "Competitive Atmosphere",
+        "Cordial Colleague Relations",
+        "Friction with Superiors",
+        "Homemaker / Domestic Work",
+        "Student / Academic Pressure",
+        "Retired"
+      ],
+      notePlaceholder: "Optional narrative on occupational environment or stresses...",
+      noteMultiline: true,
+      legacyKeys: ["workplaceEnv"]
+    },
+    familyEnv: {
+      label: "2. Family Environment",
+      helper: "Select home atmosphere, family bonding, and domestic support.",
+      options: [
+        "Supportive & Harmonious",
+        "Close Family Bonding",
+        "Domestic Responsibilities Stress",
+        "Interpersonal Friction",
+        "Financial Worry in Family",
+        "Lives Independently"
+      ],
+      notePlaceholder: "Optional narrative on family circumstances or home environment...",
+      noteMultiline: true,
+      legacyKeys: ["familyEnv"]
+    },
+    socialPartyEnv: {
+      label: "3. Social & Party Environment",
+      helper: "Select comfort level in social gatherings and crowds.",
+      options: [
+        "Enjoys Social Gatherings",
+        "Selective Socializing",
+        "Avoids Crowds & Parties",
+        "Feels Drained in Large Groups",
+        "Polite but Reserved"
+      ],
+      notePlaceholder: "Optional social environment observation...",
+      legacyKeys: ["socialPartyEnv"]
+    },
+    friendsComfort: {
+      label: "4. Friends & Social Comfort",
+      helper: "Select friendship circle preference and emotional sharing style.",
+      options: [
+        "Few Close Trusted Friends",
+        "Large Social Circle",
+        "Shares Feelings Openly",
+        "Keeps Problems to Self",
+        "Prefers Solitude When Upset"
+      ],
+      notePlaceholder: "Optional note on social comfort...",
+      legacyKeys: ["friendsComfort"]
+    },
+    introExtrovert: {
+      label: "5. Introvert / Extrovert Tendencies",
+      helper: "Select baseline temperament and social expression.",
+      options: [
+        "Introverted & Observant",
+        "Balanced (Ambivert)",
+        "Extroverted & Expressive",
+        "Reserved with Strangers, Open with Family"
+      ],
+      notePlaceholder: "Optional temperament note...",
+      legacyKeys: ["introExtrovert"]
+    },
+    emotionsFeelings: {
+      label: "6. Emotions & Feelings",
+      helper: "Select core emotional sensitivity, weeping tendency, and consolation response.",
+      options: [
+        "Sensitive & Empathetic",
+        "Easily Moved to Tears",
+        "Better from Consolation",
+        "Aggravated by Consolation",
+        "Suppresses Grief / Emotions",
+        "Affectionate & Caring",
+        "Mood Fluctuations"
+      ],
+      notePlaceholder: "Optional detailed emotional observations...",
+      noteMultiline: true,
+      legacyKeys: ["emotionsFeelings"]
+    },
+    thoughts: {
+      label: "7. Thoughts",
+      helper: "Select prevailing thought patterns and mental activity.",
+      options: [
+        "Calm & Focused",
+        "Overthinking / Racing Thoughts",
+        "Brooding Over Past Events",
+        "Anticipatory Worry About Future",
+        "Thoughts Persist at Night",
+        "Fastidious / Perfectionist"
+      ],
+      notePlaceholder: "Optional narrative on thoughts or mental patterns...",
+      noteMultiline: true,
+      legacyKeys: ["thoughts"]
+    },
+    fearsCauses: {
+      label: "8. Fears & Their Causes",
+      helper: "Select specific fears, phobias, or triggers.",
+      options: [
+        "Fear of Disease / Health",
+        "Fear of Being Alone",
+        "Fear of Dark",
+        "Fear of Heights",
+        "Fear of Failure / Exams",
+        "Fear for Family's Safety",
+        "Fear of Thunderstorms / Animals",
+        "No specific fears reported"
+      ],
+      notePlaceholder: "Optional details on fears and their causes...",
+      legacyKeys: ["fearsCauses"]
+    },
+    angerCauses: {
+      label: "9. Anger & Its Causes",
+      helper: "Select anger triggers and how the patient expresses or suppresses anger.",
+      options: [
+        "Rarely Angry / Calm",
+        "Anger from Contradiction",
+        "Anger at Injustice",
+        "Suppressed Anger (Silent Grief)",
+        "Quick Temper, Quickly Cools Down",
+        "Irritable When Fatigued"
+      ],
+      notePlaceholder: "Optional details on anger reactions...",
+      legacyKeys: ["angerCauses"]
+    },
+    anxiety: {
+      label: "10. Anxiety",
+      helper: "Select anxiety patterns and physical or situational triggers.",
+      options: [
+        "Minimal / Calm",
+        "Health Anxiety",
+        "Anticipatory Anxiety (Before Tasks)",
+        "Anxiety for Others / Family",
+        "Anxiety About Trifles",
+        "Palpitations / Restlessness with Anxiety"
+      ],
+      notePlaceholder: "Optional anxiety observations...",
+      legacyKeys: ["anxiety"]
+    },
+    stressResponses: {
+      label: "11. Stress & Emotional Responses",
+      helper: "Select behavioral or somatic responses to mental stress.",
+      options: [
+        "Becomes Quiet & Withdrawn",
+        "Seeks Reassurance / Company",
+        "Develops Physical Symptoms (Headache/Acidity)",
+        "Disturbed Sleep Under Stress",
+        "Weeping Relieves Stress",
+        "Irritable Under Stress"
+      ],
+      notePlaceholder: "Optional stress response details...",
+      legacyKeys: ["stressResponses"]
+    },
+    additionalObservations: {
+      label: "12. Additional Mental or Emotional Observations",
+      helper: "Select characteristic constitutional keynotes or add narrative notes.",
+      options: [
+        "Fastidious (Wants Order & Cleanliness)",
+        "Strong Willpower",
+        "Good Memory",
+        "Forgetful Recently",
+        "Sensitive to Noise / Light",
+        "Religious / Philosophical Disposition",
+        "Mild, Gentle, Yielding Disposition"
+      ],
+      notePlaceholder: "Optional clinical narrative for characteristic mental or emotional keynotes...",
+      noteMultiline: true,
+      legacyKeys: ["additionalObservations"]
+    }
+  }
+};
+
+function getPatientSectionObject(patient, sectionKey) {
+  if (!patient) return {};
+  if (sectionKey === "past") {
+    if (!patient.pastHistoryData || typeof patient.pastHistoryData !== "object") {
+      patient.pastHistoryData = {
+        medicalHistory: typeof patient.pastHistory === "string" ? patient.pastHistory : "",
+        previousIllnesses: "",
+        previousTreatments: "",
+        associatedComplaints: patient.associatedComplaints || "",
+        familyFather: typeof patient.familyHistory === "string" ? patient.familyHistory : "",
+        familyMother: "",
+        familyBrother: "",
+        familySister: "",
+        previousConsultations: ""
+      };
+    }
+    return patient.pastHistoryData;
+  }
+  if (sectionKey === "personal") {
+    if (!patient.personalHistory || typeof patient.personalHistory !== "object") {
+      patient.personalHistory = {};
+    }
+    return patient.personalHistory;
+  }
+  if (sectionKey === "mind") {
+    if (!patient.mindHistory || typeof patient.mindHistory !== "object") {
+      patient.mindHistory = {};
+    }
+    return patient.mindHistory;
+  }
+  return {};
+}
+
+function formatSmartSummaryString(chips, notes) {
+  const cleanChips = Array.isArray(chips) ? chips.map(c => String(c || "").trim()).filter(Boolean) : [];
+  const cleanNotes = String(notes || "").trim();
+  if (cleanChips.length > 0 && cleanNotes) {
+    return `${cleanChips.join(", ")} — ${cleanNotes}`;
+  }
+  if (cleanChips.length > 0) {
+    return cleanChips.join(", ");
+  }
+  return cleanNotes;
+}
+
+/**
+ * Retrieve or initialize backward-compatible smart field state `{ chips: string[], notes: string }`.
+ * Never splits or overwrites legacy free-text notes; preserves them intact in `notes`.
+ */
+function getSmartFieldState(patient, sectionKey, fieldKey) {
+  const sectionObj = getPatientSectionObject(patient, sectionKey);
+  if (!sectionObj._smart || typeof sectionObj._smart !== "object") {
+    sectionObj._smart = {};
+  }
+
+  if (sectionObj._smart[fieldKey] && typeof sectionObj._smart[fieldKey] === "object") {
+    const entry = sectionObj._smart[fieldKey];
+    if (!Array.isArray(entry.chips)) entry.chips = [];
+    if (typeof entry.notes !== "string") entry.notes = String(entry.notes || "");
+    return entry;
+  }
+
+  // Backward compatibility check: preserve any pre-existing free-text string in `notes`
+  const fieldDef = CLINICAL_FIELD_CATALOG[sectionKey]?.[fieldKey];
+  let legacyNote = "";
+  const candidateKeys = [fieldKey, ...(fieldDef?.legacyKeys || [])];
+  for (const k of candidateKeys) {
+    const rawVal = sectionObj[k];
+    if (typeof rawVal === "string" && rawVal.trim()) {
+      legacyNote = rawVal.trim();
+      break;
+    } else if (Array.isArray(rawVal)) {
+      sectionObj._smart[fieldKey] = {
+        chips: rawVal.map(v => String(v || "").trim()).filter(Boolean),
+        notes: ""
+      };
+      return sectionObj._smart[fieldKey];
+    } else if (rawVal && typeof rawVal === "object" && (Array.isArray(rawVal.chips) || typeof rawVal.notes === "string")) {
+      sectionObj._smart[fieldKey] = {
+        chips: Array.isArray(rawVal.chips) ? [...rawVal.chips] : [],
+        notes: typeof rawVal.notes === "string" ? rawVal.notes : ""
+      };
+      return sectionObj._smart[fieldKey];
+    }
+  }
+
+  sectionObj._smart[fieldKey] = {
+    chips: [],
+    notes: legacyNote
+  };
+  return sectionObj._smart[fieldKey];
+}
+
+function syncSmartSectionSummaries(patient, sectionKey) {
+  const sectionObj = getPatientSectionObject(patient, sectionKey);
+  const catalog = CLINICAL_FIELD_CATALOG[sectionKey] || {};
+  for (const [fieldKey, def] of Object.entries(catalog)) {
+    const state = getSmartFieldState(patient, sectionKey, fieldKey);
+    const summary = formatSmartSummaryString(state.chips, state.notes);
+    sectionObj[fieldKey] = summary;
+    if (Array.isArray(def.legacyKeys)) {
+      def.legacyKeys.forEach(lk => {
+        sectionObj[lk] = summary;
+      });
+    }
+  }
+
+  if (sectionKey === "past") {
+    const pastSummaries = [
+      sectionObj.pastIllnesses,
+      sectionObj.hospitalizationsSurgeries
+    ].filter(Boolean).join(" | ");
+    sectionObj.medicalHistory = pastSummaries || sectionObj.pastIllnesses || "";
+    patient.pastHistory = sectionObj.medicalHistory;
+    patient.associatedComplaints = sectionObj.associatedComplaints || "";
+    patient.familyHistory = [
+      sectionObj.familyFather ? `Father: ${sectionObj.familyFather}` : "",
+      sectionObj.familyMother ? `Mother: ${sectionObj.familyMother}` : "",
+      sectionObj.familyBrother ? `Brother(s): ${sectionObj.familyBrother}` : "",
+      sectionObj.familySister ? `Sister(s): ${sectionObj.familySister}` : ""
+    ].filter(Boolean).join("; ");
+  }
+}
+
+function renderSmartAddField(patient, sectionKey, fieldKey) {
+  const fieldDef = CLINICAL_FIELD_CATALOG[sectionKey]?.[fieldKey];
+  if (!fieldDef) return "";
+
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const selectedSet = new Set(state.chips.map(c => c.toLowerCase()));
+
+  const chipsHtml = state.chips.map((chipText, idx) => `
+    <span class="hc-chip" data-chip-value="${escAttr(chipText)}">
+      <span>${escAttr(chipText)}</span>
+      <button
+        type="button"
+        class="hc-chip-remove"
+        title="Remove ${escAttr(chipText)}"
+        aria-label="Remove ${escAttr(chipText)}"
+        onclick="removeSmartChip(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', ${idx})"
+      >&times;</button>
+    </span>
+  `).join("");
+
+  const optionsHtml = fieldDef.options.map((opt) => {
+    const isSelected = selectedSet.has(opt.toLowerCase());
+    return `
+      <button
+        type="button"
+        class="hc-popover-option ${isSelected ? 'already-selected' : ''}"
+        role="menuitem"
+        onclick="selectSmartChipOption(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', '${escAttr(opt)}')"
+      >
+        <span>${escAttr(opt)}</span>
+        ${isSelected ? '<span style="font-size:11px;color:#176B46;">Added</span>' : ''}
+      </button>
+    `;
+  }).join("");
+
+  const noteInputHtml = fieldDef.notePlaceholder
+    ? `
+      <div class="hc-smart-note-wrap">
+        ${fieldDef.noteMultiline
+          ? `<textarea
+              id="smartNote_${domKey}"
+              class="hc-smart-note-textarea"
+              rows="2"
+              placeholder="${escAttr(fieldDef.notePlaceholder)}"
+              oninput="handleSmartNoteInput('${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', this.value)"
+            >${escAttr(state.notes)}</textarea>`
+          : `<input
+              type="text"
+              id="smartNote_${domKey}"
+              class="hc-smart-note-input"
+              placeholder="${escAttr(fieldDef.notePlaceholder)}"
+              value="${escAttr(state.notes)}"
+              oninput="handleSmartNoteInput('${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}', this.value)"
+            >`
+        }
+      </div>
+    `
+    : "";
+
+  return `
+    <div class="hc-smart-field" id="smartField_${domKey}" data-section="${escAttr(sectionKey)}" data-field="${escAttr(fieldKey)}">
+      <div class="hc-smart-field-head">
+        <div>
+          <label class="hc-smart-label" for="smartAddBtn_${domKey}">${escAttr(fieldDef.label)}</label>
+          <p class="hc-smart-helper">${escAttr(fieldDef.helper)}</p>
+        </div>
+      </div>
+
+      <div class="hc-chips-row" id="smartChipsRow_${domKey}">
+        ${chipsHtml}
+        <div class="hc-add-popover-anchor">
+          <button
+            type="button"
+            id="smartAddBtn_${domKey}"
+            class="hc-add-chip-btn"
+            aria-haspopup="true"
+            aria-expanded="false"
+            onclick="toggleSmartAddMenu(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+          >
+            <span>+ Add</span>
+          </button>
+
+          <div
+            class="hc-add-popover"
+            id="smartPopover_${domKey}"
+            role="menu"
+            aria-label="Options for ${escAttr(fieldDef.label)}"
+          >
+            <div class="hc-popover-title">Select to add</div>
+            ${optionsHtml}
+            <button
+              type="button"
+              class="hc-popover-option hc-popover-option-custom"
+              role="menuitem"
+              onclick="openSmartCustomEntry(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+            >
+              <span>+ Other / Custom Entry...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hc-custom-entry-row" id="smartCustomRow_${domKey}">
+        <input
+          type="text"
+          id="smartCustomInput_${domKey}"
+          class="hc-custom-entry-input"
+          placeholder="Type custom condition or observation..."
+          onkeydown="handleSmartCustomKeydown(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+        >
+        <button
+          type="button"
+          class="hc-custom-entry-save"
+          onclick="submitSmartCustomEntry(event, '${escAttr(patient.id)}', '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+        >Add</button>
+        <button
+          type="button"
+          class="hc-custom-entry-cancel"
+          onclick="closeSmartCustomEntry(event, '${escAttr(sectionKey)}', '${escAttr(fieldKey)}')"
+        >Cancel</button>
+      </div>
+
+      ${noteInputHtml}
+    </div>
+  `;
+}
+
+function closeAllSmartPopovers() {
+  document.querySelectorAll(".hc-add-popover.open").forEach(pop => {
+    pop.classList.remove("open");
+  });
+  document.querySelectorAll(".hc-add-chip-btn[aria-expanded='true']").forEach(btn => {
+    btn.setAttribute("aria-expanded", "false");
+  });
+  document.querySelectorAll(".hc-smart-field.popover-open").forEach(field => {
+    field.classList.remove("popover-open");
+  });
+}
+
+window.toggleSmartAddMenu = function(event, patientId, sectionKey, fieldKey) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const popover = document.getElementById(`smartPopover_${domKey}`);
+  const btn = document.getElementById(`smartAddBtn_${domKey}`);
+  const fieldWrap = document.getElementById(`smartField_${domKey}`);
+  if (!popover) return;
+
+  const wasOpen = popover.classList.contains("open");
+  closeAllSmartPopovers();
+
+  if (!wasOpen) {
+    popover.classList.add("open");
+    if (btn) btn.setAttribute("aria-expanded", "true");
+    if (fieldWrap) fieldWrap.classList.add("popover-open");
+    const firstOption = popover.querySelector(".hc-popover-option");
+    if (firstOption) {
+      setTimeout(() => firstOption.focus(), 20);
+    }
+  }
+};
+
+function refreshSmartFieldDOM(patientId, sectionKey, fieldKey) {
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const existingEl = document.getElementById(`smartField_${domKey}`);
+  if (!existingEl) return;
+
+  // Preserve current note input value if user was typing
+  const noteEl = document.getElementById(`smartNote_${domKey}`);
+  if (noteEl) {
+    const state = getSmartFieldState(patient, sectionKey, fieldKey);
+    state.notes = noteEl.value;
+  }
+
+  const temp = document.createElement("div");
+  temp.innerHTML = renderSmartAddField(patient, sectionKey, fieldKey).trim();
+  const replacement = temp.firstElementChild;
+  if (replacement) {
+    existingEl.replaceWith(replacement);
+  }
+}
+
+window.selectSmartChipOption = function(event, patientId, sectionKey, fieldKey, optionValue) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  const cleanOpt = String(optionValue || "").trim();
+  if (!cleanOpt) return;
+
+  const exists = state.chips.some(c => c.toLowerCase() === cleanOpt.toLowerCase());
+  if (!exists) {
+    state.chips.push(cleanOpt);
+  }
+
+  syncSmartSectionSummaries(patient, sectionKey);
+  closeAllSmartPopovers();
+  refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
+  triggerSmartAutosave(patientId, sectionKey);
+};
+
+window.removeSmartChip = function(event, patientId, sectionKey, fieldKey, chipIndex) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  if (chipIndex >= 0 && chipIndex < state.chips.length) {
+    state.chips.splice(chipIndex, 1);
+  }
+
+  syncSmartSectionSummaries(patient, sectionKey);
+  refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
+  triggerSmartAutosave(patientId, sectionKey);
+};
+
+window.openSmartCustomEntry = function(event, patientId, sectionKey, fieldKey) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  closeAllSmartPopovers();
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const customRow = document.getElementById(`smartCustomRow_${domKey}`);
+  const customInput = document.getElementById(`smartCustomInput_${domKey}`);
+  if (customRow) {
+    customRow.classList.add("active");
+  }
+  if (customInput) {
+    customInput.value = "";
+    setTimeout(() => customInput.focus(), 20);
+  }
+};
+
+window.closeSmartCustomEntry = function(event, sectionKey, fieldKey) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const customRow = document.getElementById(`smartCustomRow_${domKey}`);
+  const customInput = document.getElementById(`smartCustomInput_${domKey}`);
+  if (customRow) customRow.classList.remove("active");
+  if (customInput) customInput.value = "";
+};
+
+window.submitSmartCustomEntry = function(event, patientId, sectionKey, fieldKey) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const domKey = `${sectionKey}_${fieldKey}`;
+  const customInput = document.getElementById(`smartCustomInput_${domKey}`);
+  const customVal = customInput ? customInput.value.trim() : "";
+  if (!customVal) {
+    closeSmartCustomEntry(null, sectionKey, fieldKey);
+    return;
+  }
+
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  const exists = state.chips.some(c => c.toLowerCase() === customVal.toLowerCase());
+  if (!exists) {
+    state.chips.push(customVal);
+  }
+
+  syncSmartSectionSummaries(patient, sectionKey);
+  refreshSmartFieldDOM(patientId, sectionKey, fieldKey);
+  triggerSmartAutosave(patientId, sectionKey);
+};
+
+window.handleSmartCustomKeydown = function(event, patientId, sectionKey, fieldKey) {
+  if (!event) return;
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitSmartCustomEntry(event, patientId, sectionKey, fieldKey);
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    closeSmartCustomEntry(event, sectionKey, fieldKey);
+  }
+};
+
+window.handleSmartNoteInput = function(patientId, sectionKey, fieldKey, noteValue) {
+  const patient = CLINIC_STATE.patients.find(p => p.id === patientId);
+  if (!patient) return;
+  const state = getSmartFieldState(patient, sectionKey, fieldKey);
+  state.notes = String(noteValue || "");
+  syncSmartSectionSummaries(patient, sectionKey);
+  triggerSmartAutosave(patientId, sectionKey);
+};
+
+// Global click-outside and keyboard navigation (ArrowDown, ArrowUp, Enter, Escape) for + Add popovers
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".hc-add-popover-anchor")) {
+    closeAllSmartPopovers();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  const openPop = document.querySelector(".hc-add-popover.open");
+  if (!openPop) return;
+
+  const options = Array.from(openPop.querySelectorAll(".hc-popover-option"));
+  if (options.length === 0) return;
+  const currentIdx = options.indexOf(document.activeElement);
+
+  if (e.key === "Escape") {
+    e.preventDefault();
+    const anchor = openPop.closest(".hc-add-popover-anchor");
+    const triggerBtn = anchor ? anchor.querySelector(".hc-add-chip-btn") : null;
+    closeAllSmartPopovers();
+    if (triggerBtn) triggerBtn.focus();
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    const nextIdx = currentIdx < options.length - 1 ? currentIdx + 1 : 0;
+    options[nextIdx].focus();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    const prevIdx = currentIdx > 0 ? currentIdx - 1 : options.length - 1;
+    options[prevIdx].focus();
+  }
+});
+
 // Render Multi-Tab Patient Profile & Case Record Dossier
 function renderPatientCaseDossier(patient) {
   if (!patient) return "";
 
   const p = patient;
-  if (!p.pastHistoryData || typeof p.pastHistoryData !== "object") {
-    p.pastHistoryData = {
-      medicalHistory: typeof p.pastHistory === "string" ? p.pastHistory : "",
-      previousIllnesses: "",
-      previousTreatments: "",
-      associatedComplaints: p.associatedComplaints || "",
-      familyFather: typeof p.familyHistory === "string" ? p.familyHistory : "",
-      familyMother: "",
-      familyBrother: "",
-      familySister: "",
-      previousConsultations: ""
-    };
-  }
+  // Ensure sections and smart summaries are initialized without overwriting legacy strings
+  getPatientSectionObject(p, "past");
+  getPatientSectionObject(p, "personal");
+  getPatientSectionObject(p, "mind");
+  syncSmartSectionSummaries(p, "past");
+  syncSmartSectionSummaries(p, "personal");
+  syncSmartSectionSummaries(p, "mind");
+
   const past = p.pastHistoryData;
-  const pers = p.personalHistory || {};
-  const mind = p.mindHistory || {};
+  const pers = p.personalHistory;
+  const mind = p.mindHistory;
+
   if (!Array.isArray(p.consultations) || p.consultations.length === 0) {
     p.consultations = [
       {
@@ -3315,8 +4443,15 @@ function renderPatientCaseDossier(patient) {
   const activeTab = window.__ACTIVE_CASE_TAB || "overview";
   const initials = (p.name || "PT").split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 
-  // Check completion status for badges
-  const hasPast = Boolean(past.medicalHistory || past.previousIllnesses || past.familyFather || past.familyMother);
+  // Check completion status for step indicators and overview summary cards
+  const hasPast = Boolean(
+    past.pastIllnesses ||
+    past.recurrentInfections ||
+    past.hospitalizationsSurgeries ||
+    past.previousTreatments ||
+    past.familyFather ||
+    past.familyMother
+  );
   const hasPers = Boolean(pers.appetite || pers.thirst || pers.craving || pers.sleep || pers.thermalSeason);
   const hasMind = Boolean(mind.workplaceEnv || mind.familyEnv || mind.anxiety || mind.thoughts || mind.emotionsFeelings);
 
@@ -3326,7 +4461,7 @@ function renderPatientCaseDossier(patient) {
 
   return `
     <div class="case-dossier-wrapper" data-patient-id="${escAttr(p.id)}">
-      <!-- Patient Identity Banner -->
+      <!-- Compact Patient Summary Card -->
       <div class="dossier-hero-card">
         <div class="dossier-patient-main">
           <div class="dossier-avatar">${initials}</div>
@@ -3342,8 +4477,8 @@ function renderPatientCaseDossier(patient) {
               <strong>Registered:</strong> ${escAttr(p.registeredDate)}
             </div>
             <div class="dossier-meta-sub" style="margin-top: 4px;">
-              <strong>Address:</strong> ${escAttr(p.address || "—")} •
-              <strong>Attending Physician:</strong> Dr. Suraj D. Panigrahi
+              <strong>Chief Complaint:</strong> ${escAttr(p.chiefComplaint || "—")} •
+              <strong>Physician:</strong> Dr. Suraj D. Panigrahi
             </div>
           </div>
         </div>
@@ -3357,6 +4492,34 @@ function renderPatientCaseDossier(patient) {
             <span>Print Case</span>
           </button>
         </div>
+      </div>
+
+      <!-- Simple Step-Progress Indicator -->
+      <div class="hc-step-progress-bar" aria-label="Clinical Case Taking Steps">
+        <button type="button" class="hc-step-progress-item ${activeTab === 'overview' ? 'active' : 'completed'}" onclick="switchPatientProfileTab('overview')">
+          <span class="hc-step-num-circle">1</span>
+          <span>Step 1: Basic Registration</span>
+        </button>
+        <div class="hc-step-divider-line"></div>
+        <button type="button" class="hc-step-progress-item ${activeTab === 'past' ? 'active' : (hasPast ? 'completed' : '')}" onclick="switchPatientProfileTab('past')">
+          <span class="hc-step-num-circle">2</span>
+          <span>Step 2: Past &amp; Family History</span>
+        </button>
+        <div class="hc-step-divider-line"></div>
+        <button type="button" class="hc-step-progress-item ${activeTab === 'personal' ? 'active' : (hasPers ? 'completed' : '')}" onclick="switchPatientProfileTab('personal')">
+          <span class="hc-step-num-circle">3</span>
+          <span>Step 3: Personal History</span>
+        </button>
+        <div class="hc-step-divider-line"></div>
+        <button type="button" class="hc-step-progress-item ${activeTab === 'mind' ? 'active' : (hasMind ? 'completed' : '')}" onclick="switchPatientProfileTab('mind')">
+          <span class="hc-step-num-circle">4</span>
+          <span>Step 4: Mind &amp; Emotional</span>
+        </button>
+        <div class="hc-step-divider-line"></div>
+        <button type="button" class="hc-step-progress-item ${(activeTab === 'consultations' || activeTab === 'timeline') ? 'active' : 'completed'}" onclick="switchPatientProfileTab('timeline')">
+          <span class="hc-step-num-circle">5</span>
+          <span>Step 5: Progress Timeline</span>
+        </button>
       </div>
 
       <!-- Patient Profile Multi-Tab Navigation Bar -->
@@ -3393,9 +4556,9 @@ function renderPatientCaseDossier(patient) {
           <div class="case-section-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <i data-lucide="clipboard-check"></i>
-              <h3>Basic Registration & Chief Complaint (Step 1)</h3>
+              <h3>Basic Registration &amp; Chief Complaint (Step 1)</h3>
             </div>
-            <span class="hc-autosave-indicator" id="overviewSaveBadge">Saved in Registry</span>
+            <span class="hc-autosave-indicator saved" id="overviewSaveBadge">Saved</span>
           </div>
           <form onsubmit="saveOverviewSection(event, '${escAttr(p.id)}')">
             <div class="form-row-3">
@@ -3432,10 +4595,10 @@ function renderPatientCaseDossier(patient) {
             </div>
             <div class="form-group">
               <label>Chief Complaint (C/C) *</label>
-              <textarea id="ovChiefComplaint" class="clean-textarea" rows="3" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>${escAttr(p.chiefComplaint)}</textarea>
+              <textarea id="ovChiefComplaint" class="clean-textarea" rows="2" oninput="autoSavePatientTabs('${escAttr(p.id)}')" required>${escAttr(p.chiefComplaint)}</textarea>
             </div>
             <div class="hc-section-save-bar">
-              <span style="font-size: 12.5px; color: var(--text-secondary);">System Patient ID: <strong>${escAttr(p.id)}</strong></span>
+              <span style="font-size: 12.5px; color: #78847D;">System Patient ID: <strong>${escAttr(p.id)}</strong></span>
               <div style="display: flex; gap: 10px;">
                 <button type="submit" class="primary-btn-solid">
                   <i data-lucide="save"></i>
@@ -3454,13 +4617,15 @@ function renderPatientCaseDossier(patient) {
           <div class="case-record-section-card">
             <div class="case-section-header">
               <i data-lucide="history"></i>
-              <h3>Past & Family History</h3>
+              <h3>Past &amp; Family History</h3>
             </div>
-            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
-              ${hasPast ? `<strong>Past:</strong> ${escAttr(past.medicalHistory || past.previousIllnesses || "Recorded")}<br><strong>Family:</strong> Father: ${escAttr(past.familyFather || "—")}, Mother: ${escAttr(past.familyMother || "—")}` : "No past or family medical history recorded yet."}
+            <p style="font-size: 13px; color: #78847D; margin-bottom: 12px; line-height: 1.5;">
+              ${hasPast
+                ? `<strong>Past:</strong> ${escAttr(past.pastIllnesses || past.recurrentInfections || past.medicalHistory || "Recorded")}<br><strong>Family:</strong> Father: ${escAttr(past.familyFather || "—")} • Mother: ${escAttr(past.familyMother || "—")}`
+                : "No past or family medical history recorded yet."}
             </p>
             <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('past')">
-              <span>${hasPast ? "Edit Past History" : "+ Complete Past History"}</span>
+              <span>${hasPast ? "Open Past History" : "+ Add Past History"}</span>
             </button>
           </div>
 
@@ -3469,340 +4634,274 @@ function renderPatientCaseDossier(patient) {
               <i data-lucide="user-check"></i>
               <h3>Personal History (13 Modalities)</h3>
             </div>
-            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
-              ${hasPers ? `<strong>Appetite:</strong> ${escAttr(pers.appetite || "—")} • <strong>Thirst:</strong> ${escAttr(pers.thirst || "—")}<br><strong>Thermals:</strong> ${escAttr(pers.thermalSeason || "—")} • <strong>Sleep:</strong> ${escAttr(pers.sleep || "—")}` : "No physical generals or personal modalities recorded yet."}
+            <p style="font-size: 13px; color: #78847D; margin-bottom: 12px; line-height: 1.5;">
+              ${hasPers
+                ? `<strong>Appetite:</strong> ${escAttr(pers.appetite || "—")} • <strong>Thirst:</strong> ${escAttr(pers.thirst || "—")}<br><strong>Thermals:</strong> ${escAttr(pers.thermalSeason || "—")} • <strong>Sleep:</strong> ${escAttr(pers.sleep || "—")}`
+                : "No physical generals or personal modalities recorded yet."}
             </p>
             <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('personal')">
-              <span>${hasPers ? "Edit Personal History" : "+ Complete Personal History"}</span>
+              <span>${hasPers ? "Open Personal History" : "+ Add Personal History"}</span>
             </button>
           </div>
 
           <div class="case-record-section-card">
             <div class="case-section-header">
               <i data-lucide="brain"></i>
-              <h3>Mind & Disposition</h3>
+              <h3>Mind &amp; Emotional History</h3>
             </div>
-            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
-              ${hasMind ? `<strong>Anxiety:</strong> ${escAttr(mind.anxiety || "—")}<br><strong>Thoughts:</strong> ${escAttr(mind.thoughts || mind.emotionsFeelings || "Recorded")}` : "No mental or emotional disposition recorded yet."}
+            <p style="font-size: 13px; color: #78847D; margin-bottom: 12px; line-height: 1.5;">
+              ${hasMind
+                ? `<strong>Anxiety:</strong> ${escAttr(mind.anxiety || "—")}<br><strong>Disposition:</strong> ${escAttr(mind.thoughts || mind.emotionsFeelings || mind.workplaceEnv || "Recorded")}`
+                : "No mental or emotional disposition recorded yet."}
             </p>
             <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('mind')">
-              <span>${hasMind ? "Edit Mind History" : "+ Complete Mind History"}</span>
+              <span>${hasMind ? "Open Mind History" : "+ Add Mind History"}</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- TAB 2: PAST HISTORY (Step 2) -->
+      <!-- TAB 2: PAST HISTORY (Step 2 — Redesigned Sections A, B, C with Smart + Add Controls) -->
       <div class="hc-tab-pane ${activeTab === 'past' ? 'active' : ''}" id="hcTab-past">
-        <div class="case-record-section-card">
-          <div class="case-section-header" style="justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <i data-lucide="history"></i>
-              <h3>Step 2 — Past Medical, Treatment & Family History</h3>
+        <div class="case-record-section-card" style="background: transparent; border: none; padding: 0; box-shadow: none;">
+          <div class="hc-clinical-section-block" style="margin-bottom: 16px; padding: 16px 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 class="hc-section-heading">Step 2 — Past Medical, Treatment &amp; Family History</h3>
+                <p class="hc-subsection-subtitle" style="margin-bottom: 0; margin-top: 3px;">Use <strong>+ Add</strong> to select clinical conditions or add custom entries.</p>
+              </div>
+              <span class="hc-autosave-indicator saved" id="pastSaveBadge">Saved</span>
             </div>
-            <span class="hc-autosave-indicator" id="pastSaveBadge">Autosave Active</span>
           </div>
 
           <form onsubmit="savePastHistorySection(event, '${escAttr(p.id)}')">
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Past Medical History</label>
-                <textarea id="phMedicalHistory" class="clean-textarea" rows="3" placeholder="Major childhood or adult illnesses, hospitalizations, surgeries..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.medicalHistory)}</textarea>
+            <!-- SECTION A — PAST MEDICAL HISTORY -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section A — Past Medical History</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Record childhood or adult illnesses, recurring infections, and prior hospitalizations.</p>
+                </div>
               </div>
-              <div class="form-group">
-                <label>Previous Illnesses & Recurrent Infections</label>
-                <textarea id="phPrevIllnesses" class="clean-textarea" rows="3" placeholder="e.g. Typhoid, jaundice, recurrent tonsillitis, skin eruptions..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.previousIllnesses)}</textarea>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "past", "pastIllnesses")}
+                ${renderSmartAddField(p, "past", "recurrentInfections")}
               </div>
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Previous Treatments & Medications</label>
-                <textarea id="phPrevTreatments" class="clean-textarea" rows="2" placeholder="Allopathic, Ayurvedic, or prior Homeopathic treatments taken..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.previousTreatments)}</textarea>
-              </div>
-              <div class="form-group">
-                <label>Associated Complaints</label>
-                <textarea id="phAssocComplaints" class="clean-textarea" rows="2" placeholder="Secondary or concurrent symptoms accompanying the chief complaint..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.associatedComplaints)}</textarea>
+              <div style="margin-top: 18px;">
+                ${renderSmartAddField(p, "past", "hospitalizationsSurgeries")}
               </div>
             </div>
 
-            <h4 style="font-size: 14.5px; font-weight: 700; color: var(--primary-green); margin: 16px 0 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
-              Family Medical History
-            </h4>
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Father's Health History</label>
-                <input type="text" id="phFamilyFather" class="clean-input" placeholder="e.g. Hypertension, Diabetes, Asthma, Healthy..." value="${escAttr(past.familyFather)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+            <!-- SECTION B — TREATMENT HISTORY -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section B — Treatment History</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Document previous treatments, associated complaints, consultations, and lab investigations.</p>
+                </div>
               </div>
-              <div class="form-group">
-                <label>Mother's Health History</label>
-                <input type="text" id="phFamilyMother" class="clean-input" placeholder="e.g. Thyroid disorder, Migraine, Arthritis..." value="${escAttr(past.familyMother)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-            </div>
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Brother(s) Health History</label>
-                <input type="text" id="phFamilyBrother" class="clean-input" placeholder="Any hereditary or chronic conditions..." value="${escAttr(past.familyBrother)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-              <div class="form-group">
-                <label>Sister(s) Health History</label>
-                <input type="text" id="phFamilySister" class="clean-input" placeholder="Any hereditary or chronic conditions..." value="${escAttr(past.familySister)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "past", "previousTreatments")}
+                ${renderSmartAddField(p, "past", "associatedComplaints")}
+                ${renderSmartAddField(p, "past", "previousConsultations")}
+                ${renderSmartAddField(p, "past", "diagnosticReports")}
               </div>
             </div>
 
-            <div class="form-group" style="margin-top: 8px;">
-              <label>Previous Consultation Information & Diagnostic Reports</label>
-              <textarea id="phPrevConsultations" class="clean-textarea" rows="2" placeholder="Previous physician consultations, lab findings, imaging summaries..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(past.previousConsultations)}</textarea>
-            </div>
+            <!-- SECTION C — FAMILY MEDICAL HISTORY -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section C — Family Medical History</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Record each family member's health history separately. Select "No reported conditions" or "Information not available" when applicable.</p>
+                </div>
+              </div>
+              <div class="hc-family-grid-2">
+                ${renderSmartAddField(p, "past", "familyFather")}
+                ${renderSmartAddField(p, "past", "familyMother")}
+                ${renderSmartAddField(p, "past", "familyBrother")}
+                ${renderSmartAddField(p, "past", "familySister")}
+              </div>
 
-            <div class="hc-section-save-bar">
-              <span style="font-size: 12.5px; color: var(--text-secondary);">All changes are automatically preserved for ${escAttr(p.name)}.</span>
-              <div style="display: flex; gap: 10px;">
-                <button type="submit" class="primary-btn-solid">
-                  <i data-lucide="save"></i>
-                  <span>Save Past History</span>
-                </button>
-                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('personal')">
-                  <span>Next: Personal History →</span>
-                </button>
+              <div class="hc-section-save-bar">
+                <span style="font-size: 12.5px; color: #78847D;">All selected conditions and notes are automatically saved to ${escAttr(p.name)}'s record.</span>
+                <div style="display: flex; gap: 10px;">
+                  <button type="submit" class="primary-btn-solid">
+                    <i data-lucide="save"></i>
+                    <span>Save Past History</span>
+                  </button>
+                  <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('personal')">
+                    <span>Next: Personal History →</span>
+                  </button>
+                </div>
               </div>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- TAB 3: PERSONAL HISTORY (Step 3 — Expandable Sections) -->
+      <!-- TAB 3: PERSONAL HISTORY (Step 3 — 13 Modalities with Smart + Add Controls) -->
       <div class="hc-tab-pane ${activeTab === 'personal' ? 'active' : ''}" id="hcTab-personal">
-        <div class="case-record-section-card">
-          <div class="case-section-header" style="justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <i data-lucide="user-check"></i>
-              <h3>Step 3 — Personal History (Physical Generals & Modalities)</h3>
+        <div class="case-record-section-card" style="background: transparent; border: none; padding: 0; box-shadow: none;">
+          <div class="hc-clinical-section-block" style="margin-bottom: 16px; padding: 16px 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 class="hc-section-heading">Step 3 — Personal History (Physical Generals &amp; Modalities)</h3>
+                <p class="hc-subsection-subtitle" style="margin-bottom: 0; margin-top: 3px;">Select physical generals, thermal reactions, and personal modalities using <strong>+ Add</strong>.</p>
+              </div>
+              <span class="hc-autosave-indicator saved" id="personalSaveBadge">Saved</span>
             </div>
-            <span class="hc-autosave-indicator" id="personalSaveBadge">Autosave Active</span>
           </div>
 
           <form onsubmit="savePersonalHistorySection(event, '${escAttr(p.id)}')">
-            <!-- Expandable Group 1: Appetite, Craving, Aversion, Thirst -->
-            <details class="hc-accordion-group" open>
-              <summary class="hc-accordion-summary">
-                <span>1. Appetite, Cravings, Aversions & Thirst (Items 1–4)</span>
-                <i data-lucide="chevron-down"></i>
-              </summary>
-              <div class="hc-accordion-body">
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>1. Appetite</label>
-                    <input type="text" id="peAppetite" class="clean-input" placeholder="e.g. Good, ravenous, easily satiated, diminished..." value="${escAttr(pers.appetite)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>2. Craving (Desires)</label>
-                    <input type="text" id="peCraving" class="clean-input" placeholder="e.g. Sweets, salt, spicy, sour, warm food, cold drinks..." value="${escAttr(pers.craving)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                </div>
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>3. Aversion</label>
-                    <input type="text" id="peAversion" class="clean-input" placeholder="e.g. Milk, fats, meat, sour, slimy food..." value="${escAttr(pers.aversion)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>4. Thirst</label>
-                    <input type="text" id="peThirst" class="clean-input" placeholder="e.g. Large quantities at long intervals, small sips, thirstless..." value="${escAttr(pers.thirst)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
+            <!-- Group 1: Appetite, Cravings, Aversions & Thirst -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section A — Appetite, Cravings, Aversion &amp; Thirst (Items 1–4)</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Dietary generals, hunger patterns, food desires/aversions, and water intake.</p>
                 </div>
               </div>
-            </details>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "personal", "appetite")}
+                ${renderSmartAddField(p, "personal", "craving")}
+                ${renderSmartAddField(p, "personal", "aversion")}
+                ${renderSmartAddField(p, "personal", "thirst")}
+              </div>
+            </div>
 
-            <!-- Expandable Group 2: Urine, Bowel, Perspiration, Habits, Hobbies -->
-            <details class="hc-accordion-group" open>
-              <summary class="hc-accordion-summary">
-                <span>2. Elimination, Perspiration, Habits & Hobbies (Items 5–9)</span>
-                <i data-lucide="chevron-down"></i>
-              </summary>
-              <div class="hc-accordion-body">
-                <div class="form-row-3">
-                  <div class="form-group">
-                    <label>5. Urine</label>
-                    <input type="text" id="peUrine" class="clean-input" placeholder="Frequency, flow, burning, odor, color..." value="${escAttr(pers.urine)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>6. Bowel</label>
-                    <input type="text" id="peBowel" class="clean-input" placeholder="Regular, constipation, unfinished sensation, loose..." value="${escAttr(pers.bowel)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>7. Perspiration (Sweat)</label>
-                    <input type="text" id="pePerspiration" class="clean-input" placeholder="Profuse, scant, palms/soles, forehead, staining, odor..." value="${escAttr(pers.perspiration)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                </div>
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>8. Habits / Addictions</label>
-                    <input type="text" id="peHabits" class="clean-input" placeholder="Tea, coffee, tobacco, alcohol, meal timing..." value="${escAttr(pers.habits)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>9. Hobbies & Recreations</label>
-                    <input type="text" id="peHobbies" class="clean-input" placeholder="Reading, music, sports, gardening, art..." value="${escAttr(pers.hobbies)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
+            <!-- Group 2: Elimination, Perspiration, Habits & Hobbies -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section B — Elimination, Perspiration, Habits &amp; Hobbies (Items 5–9)</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Urine, bowel regularity, sweat characteristics, daily habits, and recreations.</p>
                 </div>
               </div>
-            </details>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "personal", "urine")}
+                ${renderSmartAddField(p, "personal", "bowel")}
+                ${renderSmartAddField(p, "personal", "perspiration")}
+                ${renderSmartAddField(p, "personal", "habits")}
+              </div>
+              <div style="margin-top: 18px;">
+                ${renderSmartAddField(p, "personal", "hobbies")}
+              </div>
+            </div>
 
-            <!-- Expandable Group 3: Thermals (Bath, Covering, Food, Season) -->
-            <details class="hc-accordion-group" open>
-              <summary class="hc-accordion-summary">
-                <span>3. Thermals — Bath, Covering, Food & Season (Item 10)</span>
-                <i data-lucide="chevron-down"></i>
-              </summary>
-              <div class="hc-accordion-body">
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>10a. Thermal — Bath Preference</label>
-                    <input type="text" id="peThermalBath" class="clean-input" placeholder="e.g. Warm water all year, cold bath, tepid..." value="${escAttr(pers.thermalBath)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>10b. Thermal — Covering / Fan / AC</label>
-                    <input type="text" id="peThermalCovering" class="clean-input" placeholder="e.g. Needs thick blanket even in summer, uncovers feet..." value="${escAttr(pers.thermalCovering)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                </div>
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>10c. Thermal — Food & Drink Temperature</label>
-                    <input type="text" id="peThermalFood" class="clean-input" placeholder="e.g. Desires warm food, aggravated by cold drinks/ice..." value="${escAttr(pers.thermalFood)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>10d. Thermal — Season & Overall Reaction</label>
-                    <input type="text" id="peThermalSeason" class="clean-input" placeholder="e.g. Chilly patient (worse in winter) / Hot patient (worse in summer)..." value="${escAttr(pers.thermalSeason)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
+            <!-- Group 3: Thermals (Bath, Covering, Food, Season) -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section C — Thermals: Bath, Covering, Food &amp; Season (Item 10)</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Constitutional thermal preferences across bath water, covering, food temperature, and weather.</p>
                 </div>
               </div>
-            </details>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "personal", "thermalBath")}
+                ${renderSmartAddField(p, "personal", "thermalCovering")}
+                ${renderSmartAddField(p, "personal", "thermalFood")}
+                ${renderSmartAddField(p, "personal", "thermalSeason")}
+              </div>
+            </div>
 
-            <!-- Expandable Group 4: Sleep, Dreams & Menstrual History -->
-            <details class="hc-accordion-group" open>
-              <summary class="hc-accordion-summary">
-                <span>4. Sleep, Dreams & Menstrual History (Items 11–13)</span>
-                <i data-lucide="chevron-down"></i>
-              </summary>
-              <div class="hc-accordion-body">
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>11. Sleep Pattern & Posture</label>
-                    <input type="text" id="peSleep" class="clean-input" placeholder="Sound, unrefreshing, wakes at 3 AM, sleeps on left side/abdomen..." value="${escAttr(pers.sleep)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                  <div class="form-group">
-                    <label>12. Dreams</label>
-                    <input type="text" id="peDreams" class="clean-input" placeholder="Anxious, falling, water, snakes, business, unremembered..." value="${escAttr(pers.dreams)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>13. Menstrual / Gynaecological History (When Applicable)</label>
-                  <textarea id="peMenstrual" class="clean-textarea" rows="2" placeholder="Cycle regularity, flow, dysmenorrhoea, leucorrhoea, before/during/after menses modalities (or N/A)..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(pers.menstrualHistory)}</textarea>
+            <!-- Group 4: Sleep, Dreams & Menstrual History -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section D — Sleep, Dreams &amp; Menstrual History (Items 11–13)</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Sleep posture, dream patterns, and menstrual/gynaecological history when applicable.</p>
                 </div>
               </div>
-            </details>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "personal", "sleep")}
+                ${renderSmartAddField(p, "personal", "dreams")}
+              </div>
+              <div style="margin-top: 18px;">
+                ${renderSmartAddField(p, "personal", "menstrualHistory")}
+              </div>
 
-            <div class="hc-section-save-bar">
-              <span style="font-size: 12.5px; color: var(--text-secondary);">All 13 Personal History parameters are structured and saved.</span>
-              <div style="display: flex; gap: 10px;">
-                <button type="submit" class="primary-btn-solid">
-                  <i data-lucide="save"></i>
-                  <span>Save Personal History</span>
-                </button>
-                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('mind')">
-                  <span>Next: Mind History →</span>
-                </button>
+              <div class="hc-section-save-bar">
+                <span style="font-size: 12.5px; color: #78847D;">All 13 Personal History parameters are automatically saved for ${escAttr(p.name)}.</span>
+                <div style="display: flex; gap: 10px;">
+                  <button type="submit" class="primary-btn-solid">
+                    <i data-lucide="save"></i>
+                    <span>Save Personal History</span>
+                  </button>
+                  <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('mind')">
+                    <span>Next: Mind History →</span>
+                  </button>
+                </div>
               </div>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- TAB 4: MIND HISTORY (Step 4) -->
+      <!-- TAB 4: MIND HISTORY (Step 4 — 12 Clinical Fields with Smart + Add Controls & Narrative Notes) -->
       <div class="hc-tab-pane ${activeTab === 'mind' ? 'active' : ''}" id="hcTab-mind">
-        <div class="case-record-section-card">
-          <div class="case-section-header" style="justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <i data-lucide="brain"></i>
-              <h3>Step 4 — Mind & Emotional Disposition (12 Clinical Rubrics)</h3>
+        <div class="case-record-section-card" style="background: transparent; border: none; padding: 0; box-shadow: none;">
+          <div class="hc-clinical-section-block" style="margin-bottom: 16px; padding: 16px 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 class="hc-section-heading">Step 4 — Mind &amp; Emotional History (12 Clinical Rubrics)</h3>
+                <p class="hc-subsection-subtitle" style="margin-bottom: 0; margin-top: 3px;">Combine quick <strong>+ Add</strong> disposition chips with optional narrative notes for deeper emotional observations.</p>
+              </div>
+              <span class="hc-autosave-indicator saved" id="mindSaveBadge">Saved</span>
             </div>
-            <span class="hc-autosave-indicator" id="mindSaveBadge">Autosave Active</span>
           </div>
 
           <form onsubmit="saveMindHistorySection(event, '${escAttr(p.id)}')">
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>1. Workplace Environment</label>
-                <textarea id="miWorkplaceEnv" class="clean-textarea" rows="2" placeholder="Nature of occupation, work atmosphere, relations with colleagues/superiors..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.workplaceEnv)}</textarea>
+            <!-- Mind Section A: Environment & Social Disposition -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section A — Workplace, Family &amp; Social Environment (Items 1–5)</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Occupational atmosphere, domestic harmony, social comfort, and temperament.</p>
+                </div>
               </div>
-              <div class="form-group">
-                <label>2. Family Environment</label>
-                <textarea id="miFamilyEnv" class="clean-textarea" rows="2" placeholder="Home environment, bonding, support system, domestic harmony or friction..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.familyEnv)}</textarea>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "mind", "workplaceEnv")}
+                ${renderSmartAddField(p, "mind", "familyEnv")}
+                ${renderSmartAddField(p, "mind", "socialPartyEnv")}
+                ${renderSmartAddField(p, "mind", "friendsComfort")}
               </div>
-            </div>
-
-            <div class="form-row-3">
-              <div class="form-group">
-                <label>3. Social & Party Environment</label>
-                <input type="text" id="miSocialParty" class="clean-input" placeholder="Enjoys gatherings, avoids crowds, feels drained..." value="${escAttr(mind.socialPartyEnv)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-              <div class="form-group">
-                <label>4. Friends & Social Comfort</label>
-                <input type="text" id="miFriendsComfort" class="clean-input" placeholder="Few close friends vs large circle, sharing vs reserved..." value="${escAttr(mind.friendsComfort)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-              <div class="form-group">
-                <label>5. Introvert / Extrovert Tendencies</label>
-                <input type="text" id="miIntroExtrovert" class="clean-input" placeholder="e.g. Introverted, observant, expressive extrovert..." value="${escAttr(mind.introExtrovert)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
+              <div style="margin-top: 18px;">
+                ${renderSmartAddField(p, "mind", "introExtrovert")}
               </div>
             </div>
 
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>6. Emotions & Feelings</label>
-                <textarea id="miEmotions" class="clean-textarea" rows="2" placeholder="Sensitivity, weeping tendency, consolation (< or >), affection, grief..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.emotionsFeelings)}</textarea>
+            <!-- Mind Section B: Emotional State, Thoughts, Fears, Anger & Stress -->
+            <div class="hc-clinical-section-block">
+              <div class="hc-clinical-section-header">
+                <div>
+                  <h4 class="hc-subsection-heading">Section B — Emotions, Thoughts, Fears, Anger &amp; Anxiety (Items 6–12)</h4>
+                  <p class="hc-subsection-subtitle" style="margin-bottom: 0;">Core emotional sensitivity, prevailing thoughts, specific fears, anger reactions, and stress responses.</p>
+                </div>
               </div>
-              <div class="form-group">
-                <label>7. Thoughts</label>
-                <textarea id="miThoughts" class="clean-textarea" rows="2" placeholder="Brooding over past, anticipatory thoughts, racing mind at night..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.thoughts)}</textarea>
+              <div class="hc-smart-grid-2">
+                ${renderSmartAddField(p, "mind", "emotionsFeelings")}
+                ${renderSmartAddField(p, "mind", "thoughts")}
+                ${renderSmartAddField(p, "mind", "fearsCauses")}
+                ${renderSmartAddField(p, "mind", "angerCauses")}
+                ${renderSmartAddField(p, "mind", "anxiety")}
+                ${renderSmartAddField(p, "mind", "stressResponses")}
               </div>
-            </div>
+              <div style="margin-top: 18px;">
+                ${renderSmartAddField(p, "mind", "additionalObservations")}
+              </div>
 
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>8. Fears & Their Causes</label>
-                <input type="text" id="miFears" class="clean-input" placeholder="e.g. Dark, heights, disease, poverty, being alone, water..." value="${escAttr(mind.fearsCauses)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-              <div class="form-group">
-                <label>9. Anger & Its Causes</label>
-                <input type="text" id="miAnger" class="clean-input" placeholder="e.g. Contradiction, injustice, suppressed anger, quick temper..." value="${escAttr(mind.angerCauses)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>10. Anxiety</label>
-                <input type="text" id="miAnxiety" class="clean-input" placeholder="Health anxiety, anxiety for others, before exams/meetings, trifles..." value="${escAttr(mind.anxiety)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-              <div class="form-group">
-                <label>11. Stress & Emotional Responses</label>
-                <input type="text" id="miStress" class="clean-input" placeholder="How patient reacts under acute or prolonged mental stress..." value="${escAttr(mind.stressResponses)}" oninput="autoSavePatientTabs('${escAttr(p.id)}')">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>12. Additional Mental or Emotional Observations</label>
-              <textarea id="miAdditional" class="clean-textarea" rows="2" placeholder="Fastidiousness, jealousy, memory, willpower, characteristic mental keynotes..." oninput="autoSavePatientTabs('${escAttr(p.id)}')">${escAttr(mind.additionalObservations)}</textarea>
-            </div>
-
-            <div class="hc-section-save-bar">
-              <span style="font-size: 12.5px; color: var(--text-secondary);">All 12 Mind & Disposition rubrics are saved to this case record.</span>
-              <div style="display: flex; gap: 10px;">
-                <button type="submit" class="primary-btn-solid">
-                  <i data-lucide="save"></i>
-                  <span>Save Mind History</span>
-                </button>
-                <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('consultations')">
-                  <span>Next: Consultation History →</span>
-                </button>
+              <div class="hc-section-save-bar">
+                <span style="font-size: 12.5px; color: #78847D;">All 12 Mind &amp; Emotional rubrics are saved to ${escAttr(p.name)}'s case record.</span>
+                <div style="display: flex; gap: 10px;">
+                  <button type="submit" class="primary-btn-solid">
+                    <i data-lucide="save"></i>
+                    <span>Save Mind History</span>
+                  </button>
+                  <button type="button" class="secondary-btn-outline" onclick="switchPatientProfileTab('consultations')">
+                    <span>Next: Consultation History →</span>
+                  </button>
+                </div>
               </div>
             </div>
           </form>
@@ -3815,7 +4914,7 @@ function renderPatientCaseDossier(patient) {
           <div class="case-section-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <i data-lucide="stethoscope"></i>
-              <h3>Consultation History & Prescribed Treatments</h3>
+              <h3>Consultation History &amp; Prescribed Treatments</h3>
             </div>
             <button type="button" class="primary-btn-solid" onclick="openProgressModal('${escAttr(p.id)}')">
               <i data-lucide="plus"></i>
@@ -3829,20 +4928,20 @@ function renderPatientCaseDossier(patient) {
                 <tr>
                   <th>Visit Stage</th>
                   <th>Date</th>
-                  <th>Follow-up Observations & Symptoms</th>
-                  <th>Medicines & Treatment</th>
+                  <th>Follow-up Observations &amp; Symptoms</th>
+                  <th>Medicines &amp; Treatment</th>
                   <th>Progress Status</th>
                 </tr>
               </thead>
               <tbody>
                 ${p.consultations.map(c => `
                   <tr>
-                    <td><strong style="color: var(--primary-green);">${escAttr(c.stage)}</strong></td>
+                    <td><strong style="color: var(--primary-green); font-weight: 500;">${escAttr(c.stage)}</strong></td>
                     <td>${escAttr(c.displayDate || c.date)}</td>
                     <td style="max-width: 340px;">${escAttr(c.observations)}</td>
                     <td>
-                      <strong>${escAttr(c.medicine)}</strong>
-                      ${c.instructions ? `<div style="font-size: 12px; color: var(--text-secondary);">${escAttr(c.instructions)}</div>` : ""}
+                      <strong style="font-weight: 500;">${escAttr(c.medicine)}</strong>
+                      ${c.instructions ? `<div style="font-size: 12px; color: #78847D;">${escAttr(c.instructions)}</div>` : ""}
                     </td>
                     <td><span class="pill-indicator pill-good">${escAttr(c.status || "Recorded")}</span></td>
                   </tr>
@@ -3887,15 +4986,15 @@ function renderPatientCaseDossier(patient) {
                 </div>
                 <div class="hc-progress-grid">
                   <div class="hc-progress-item" style="grid-column: 1 / -1;">
-                    <strong>Follow-Up Observations & Clinical Notes</strong>
+                    <strong>Follow-Up Observations &amp; Clinical Notes</strong>
                     <span>${escAttr(c.observations)}</span>
                   </div>
                   <div class="hc-progress-item">
-                    <strong>Medicines & Treatment Prescribed</strong>
+                    <strong>Medicines &amp; Treatment Prescribed</strong>
                     <span>${escAttr(c.medicine)}</span>
                   </div>
                   <div class="hc-progress-item">
-                    <strong>Clinical Status & Instructions</strong>
+                    <strong>Clinical Status &amp; Instructions</strong>
                     <span><strong>${escAttr(c.status)}</strong> — ${escAttr(c.instructions || "Continue observation")}</span>
                   </div>
                 </div>
@@ -3910,10 +5009,16 @@ function renderPatientCaseDossier(patient) {
 
 // Switch active tab inside Patient Profile & Case Record view
 window.switchPatientProfileTab = function(tabId) {
+  closeAllSmartPopovers();
   window.__ACTIVE_CASE_TAB = tabId;
   document.querySelectorAll(".hc-profile-tab-btn").forEach(btn => {
     const onClickAttr = btn.getAttribute("onclick") || "";
     btn.classList.toggle("active", onClickAttr.includes(`'${tabId}'`));
+  });
+  document.querySelectorAll(".hc-step-progress-item").forEach(stepBtn => {
+    const onClickAttr = stepBtn.getAttribute("onclick") || "";
+    const isMatch = onClickAttr.includes(`'${tabId}'`) || (tabId === "consultations" && onClickAttr.includes("'timeline'"));
+    stepBtn.classList.toggle("active", isMatch);
   });
   document.querySelectorAll(".hc-tab-pane").forEach(pane => {
     pane.classList.toggle("active", pane.id === `hcTab-${tabId}`);
@@ -3921,7 +5026,18 @@ window.switchPatientProfileTab = function(tabId) {
   if (window.lucide) lucide.createIcons();
 };
 
-// Collect current form values from DOM into patient record & persist
+function updateSaveBadgeState(badgeIds, state, text) {
+  const ids = Array.isArray(badgeIds) ? badgeIds : [badgeIds];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("saving", "saved", "error");
+    if (state) el.classList.add(state);
+    el.textContent = text;
+  });
+}
+
+// Collect current form values from DOM into patient record & persist to localStorage, Server, and Supabase
 function collectAndSyncPatientProfile(patientId) {
   const p = CLINIC_STATE.patients.find(pt => pt.id === patientId);
   if (!p) return null;
@@ -3942,112 +5058,113 @@ function collectAndSyncPatientProfile(patientId) {
     p.chiefComplaint = val("ovChiefComplaint") || p.chiefComplaint;
   }
 
-  // Past History fields
-  if (document.getElementById("phMedicalHistory")) {
-    p.pastHistoryData = {
-      medicalHistory: val("phMedicalHistory"),
-      previousIllnesses: val("phPrevIllnesses"),
-      previousTreatments: val("phPrevTreatments"),
-      associatedComplaints: val("phAssocComplaints"),
-      familyFather: val("phFamilyFather"),
-      familyMother: val("phFamilyMother"),
-      familyBrother: val("phFamilyBrother"),
-      familySister: val("phFamilySister"),
-      previousConsultations: val("phPrevConsultations")
-    };
-    p.associatedComplaints = p.pastHistoryData.associatedComplaints;
-    p.pastHistory = p.pastHistoryData.medicalHistory;
-    p.familyHistory = `Father: ${p.pastHistoryData.familyFather || '—'}; Mother: ${p.pastHistoryData.familyMother || '—'}`;
-  }
-
-  // Personal History fields
-  if (document.getElementById("peAppetite")) {
-    p.personalHistory = {
-      appetite: val("peAppetite"),
-      craving: val("peCraving"),
-      aversion: val("peAversion"),
-      thirst: val("peThirst"),
-      urine: val("peUrine"),
-      bowel: val("peBowel"),
-      perspiration: val("pePerspiration"),
-      habits: val("peHabits"),
-      hobbies: val("peHobbies"),
-      thermalBath: val("peThermalBath"),
-      thermalCovering: val("peThermalCovering"),
-      thermalFood: val("peThermalFood"),
-      thermalSeason: val("peThermalSeason"),
-      sleep: val("peSleep"),
-      dreams: val("peDreams"),
-      menstrualHistory: val("peMenstrual")
-    };
-  }
-
-  // Mind History fields
-  if (document.getElementById("miWorkplaceEnv")) {
-    p.mindHistory = {
-      workplaceEnv: val("miWorkplaceEnv"),
-      familyEnv: val("miFamilyEnv"),
-      socialPartyEnv: val("miSocialParty"),
-      friendsComfort: val("miFriendsComfort"),
-      introExtrovert: val("miIntroExtrovert"),
-      emotionsFeelings: val("miEmotions"),
-      thoughts: val("miThoughts"),
-      fearsCauses: val("miFears"),
-      angerCauses: val("miAnger"),
-      anxiety: val("miAnxiety"),
-      stressResponses: val("miStress"),
-      additionalObservations: val("miAdditional")
-    };
-  }
+  // Sync all smart note inputs currently in DOM
+  ["past", "personal", "mind"].forEach(sectionKey => {
+    const catalog = CLINICAL_FIELD_CATALOG[sectionKey] || {};
+    for (const fieldKey of Object.keys(catalog)) {
+      const noteEl = document.getElementById(`smartNote_${sectionKey}_${fieldKey}`);
+      if (noteEl) {
+        const state = getSmartFieldState(p, sectionKey, fieldKey);
+        state.notes = noteEl.value;
+      }
+    }
+    syncSmartSectionSummaries(p, sectionKey);
+  });
 
   persistClinicState();
+
+  // Also perform atomic per-patient upsert to Supabase & Server
+  if (window.HomeoCareAPI?.patients?.upsertClinicalRecord) {
+    window.HomeoCareAPI.patients.upsertClinicalRecord(p).catch(() => {});
+  }
+
   return p;
 }
 
 let _autosaveTimer = null;
-window.autoSavePatientTabs = function(patientId) {
+function triggerSmartAutosave(patientId, sectionKey = "past") {
+  const badgeMap = {
+    overview: ["overviewSaveBadge"],
+    past: ["pastSaveBadge"],
+    personal: ["personalSaveBadge"],
+    mind: ["mindSaveBadge"]
+  };
+  const targetBadges = badgeMap[sectionKey] || ["overviewSaveBadge", "pastSaveBadge", "personalSaveBadge", "mindSaveBadge"];
+  updateSaveBadgeState(targetBadges, "saving", "Saving...");
+
+  // Immediately persist in-memory & localStorage so switching tabs never loses data
+  const p = CLINIC_STATE.patients.find(pt => pt.id === patientId);
+  if (p) {
+    try {
+      localStorage.setItem(CLINIC_STORAGE_KEY, JSON.stringify({
+        patients: CLINIC_STATE.patients || [],
+        appointments: CLINIC_STATE.appointments || [],
+        invoices: CLINIC_STATE.invoices || [],
+        medicines: CLINIC_STATE.medicines || [],
+        selectedPatientId: CLINIC_STATE.selectedPatientId || null,
+        updatedAt: new Date().toISOString()
+      }));
+    } catch (_) {}
+  }
+
   if (_autosaveTimer) clearTimeout(_autosaveTimer);
-  _autosaveTimer = setTimeout(() => {
-    collectAndSyncPatientProfile(patientId);
-    const nowTime = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-    ["overviewSaveBadge", "pastSaveBadge", "personalSaveBadge", "mindSaveBadge"].forEach(bId => {
-      const el = document.getElementById(bId);
-      if (el) el.textContent = `Autosaved at ${nowTime}`;
-    });
-  }, 350);
+  _autosaveTimer = setTimeout(async () => {
+    try {
+      const updated = collectAndSyncPatientProfile(patientId);
+      if (updated && window.HomeoCareAPI?.patients?.upsertClinicalRecord) {
+        await window.HomeoCareAPI.patients.upsertClinicalRecord(updated);
+      }
+      const nowTime = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      updateSaveBadgeState(targetBadges, "saved", `Saved (${nowTime})`);
+    } catch (_) {
+      updateSaveBadgeState(targetBadges, "error", "Save error — cached locally");
+    }
+  }, 280);
+}
+
+window.autoSavePatientTabs = function(patientId) {
+  triggerSmartAutosave(patientId, window.__ACTIVE_CASE_TAB || "overview");
 };
 
 window.saveOverviewSection = function(e, patientId) {
   if (e) e.preventDefault();
+  updateSaveBadgeState(["overviewSaveBadge"], "saving", "Saving...");
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
     updateDashboardMetrics();
     renderPatientWorkspace();
     renderPatientRegistry();
+    updateSaveBadgeState(["overviewSaveBadge"], "saved", "Saved");
     showToast(`Saved Basic Registration details for ${p.name}.`, "success");
   }
 };
 
 window.savePastHistorySection = function(e, patientId) {
   if (e) e.preventDefault();
+  updateSaveBadgeState(["pastSaveBadge"], "saving", "Saving...");
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
-    showToast(`Saved Past & Family History for ${p.name}.`, "success");
+    updateSaveBadgeState(["pastSaveBadge"], "saved", "Saved");
+    showToast(`Saved Past, Treatment & Family History for ${p.name}.`, "success");
   }
 };
 
 window.savePersonalHistorySection = function(e, patientId) {
   if (e) e.preventDefault();
+  updateSaveBadgeState(["personalSaveBadge"], "saving", "Saving...");
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
+    updateSaveBadgeState(["personalSaveBadge"], "saved", "Saved");
     showToast(`Saved Personal History (13 modalities) for ${p.name}.`, "success");
   }
 };
 
 window.saveMindHistorySection = function(e, patientId) {
   if (e) e.preventDefault();
+  updateSaveBadgeState(["mindSaveBadge"], "saving", "Saving...");
   const p = collectAndSyncPatientProfile(patientId);
   if (p) {
+    updateSaveBadgeState(["mindSaveBadge"], "saved", "Saved");
     showToast(`Saved Mind & Emotional History for ${p.name}.`, "success");
   }
 };

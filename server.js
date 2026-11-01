@@ -377,13 +377,66 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST') {
       try {
-        const body = await readJsonBody(req, 262144);
-        if (body && typeof body === 'object' && body.state) {
-          fs.writeFileSync(stateFilePath, JSON.stringify(body.state, null, 2), 'utf8');
+        const body = await readJsonBody(req, 524288);
+        let existingState = {
+          patients: [],
+          appointments: [],
+          invoices: [],
+          medicines: [],
+          selectedPatientId: null,
+          updatedAt: new Date().toISOString()
+        };
+        try {
+          if (fs.existsSync(stateFilePath)) {
+            const parsed = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
+            if (parsed && typeof parsed === 'object') {
+              existingState = { ...existingState, ...parsed };
+            }
+          }
+        } catch (_) {}
+
+        // Support single-patient atomic upsert by patient.id (never overwrites other patients)
+        if (body && typeof body === 'object' && body.patient && body.patient.id) {
+          const pt = body.patient;
+          if (!Array.isArray(existingState.patients)) existingState.patients = [];
+          const idx = existingState.patients.findIndex(p => p && p.id === pt.id);
+          if (idx >= 0) {
+            existingState.patients[idx] = { ...existingState.patients[idx], ...pt };
+          } else {
+            existingState.patients.push(pt);
+          }
+          if (body.selectedPatientId) {
+            existingState.selectedPatientId = body.selectedPatientId;
+          }
+          existingState.updatedAt = new Date().toISOString();
+          fs.writeFileSync(stateFilePath, JSON.stringify(existingState, null, 2), 'utf8');
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-          res.end(JSON.stringify({ ok: true }));
+          res.end(JSON.stringify({ ok: true, patientId: pt.id, updatedAt: existingState.updatedAt }));
           return;
         }
+
+        if (body && typeof body === 'object' && body.state) {
+          if (!body.replaceAll && Array.isArray(existingState.patients) && Array.isArray(body.state.patients)) {
+            const incomingMap = new Map(body.state.patients.filter(p => p && p.id).map(p => [p.id, p]));
+            const mergedPatients = existingState.patients
+              .filter(p => p && p.id)
+              .map(oldP => incomingMap.has(oldP.id) ? { ...oldP, ...incomingMap.get(oldP.id) } : oldP);
+            const existingIds = new Set(mergedPatients.map(p => p.id));
+            for (const newP of body.state.patients) {
+              if (newP && newP.id && !existingIds.has(newP.id)) {
+                mergedPatients.push(newP);
+              }
+            }
+            body.state.patients = mergedPatients;
+          }
+          fs.writeFileSync(stateFilePath, JSON.stringify(body.state, null, 2), 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ ok: true, updatedAt: body.state.updatedAt || new Date().toISOString() }));
+          return;
+        }
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Missing state or patient object.' }));
+        return;
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: false, error: err.message }));
