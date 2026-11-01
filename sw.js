@@ -8,7 +8,7 @@
  * 3. Handles network loss transparently without fabricating stored updates.
  */
 
-const CACHE_NAME = 'homeocare-v10-medical-invoice';
+const CACHE_NAME = 'homeocare-v11-soft-peach-bg';
 
 const STATIC_SHELL_ASSETS = [
   '/',

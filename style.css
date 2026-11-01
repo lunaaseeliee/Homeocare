@@ -11,40 +11,39 @@
 
 /* ---------- Exact Approved Palette & Design Tokens ---------- */
 :root,
-[data-theme="light"],
-[data-theme="dark"] {
-  /* Exact Spec Color Tokens */
+[data-theme="light"] {
+  /* Exact Spec Color Tokens - Soft Peach Light Theme */
   --primary-green: #176B46;
   --dark-green: #0E5837;
   --white: #FFFFFF;
-  --page-bg: #F5F8F6;
+  --page-bg: #FFF5EF; /* Main application background: Soft Peach */
   --soft-green: #DDEFE3;
   --text-primary: #1B2621;
   --text-secondary: #64756C;
-  --border-color: #E2E9E5;
+  --border-color: #EADCD3;
 
-  /* Universal Solid UI Tokens */
-  --bg-base: #F5F8F6;
-  --bg-gradient: #F5F8F6;
-  --sidebar-bg: #FFFFFF;
-  --topbar-bg: #FFFFFF;
+  /* Universal UI Tokens */
+  --bg-base: #FFF5EF;
+  --bg-gradient: #FFF5EF;
+  --sidebar-bg: #FFF9F5; /* Secondary surface: Very Light Peach */
+  --topbar-bg: #FFF9F5;  /* Secondary surface: Very Light Peach */
 
-  /* Solid card surfaces - NO GLASS, NO BLUR */
-  --card-bg: #FFFFFF;
-  --card-bg-elevated: #FFFFFF;
-  --card-border: #E2E9E5;
+  /* Secondary Surfaces & Card Tokens */
+  --card-bg: #FFF9F5;          /* Secondary surface: Very Light Peach */
+  --card-bg-elevated: #FFFFFF; /* Elevated / Inputs: Pure White for clear contrast */
+  --card-border: #EADCD3;
   --card-border-hover: #176B46;
   --card-inner-bevel: none;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --card-shadow: 0 1px 3px rgba(180, 130, 110, 0.05), 0 1px 2px rgba(180, 130, 110, 0.03);
 
-  /* Typography Colors */
+  /* Typography Colors - Existing Dark Colors Preserved */
   --text-muted: #64756C;
   --text-dim: #8FA097;
 
   /* Compatibility mappings: replace peach with green & soft green */
-  --peach-50: #F5F8F6;
-  --peach-100: #EBF3EE;
-  --peach-200: #DDEFE3;
+  --peach-50: #FFF9F5;
+  --peach-100: #FFF5EF;
+  --peach-200: #F3E5DC;
   --peach-300: #176B46;
   --peach-400: #125738;
   --peach-500: #0E5837;
@@ -53,7 +52,7 @@
   --peach-accent-bg: #DDEFE3;
   --peach-pill-bg: #DDEFE3;
 
-  /* Meaningful Status Colors */
+  /* Meaningful Status Colors - KEEP UNCHANGED */
   --red-accent: #DC2626;
   --red-accent-glow: transparent;
   --red-accent-subtle: #FEE2E2;
@@ -62,7 +61,7 @@
   --amber-warn: #D97706;
   --cyan-disp: #0284C7;
 
-  /* Strict Zero Blur */
+  /* Strict Zero Blur for Light Theme */
   --glass-blur: none;
   --glass-blur-sm: none;
 
@@ -74,7 +73,67 @@
   --radius-lg: 14px;
   --radius-pill: 9999px;
 
-  /* Fast, crisp transitions */
+  /* Transitions */
+  --trans-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --trans-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- Preserved Dark Glass Theme ---------- */
+[data-theme="dark"] {
+  --primary-green: #176B46;
+  --dark-green: #0E5837;
+  --white: #FFFFFF;
+  --page-bg: #161820;
+  --soft-green: #DDEFE3;
+  --border-color: rgba(255, 255, 255, 0.09);
+
+  --bg-base: #161820;
+  --bg-gradient: radial-gradient(circle at 18% 12%, #2a1420 0%, #161820 48%, #0d0e14 100%);
+  --sidebar-bg: rgba(22, 24, 32, 0.75);
+  --topbar-bg: rgba(22, 24, 32, 0.70);
+  
+  --card-bg: rgba(30, 32, 42, 0.58);
+  --card-bg-elevated: rgba(38, 41, 54, 0.72);
+  --card-border: rgba(255, 255, 255, 0.09);
+  --card-border-hover: rgba(255, 208, 186, 0.35);
+  --card-inner-bevel: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+  --card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.6), 0 4px 14px rgba(0, 0, 0, 0.35);
+
+  --text-primary: #FFF4EF;
+  --text-secondary: #D9C3C8;
+  --text-muted: #A8959A;
+  --text-dim: #7A696E;
+
+  --peach-50: #FFF4EF;
+  --peach-100: #FFE5D9;
+  --peach-200: #FFD0BA;
+  --peach-300: #FFB38E;
+  --peach-400: #FF945E;
+  --peach-500: #F97334;
+  --peach-glow: rgba(255, 208, 186, 0.45);
+  --peach-glow-heavy: rgba(255, 148, 94, 0.55);
+  --peach-accent-bg: rgba(255, 208, 186, 0.14);
+  --peach-pill-bg: rgba(255, 208, 186, 0.18);
+
+  --red-accent: #ff4d6d;
+  --red-accent-glow: rgba(255, 77, 109, 0.35);
+  --red-accent-subtle: rgba(255, 77, 109, 0.12);
+
+  --emerald-cure: #34d399;
+  --emerald-subtle: rgba(52, 211, 153, 0.14);
+  --amber-warn: #fbbf24;
+  --cyan-disp: #38bdf8;
+
+  --glass-blur: blur(20px);
+  --glass-blur-sm: blur(12px);
+
+  --sidebar-width: 260px;
+  --topbar-height: 70px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 9999px;
+
   --trans-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --trans-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -3350,7 +3409,7 @@ html, body {
 
 /* Sidebar Clean Styling */
 .sidebar {
-  background: #FFFFFF !important;
+  background: #FFF9F5 !important;
   border-right: 1px solid var(--border-color) !important;
   box-shadow: none !important;
 }
@@ -3398,7 +3457,7 @@ html, body {
 }
 
 .nav-item:hover {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
   color: var(--text-primary) !important;
   transform: none !important;
 }
@@ -3439,7 +3498,7 @@ html, body {
 }
 
 .practitioner-card {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 10px !important;
 }
@@ -3456,7 +3515,7 @@ html, body {
 
 /* Topbar Clean Styling */
 .topbar {
-  background: #FFFFFF !important;
+  background: #FFF9F5 !important;
   border-bottom: 1px solid var(--border-color) !important;
   box-shadow: none !important;
 }
@@ -3484,7 +3543,7 @@ html, body {
 }
 
 .search-shortcut kbd {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
   border: 1px solid var(--border-color) !important;
   color: var(--text-secondary) !important;
 }
@@ -3504,7 +3563,7 @@ html, body {
 }
 
 .action-circle-btn {
-  background: #FFFFFF !important;
+  background: #FFF9F5 !important;
   border: 1px solid var(--border-color) !important;
   color: var(--text-secondary) !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
@@ -3629,7 +3688,7 @@ html, body {
 .secondary-btn:hover,
 .interactive-btn.secondary-btn:hover,
 #newAppointmentQuickBtn:hover {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
   border-color: #CBD5E1 !important;
   color: var(--primary-green) !important;
   transform: none !important;
@@ -3682,7 +3741,7 @@ html, body {
 }
 
 .metric-card {
-  background: #FFFFFF !important;
+  background: #FFF9F5 !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 12px !important;
   padding: 20px !important;
@@ -3815,7 +3874,7 @@ table {
 }
 
 th, .data-table th {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
   color: var(--text-secondary) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -3833,7 +3892,7 @@ td, .data-table td {
 }
 
 tr:hover td, .data-table tr:hover td {
-  background: #F8FAF9 !important;
+  background: #FFF5EF !important;
 }
 
 /* Form Inputs */
@@ -3867,7 +3926,7 @@ textarea:focus,
 
 /* Auth Entrance Minimal Redesign */
 .auth-entrance-wrapper {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
 }
 
 .auth-brand-title {
@@ -3948,7 +4007,7 @@ textarea:focus,
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #F0F4F2 !important;
+  background: #FFF5EF !important;
   color: #718279 !important;
   border: 1px solid var(--border-color) !important;
   font-size: 11px !important;
@@ -3969,7 +4028,7 @@ textarea:focus,
 }
 
 .locked-nav-item:hover {
-  background: #F5F8F6 !important;
+  background: #FFF5EF !important;
   border-color: var(--border-color) !important;
 }
 
@@ -4005,7 +4064,7 @@ textarea:focus,
 
 .locked-status-tag {
   display: inline-block;
-  background: #F0F4F2;
+  background: #FFF5EF;
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
@@ -4032,7 +4091,7 @@ textarea:focus,
 }
 
 .locked-details-box {
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 16px 20px;
@@ -4068,7 +4127,7 @@ textarea:focus,
 /* Patient Self-Entry Topbar & View */
 .patient-self-entry-wrapper {
   min-height: 100vh;
-  background: #F5F8F6;
+  background: #FFF5EF;
   display: flex;
   flex-direction: column;
 }
@@ -4119,7 +4178,7 @@ textarea:focus,
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color);
   padding: 4px;
   border-radius: var(--radius-pill);
@@ -4180,7 +4239,7 @@ textarea:focus,
 }
 
 .self-entry-notice-box {
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--primary-green);
   border-radius: 10px;
@@ -4236,7 +4295,7 @@ textarea:focus,
   flex: 1;
   text-align: center;
   padding: 8px 10px;
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 12px;
@@ -4339,7 +4398,7 @@ textarea:focus,
 
 /* Review Summary Card */
 .review-summary-card {
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 24px;
@@ -4426,7 +4485,7 @@ textarea:focus,
 .receipt-box {
   max-width: 440px;
   margin: 0 auto 28px auto;
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px 24px;
@@ -4727,7 +4786,7 @@ textarea:focus,
 
 .otp-digit-box.has-val {
   border-color: var(--primary-green, #176B46);
-  background: #F5F8F6;
+  background: #FFF5EF;
 }
 
 @media (max-width: 480px) {
@@ -5025,7 +5084,7 @@ textarea:focus,
 }
 
 .hc-profile-tab-btn:hover {
-  background: #F5F8F6;
+  background: #FFF5EF;
   color: var(--text-primary, #1B2621);
 }
 
@@ -5067,7 +5126,7 @@ textarea:focus,
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: #F5F8F6;
+  background: #FFF5EF;
   color: var(--text-primary, #1B2621);
   font-size: 14px;
   font-weight: 700;
@@ -5121,7 +5180,7 @@ textarea:focus,
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  background: #F5F8F6;
+  background: #FFF5EF;
   border: 1px solid var(--border-color, #E2E9E5);
   border-radius: 10px;
   padding: 14px 18px;
@@ -5205,7 +5264,7 @@ textarea:focus,
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-secondary, #64756C);
-  background: #F5F8F6;
+  background: #FFF5EF;
   padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid var(--border-color, #E2E9E5);
@@ -5233,7 +5292,7 @@ textarea:focus,
    - Field Labels: #26352B (Medium weight 500)
    - Helper Text: #78847D (Regular weight 400, calm single line)
    - Primary Green: #176B46
-   - Page Background: #F6F8F6
+   - Page Background: #FFF5EF
    - Cards: #FFFFFF
    - Dividers & Borders: #E5EAE6
    ========================================================================== */
@@ -5242,15 +5301,15 @@ textarea:focus,
   --hc-label-color: #26352B;
   --hc-helper-color: #78847D;
   --hc-primary-green: #176B46;
-  --hc-page-bg: #F6F8F6;
-  --hc-card-bg: #FFFFFF;
-  --hc-divider-color: #E5EAE6;
+  --hc-page-bg: #FFF5EF;
+  --hc-card-bg: #FFF9F5;
+  --hc-divider-color: #EADCD3;
 }
 
 body,
 .app-shell,
 .main-workspace {
-  background-color: #F6F8F6 !important;
+  background-color: #FFF5EF !important;
 }
 
 /* Calm, Dark Charcoal Typography Hierarchy (NOT Heavy Bold) */
@@ -5294,7 +5353,7 @@ body,
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  background: #FFFFFF;
+  background: #FFF9F5;
   border: 1px solid #E5EAE6;
   border-radius: 10px;
   padding: 10px 16px;
@@ -5318,7 +5377,7 @@ body,
 
 .hc-step-progress-item:hover {
   color: #17241B;
-  background: #F6F8F6;
+  background: #FFF5EF;
 }
 
 .hc-step-progress-item.active {
@@ -5367,7 +5426,7 @@ body,
 
 /* Clinical Section Card & Dividers */
 .hc-clinical-section-block {
-  background: #FFFFFF;
+  background: #FFF9F5;
   border: 1px solid #E5EAE6;
   border-radius: 12px;
   padding: 22px 24px;
@@ -5522,7 +5581,7 @@ body,
   width: 268px;
   max-height: 270px;
   overflow-y: auto;
-  background: #FFFFFF;
+  background: #FFF9F5;
   border: 1px solid #E5EAE6;
   border-radius: 10px;
   box-shadow: 0 10px 28px rgba(23, 36, 27, 0.10);
@@ -5572,7 +5631,7 @@ body,
 
 .hc-popover-option.already-selected {
   color: #78847D;
-  background: #F6F8F6;
+  background: #FFF5EF;
 }
 
 .hc-popover-option-custom {

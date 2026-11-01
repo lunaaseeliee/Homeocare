@@ -172,7 +172,7 @@ function applyTheme(theme) {
   htmlRoot.setAttribute("data-theme", theme || "light");
   localStorage.setItem("homeocare_theme", theme || "light");
 
-  const label = "Green & White";
+  const label = (theme === "dark") ? "Dark Glass" : "Peach Light";
   if (themeTextLabel) themeTextLabel.textContent = label;
   const authLabel = document.getElementById("authThemeTextLabel");
   if (authLabel) authLabel.textContent = label;
