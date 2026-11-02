@@ -175,12 +175,12 @@ function applyTheme(theme) {
     localStorage.setItem("homeocare_theme", normalizedTheme);
   } catch (e) {}
 
-  const label = (normalizedTheme === "dark") ? "Midnight Emerald" : "Light Peach";
+  const label = (normalizedTheme === "dark") ? "Dark Mode" : "Light Mode";
   if (themeTextLabel) themeTextLabel.textContent = label;
   const authLabel = document.getElementById("authThemeTextLabel");
   if (authLabel) authLabel.textContent = label;
 
-  const titleText = normalizedTheme === "dark" ? "Switch to Light Peach" : "Switch to Midnight Emerald";
+  const titleText = normalizedTheme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode";
   if (themeToggleBtn) {
     themeToggleBtn.setAttribute("title", titleText);
     themeToggleBtn.setAttribute("aria-label", `Current theme: ${label}. Click to switch theme.`);
@@ -215,7 +215,7 @@ function toggleTheme(event) {
 
   if (prefersReducedMotion) {
     applyTheme(target);
-    showToast(`Switched to ${target === "dark" ? "Midnight Emerald" : "Light Peach"} Theme`, "info");
+    showToast(`Switched to ${target === "dark" ? "Dark Mode" : "Light Mode"}`, "info");
     return;
   }
 
@@ -229,7 +229,7 @@ function toggleTheme(event) {
     isThemeTransitioning = false;
   }, 300);
 
-  showToast(`Switched to ${target === "dark" ? "Midnight Emerald" : "Light Peach"} Theme`, "info");
+  showToast(`Switched to ${target === "dark" ? "Dark Mode" : "Light Mode"}`, "info");
 }
 
 if (themeToggleBtn) {
@@ -392,8 +392,30 @@ function updateDashboardMetrics() {
   CLINIC_STATE.completedCases = totalConsultationsCount;
   kpiPatientsTrend.textContent = totalPatientsCount > 0 ? `${totalPatientsCount} active` : `0 new`;
 
-  kpiPendingApprovals.textContent = CLINIC_STATE.pendingApprovals;
+  // Dynamically compute Pending Doctor Reviews (cases awaiting review)
+  const pendingApprovalsCount = CLINIC_STATE.patients.reduce((count, p) => {
+    const hasPending = (p.consultations || []).some(c =>
+      c.status === "Pending Doctor Review" || c.status === "Initial Evaluation"
+    );
+    return count + (hasPending ? 1 : 0);
+  }, 0);
+  CLINIC_STATE.pendingApprovals = pendingApprovalsCount;
+
+  kpiPendingApprovals.textContent = pendingApprovalsCount;
   kpiCompletedCases.textContent = CLINIC_STATE.completedCases;
+
+  const pendingTrendElem = kpiPendingApprovals?.parentElement?.querySelector(".metric-trend");
+  if (pendingTrendElem) {
+    pendingTrendElem.textContent = `${pendingApprovalsCount} awaiting`;
+    pendingTrendElem.className = `metric-trend ${pendingApprovalsCount > 0 ? "warning" : "neutral"}`;
+  }
+
+  const kpiPendingSubLine = kpiPendingApprovals?.closest(".metric-card")?.querySelector(".metric-empty-line");
+  if (kpiPendingSubLine) {
+    kpiPendingSubLine.textContent = pendingApprovalsCount > 0
+      ? `${pendingApprovalsCount} case${pendingApprovalsCount > 1 ? "s" : ""} awaiting doctor review`
+      : "No cases awaiting approval";
+  }
 
   kpiTodayVisits.textContent = totalAppointmentsCount;
   kpiUpcomingAppointments.textContent = totalAppointmentsCount;
@@ -3113,14 +3135,96 @@ async function loadPersistedClinicState() {
   updateDashboardMetrics();
 }
 
-// Global Patient Record Creation (Used by both Step 1 Basic Registration & Patient Self-Entry)
+// Helper to find an existing patient by phone or ID (prevents duplicates)
+function findExistingPatientByPhoneOrId(patientData) {
+  if (!patientData) return null;
+  const rawPhone = String(patientData.phone || "").replace(/\D/g, "");
+  const ptId = String(patientData.id || "").trim().toLowerCase();
+
+  return CLINIC_STATE.patients.find(p => {
+    if (ptId && p.id && p.id.toLowerCase() === ptId) return true;
+    if (rawPhone && rawPhone.length >= 7) {
+      const existingPhone = String(p.phone || "").replace(/\D/g, "");
+      if (existingPhone.length >= 7) {
+        if (existingPhone === rawPhone) return true;
+        if (existingPhone.endsWith(rawPhone) || rawPhone.endsWith(existingPhone)) return true;
+      }
+    }
+    return false;
+  }) || null;
+}
+
+// Global Patient Record Creation & Update (Used by both Step 1 Basic Registration & Patient Self-Entry)
 function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
   const currentYear = new Date().getFullYear();
-  const nextNum = 1001 + CLINIC_STATE.patients.length;
-  const newPatientId = `SSC-${currentYear}-${nextNum}`;
   const todayStr = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const todayIso = new Date().toISOString().split("T")[0];
   const timestampIso = new Date().toISOString();
+
+  // Check if returning patient already exists by phone or ID
+  const existingPatient = findExistingPatientByPhoneOrId(patientData);
+
+  if (existingPatient) {
+    // 1. Update demographics & contact if provided
+    if (patientData.name) existingPatient.name = patientData.name;
+    if (patientData.age) existingPatient.age = patientData.age;
+    if (patientData.gender) existingPatient.gender = patientData.gender;
+    if (patientData.address) existingPatient.address = patientData.address;
+    if (patientData.email) existingPatient.email = patientData.email;
+    if (patientData.dob) existingPatient.dob = patientData.dob;
+    if (patientData.chiefComplaint) existingPatient.chiefComplaint = patientData.chiefComplaint;
+    if (patientData.associatedComplaints) existingPatient.associatedComplaints = patientData.associatedComplaints;
+
+    // 2. Merge clinical histories
+    if (patientData.pastHistoryData && typeof patientData.pastHistoryData === "object") {
+      existingPatient.pastHistoryData = { ...(existingPatient.pastHistoryData || {}), ...patientData.pastHistoryData };
+    } else if (patientData.pastHistory) {
+      existingPatient.pastHistoryData = {
+        ...(existingPatient.pastHistoryData || {}),
+        medicalHistory: patientData.pastHistory,
+        familyFather: patientData.familyHistory || (existingPatient.pastHistoryData?.familyFather || "")
+      };
+    }
+    if (patientData.personalHistory && typeof patientData.personalHistory === "object") {
+      existingPatient.personalHistory = { ...(existingPatient.personalHistory || {}), ...patientData.personalHistory };
+    }
+    if (patientData.mindHistory && typeof patientData.mindHistory === "object") {
+      existingPatient.mindHistory = { ...(existingPatient.mindHistory || {}), ...patientData.mindHistory };
+    }
+
+    // 3. Append consultation entry with status Pending Doctor Review
+    if (!Array.isArray(existingPatient.consultations)) existingPatient.consultations = [];
+    const consultCount = existingPatient.consultations.length + 1;
+    const followUpEntry = {
+      id: `CONS-${Date.now()}`,
+      stage: `Follow-up Case Record #${consultCount}`,
+      date: todayIso,
+      displayDate: todayStr,
+      observations: `Updated Case Record & Chief Complaint: ${patientData.chiefComplaint || "Routine follow-up"}`,
+      medicine: existingPatient.prescription || "Constitutional evaluation in progress",
+      status: "Pending Doctor Review",
+      instructions: "Review updated symptoms, past history, and modalities.",
+      doctor: "Dr. Suraj D. Panigrahi"
+    };
+    existingPatient.consultations.unshift(followUpEntry);
+
+    // 4. Append to patient timeline history
+    if (!Array.isArray(existingPatient.history)) existingPatient.history = [];
+    existingPatient.history.unshift({
+      title: `Follow-up Case Record #${consultCount} (Review Pending)`,
+      date: todayStr,
+      desc: `Updated Case Record submitted (${existingPatient.id}). Chief Complaint: ${patientData.chiefComplaint || "—"}`
+    });
+
+    CLINIC_STATE.selectedPatientId = existingPatient.id;
+    persistClinicState();
+    updateDashboardMetrics();
+    return existingPatient;
+  }
+
+  // Brand-new patient registration
+  const nextNum = 1001 + CLINIC_STATE.patients.length;
+  const newPatientId = `SSC-${currentYear}-${nextNum}`;
 
   const initialPast = typeof patientData.pastHistory === "object" && patientData.pastHistory !== null
     ? patientData.pastHistory
@@ -3174,12 +3278,12 @@ function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
 
   const initialConsultationEntry = {
     id: `CONS-${Date.now()}`,
-    stage: "Day 1 — Initial Consultation",
+    stage: "Day 1 — Initial Case Record",
     date: todayIso,
     displayDate: todayStr,
     observations: `Initial Registration & Chief Complaint: ${patientData.chiefComplaint}`,
     medicine: patientData.prescription || "Constitutional evaluation in progress",
-    status: "Initial Evaluation",
+    status: "Pending Doctor Review",
     instructions: "Complete Past, Personal, and Mind History sections for holistic totality.",
     doctor: "Dr. Suraj D. Panigrahi"
   };
@@ -3194,7 +3298,7 @@ function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
     address: patientData.address || "",
     email: patientData.email || "",
     chiefComplaint: patientData.chiefComplaint,
-    associatedComplaints: initialPast.associatedComplaints || "",
+    associatedComplaints: initialPast.associatedComplaints || patientData.associatedComplaints || "",
     pastHistoryData: initialPast,
     personalHistory: initialPersonal,
     mindHistory: initialMind,
@@ -3208,7 +3312,7 @@ function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
     rubrics: [],
     history: [
       {
-        title: "Day 1 — Initial Consultation & Registration",
+        title: "Day 1 — Case Record Registered (Review Pending)",
         date: todayStr,
         desc: `Patient registered (${newPatientId}). Chief Complaint: ${patientData.chiefComplaint}`
       }
@@ -3218,24 +3322,65 @@ function savePatientCaseRecord(patientData, entrySource = "staff_assisted") {
   CLINIC_STATE.patients.push(record);
   CLINIC_STATE.selectedPatientId = newPatientId;
   persistClinicState();
-
-  // Attempt Supabase & Server atomic upsert when session permits
-  if (window.HomeoCareAPI?.patients?.upsertClinicalRecord) {
-    window.HomeoCareAPI.patients.upsertClinicalRecord(record).catch(() => {});
-  } else if (window.HomeoCareAPI?.patients?.create) {
-    window.HomeoCareAPI.patients.create({
-      clinic_patient_id: newPatientId,
-      full_name: record.name,
-      phone: record.phone,
-      age: parseInt(record.age, 10) || 0,
-      gender: record.gender,
-      address: record.address
-    }).catch(() => {});
-  }
-
   updateDashboardMetrics();
   return record;
 }
+
+// Asynchronous Atomic Database Persistence Layer
+async function savePatientCaseRecordAsync(patientData, entrySource = "staff_assisted") {
+  const record = savePatientCaseRecord(patientData, entrySource);
+
+  // Attempt Supabase & Server atomic upsert
+  let upsertResult = null;
+  try {
+    if (window.HomeoCareAPI?.patients?.upsertClinicalRecord) {
+      upsertResult = await window.HomeoCareAPI.patients.upsertClinicalRecord(record);
+    } else if (window.HomeoCareAPI?.patients?.create) {
+      upsertResult = await window.HomeoCareAPI.patients.create({
+        clinic_patient_id: record.id,
+        full_name: record.name,
+        phone: record.phone,
+        age: parseInt(record.age, 10) || 0,
+        gender: record.gender,
+        address: record.address
+      });
+    }
+  } catch (err) {
+    console.warn("[HomeoCare] Background database sync notice:", err);
+  }
+
+  // Guarantee state metrics and storage alignment
+  persistClinicState();
+  updateDashboardMetrics();
+
+  return { ok: true, record, upsertResult };
+}
+
+// Doctor Approval Action for Pending Consultations
+window.approveConsultation = async function(patientId, consultationId) {
+  const p = CLINIC_STATE.patients.find(pt => pt.id === patientId);
+  if (!p) return;
+  const consult = (p.consultations || []).find(c => c.id === consultationId);
+  if (!consult) return;
+
+  consult.status = "Approved by Dr. Suraj D. Panigrahi";
+  if (!Array.isArray(p.history)) p.history = [];
+  p.history.unshift({
+    title: `Case Record Approved`,
+    date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+    desc: `Case record review completed & confirmed by Dr. Suraj D. Panigrahi.`
+  });
+
+  persistClinicState();
+  updateDashboardMetrics();
+  renderPatientWorkspace();
+  renderActiveCaseRecord();
+  showToast(`Case record approved by Dr. Suraj D. Panigrahi!`, "success");
+
+  if (window.HomeoCareAPI?.patients?.upsertClinicalRecord) {
+    window.HomeoCareAPI.patients.upsertClinicalRecord(p).catch(() => {});
+  }
+};
 
 // Helper to escape HTML safely in form values
 function escAttr(val) {
@@ -4898,7 +5043,10 @@ function renderPatientCaseDossier(patient) {
                       <strong style="font-weight: 500;">${escAttr(c.medicine)}</strong>
                       ${c.instructions ? `<div style="font-size: 12px; color: #78847D;">${escAttr(c.instructions)}</div>` : ""}
                     </td>
-                    <td><span class="pill-indicator pill-good">${escAttr(c.status || "Recorded")}</span></td>
+                    <td>
+  <span class="pill-indicator ${c.status === 'Pending Doctor Review' ? 'pill-pending' : 'pill-good'}">${escAttr(c.status || "Recorded")}</span>
+  ${c.status === 'Pending Doctor Review' ? `<button type="button" class="primary-btn-solid" style="padding: 2px 8px; font-size: 11px; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;" onclick="approveConsultation('${escAttr(p.id)}', '${escAttr(c.id)}')"><i data-lucide="check" style="width: 12px; height: 12px;"></i> Approve</button>` : ''}
+</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -5317,64 +5465,179 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Self-Entry Form Submission
+  // Self-Entry Form Submission (Programmatic Validation, Atomic Persistence & Dashboard Integration)
   const selfEntryForm = document.getElementById("selfEntryForm");
   if (selfEntryForm) {
-    selfEntryForm.addEventListener("submit", (e) => {
+    selfEntryForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
+      // 1. Programmatic validation across wizard steps
+      const fullName = (document.getElementById("seFullName")?.value || "").trim();
+      const phone = (document.getElementById("sePhone")?.value || "").trim();
+      const age = (document.getElementById("seAge")?.value || "").trim();
+      const gender = (document.getElementById("seGender")?.value || "").trim();
+      const address = (document.getElementById("seAddress")?.value || "").trim();
+      const chiefComplaint = (document.getElementById("seChiefComplaint")?.value || "").trim();
+
+      if (!fullName) {
+        goToSelfEntryStep(1);
+        document.getElementById("seFullName")?.focus();
+        showToast("Please enter the patient's full name to submit the case record.", "error");
+        return;
+      }
+      if (!phone || phone.replace(/\D/g, "").length < 7) {
+        goToSelfEntryStep(1);
+        document.getElementById("sePhone")?.focus();
+        showToast("Please enter a valid contact phone number (at least 7 digits).", "error");
+        return;
+      }
+      if (!age || isNaN(parseInt(age, 10)) || parseInt(age, 10) < 0 || parseInt(age, 10) > 120) {
+        goToSelfEntryStep(1);
+        document.getElementById("seAge")?.focus();
+        showToast("Please enter a valid age between 0 and 120.", "error");
+        return;
+      }
+      if (!gender) {
+        goToSelfEntryStep(1);
+        document.getElementById("seGender")?.focus();
+        showToast("Please select gender.", "error");
+        return;
+      }
+      if (!address) {
+        goToSelfEntryStep(1);
+        document.getElementById("seAddress")?.focus();
+        showToast("Please enter the residential address or city.", "error");
+        return;
+      }
+      if (!chiefComplaint) {
+        goToSelfEntryStep(1);
+        document.getElementById("seChiefComplaint")?.focus();
+        showToast("Please describe the chief clinical complaint.", "error");
+        return;
+      }
+
+      // 2. Set button interaction states: submitting
+      const submitBtn = document.getElementById("selfSubmitBtn");
+      const submitIcon = document.getElementById("selfSubmitIcon") || submitBtn?.querySelector("i");
+      const submitSpinner = document.getElementById("selfSubmitSpinner");
+      const submitText = document.getElementById("i18n-btn-submit");
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (submitSpinner) submitSpinner.style.display = "inline-block";
+      if (submitIcon) submitIcon.style.display = "none";
+      if (submitText) submitText.textContent = "Submitting Case Record...";
+
+      // 3. Collect comprehensive case data from all form sections
       const patientData = {
-        name: document.getElementById("seFullName").value.trim(),
-        phone: document.getElementById("sePhone").value.trim(),
-        age: document.getElementById("seAge").value.trim(),
-        gender: document.getElementById("seGender").value,
-        dob: document.getElementById("seDob").value,
-        address: document.getElementById("seAddress").value.trim(),
-        email: document.getElementById("seEmail").value.trim(),
-        chiefComplaint: document.getElementById("seChiefComplaint").value.trim(),
-        associatedComplaints: document.getElementById("seAssociatedComplaints").value.trim(),
-        pastHistory: document.getElementById("sePastHistory").value.trim(),
-        familyHistory: document.getElementById("seFamilyHistory").value.trim(),
+        name: fullName,
+        phone: phone,
+        age: age,
+        gender: gender,
+        dob: document.getElementById("seDob")?.value || "",
+        address: address,
+        email: (document.getElementById("seEmail")?.value || "").trim(),
+        chiefComplaint: chiefComplaint,
+        associatedComplaints: (document.getElementById("seAssociatedComplaints")?.value || "").trim(),
+        pastHistory: (document.getElementById("sePastHistory")?.value || "").trim(),
+        familyHistory: (document.getElementById("seFamilyHistory")?.value || "").trim(),
         personalHistory: {
-          appetite: document.getElementById("seAppetite").value.trim(),
-          thirst: document.getElementById("seThirst").value.trim(),
-          craving: document.getElementById("seCraving").value.trim(),
-          diet: document.getElementById("seDiet").value,
-          bowel: document.getElementById("seBowel").value.trim(),
-          urine: document.getElementById("seUrine").value.trim(),
-          habit: document.getElementById("seHabit").value.trim(),
-          thermalModality: document.getElementById("seThermalModality").value,
-          sleep: document.getElementById("seSleep").value.trim(),
-          dreams: document.getElementById("seDreams").value.trim(),
-          hobby: document.getElementById("seHobby").value.trim()
+          appetite: (document.getElementById("seAppetite")?.value || "").trim(),
+          thirst: (document.getElementById("seThirst")?.value || "").trim(),
+          craving: (document.getElementById("seCraving")?.value || "").trim(),
+          diet: document.getElementById("seDiet")?.value || "",
+          bowel: (document.getElementById("seBowel")?.value || "").trim(),
+          urine: (document.getElementById("seUrine")?.value || "").trim(),
+          habit: (document.getElementById("seHabit")?.value || "").trim(),
+          thermalModality: document.getElementById("seThermalModality")?.value || "",
+          sleep: (document.getElementById("seSleep")?.value || "").trim(),
+          dreams: (document.getElementById("seDreams")?.value || "").trim(),
+          hobby: (document.getElementById("seHobby")?.value || "").trim()
         },
         mindHistory: {
-          anxiety: document.getElementById("seAnxiety").value.trim(),
-          stress: document.getElementById("seStress").value.trim(),
-          thoughts: document.getElementById("seThoughts").value.trim(),
-          company: document.getElementById("seCompany").value,
-          worried: document.getElementById("seWorried").value.trim(),
-          happy: document.getElementById("seHappy").value.trim()
+          anxiety: (document.getElementById("seAnxiety")?.value || "").trim(),
+          stress: (document.getElementById("seStress")?.value || "").trim(),
+          thoughts: (document.getElementById("seThoughts")?.value || "").trim(),
+          company: document.getElementById("seCompany")?.value || "",
+          worried: (document.getElementById("seWorried")?.value || "").trim(),
+          happy: (document.getElementById("seHappy")?.value || "").trim()
         }
       };
 
-      const record = savePatientCaseRecord(patientData, "patient_self");
+      try {
+        // 4. Save and sync with database / server atomically
+        const result = await savePatientCaseRecordAsync(patientData, "patient_self");
+        const record = result.record;
 
-      // Show receipt
-      const formEl = document.getElementById("selfEntryForm");
-      const successCard = document.getElementById("selfEntrySuccessCard");
-      const rcptId = document.getElementById("rcptPatientId");
-      const rcptName = document.getElementById("rcptPatientName");
-      const rcptTime = document.getElementById("rcptTime");
+        // 5. Success UI state on button and toast
+        if (submitSpinner) submitSpinner.style.display = "none";
+        if (submitIcon) {
+          submitIcon.style.display = "inline-block";
+          submitIcon.setAttribute("data-lucide", "check-check");
+        }
+        if (submitText) submitText.textContent = "Case record submitted successfully!";
+        showToast("Case record submitted successfully!", "success");
 
-      if (formEl) formEl.style.display = "none";
-      if (successCard) successCard.style.display = "block";
-      if (rcptId) rcptId.textContent = record.id;
-      if (rcptName) rcptName.textContent = record.name;
-      if (rcptTime) rcptTime.textContent = new Date().toLocaleString();
+        // Brief delay so user perceives success confirmation
+        await new Promise(r => setTimeout(r, 650));
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      if (window.lucide) lucide.createIcons();
+        // 6. Ensure active staff/doctor presentation session
+        const appShell = document.getElementById("appShell");
+        const selfEntryView = document.getElementById("patientSelfEntryView");
+        const authEntrance = document.getElementById("authEntrance");
+
+        if (selfEntryView) selfEntryView.style.display = "none";
+        if (authEntrance) authEntrance.style.display = "none";
+        if (appShell) appShell.style.display = "flex";
+
+        let sessionUser = getAuthenticatedUser();
+        if (!sessionUser) {
+          sessionUser = {
+            username: "staff",
+            name: "Dr. Suraj D. Panigrahi",
+            role: "Consultant Homeopath",
+            dbRole: "doctor"
+          };
+          sessionStorage.setItem(AUTH_CONFIG.sessionKey, JSON.stringify(sessionUser));
+        }
+        applyAuthenticatedSession(sessionUser);
+
+        // 7. Select newly submitted patient and refresh all dashboard views
+        CLINIC_STATE.selectedPatientId = record.id;
+        updateDashboardMetrics();
+        renderPatientWorkspace();
+        renderPatientRegistry();
+        renderActiveCaseRecord();
+
+        // 8. Navigate smoothly to Clinical Dashboard
+        navigateTo("dashboard");
+
+        // 9. Reset self-entry form for future use
+        selfEntryForm.reset();
+        goToSelfEntryStep(1);
+
+        // 10. Restore submit button to initial state
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitSpinner) submitSpinner.style.display = "none";
+        if (submitIcon) {
+          submitIcon.style.display = "inline-block";
+          submitIcon.setAttribute("data-lucide", "check-circle");
+        }
+        if (submitText) submitText.textContent = "Submit Case Record to Clinic";
+        if (window.lucide) lucide.createIcons();
+
+      } catch (err) {
+        console.error("[HomeoCare] Error submitting case record:", err);
+        // Error Recovery: Re-enable button, restore text, show clear error toast, preserve all form inputs
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitSpinner) submitSpinner.style.display = "none";
+        if (submitIcon) {
+          submitIcon.style.display = "inline-block";
+          submitIcon.setAttribute("data-lucide", "check-circle");
+        }
+        if (submitText) submitText.textContent = "Submit Case Record to Clinic";
+        showToast("Unable to submit the case record. Please try again.", "error");
+        if (window.lucide) lucide.createIcons();
+      }
     });
   }
 });

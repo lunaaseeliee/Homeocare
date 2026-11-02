@@ -105,7 +105,7 @@ const HOMEO_I18N = {
     // Navigation & Actions
     btnNext: "Continue →",
     btnBack: "← Back",
-    btnSubmit: "Submit Case Record",
+    btnSubmit: "Submit Case Record to Clinic",
     btnSaveDraft: "Save Case Record",
     btnReview: "Review Complete Record",
     btnCancel: "Cancel",

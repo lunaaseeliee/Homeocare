@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261102_v14">
+  <link rel="stylesheet" href="style.css?v=20261102_v19">
   <!-- Lucide Icons (Local bundle with CDN fallback) -->
   <script src="lucide.min.js"></script>
   <script>
@@ -66,7 +66,7 @@
           <i data-lucide="sun" class="icon-sun"></i>
           <i data-lucide="moon" class="icon-moon"></i>
         </div>
-        <span class="theme-text" id="authThemeTextLabel">Light Peach</span>
+        <span class="theme-text" id="authThemeTextLabel">Light Mode</span>
       </button>
     </div>
 
@@ -153,8 +153,8 @@
           <form class="auth-form" id="otpRequestForm" action="javascript:void(0);" onsubmit="event.preventDefault(); return false;">
             <div class="form-group">
               <label for="otpEmailInput">Authorized Clinic Email</label>
-              <div class="auth-input-wrapper">
-                <i data-lucide="mail" class="input-icon"></i>
+              <div class="auth-input-wrapper" style="position: relative; display: flex; align-items: center; width: 100%;">
+                <i data-lucide="mail" class="input-icon" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; pointer-events: none; z-index: 2;"></i>
                 <input
                   type="email"
                   id="otpEmailInput"
@@ -163,6 +163,7 @@
                   placeholder="homeocareadmin@gmail.com"
                   required
                   autocomplete="email"
+                  style="padding-left: 44px !important; padding-right: 14px !important;"
                 >
               </div>
               <span class="auth-field-hint">
@@ -285,7 +286,7 @@
         </div>
 
         <!-- Self Entry Form -->
-        <form id="selfEntryForm">
+        <form id="selfEntryForm" novalidate>
           <!-- STEP 1: Patient details & Complaints -->
           <div class="wizard-step-pane active" id="selfStep1">
             <h3 class="step-pane-heading" id="i18n-step1-head">Step 1: Patient Details & Chief Complaint</h3>
@@ -511,7 +512,8 @@
             <div class="wizard-nav-actions">
               <button type="button" class="secondary-btn-outline btn-prev-step" data-prev="4">← Back to Edit</button>
               <button type="submit" class="primary-btn-solid" id="selfSubmitBtn">
-                <i data-lucide="check-circle"></i>
+                <i data-lucide="check-circle" id="selfSubmitIcon"></i>
+                <span class="btn-spinner" id="selfSubmitSpinner" style="display: none;"></span>
                 <span id="i18n-btn-submit">Submit Case Record to Clinic</span>
               </button>
             </div>
@@ -669,7 +671,7 @@
               <i data-lucide="sun" class="icon-sun"></i>
               <i data-lucide="moon" class="icon-moon"></i>
             </div>
-            <span class="theme-text" id="themeTextLabel">Light Peach</span>
+            <span class="theme-text" id="themeTextLabel">Light Mode</span>
           </button>
         </div>
       </header>
@@ -1820,9 +1822,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Supabase Client Layer -->
-  <script src="supabase-client.js?v=20261102_v14"></script>
+  <script src="supabase-client.js?v=20261102_v16"></script>
   <!-- Application Logic -->
-  <script src="app.js?v=20261102_v14"></script>
+  <script src="app.js?v=20261102_v19"></script>
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {

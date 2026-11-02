@@ -8,7 +8,7 @@
  * 3. Handles network loss transparently without fabricating stored updates.
  */
 
-const CACHE_NAME = 'homeocare-v18-midnight-emerald-theme';
+const CACHE_NAME = 'homeocare-v20-email-input-fix';
 
 const STATIC_SHELL_ASSETS = [
   '/',
